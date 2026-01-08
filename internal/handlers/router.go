@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/dmytrosurovtsev/eckwmsgo/internal/database"
+	"github.com/dmytrosurovtsev/eckwmsgo/internal/middleware"
 	"github.com/gorilla/mux"
 )
 
@@ -28,9 +29,10 @@ func NewRouter(db *database.DB) *Router {
 
 	// API routes
 	api := r.PathPrefix("/api").Subrouter()
+	api.Use(middleware.AuthMiddleware)
 	api.HandleFunc("/status", r.getStatus).Methods("GET")
 
-	// Auth routes
+	// Auth routes (Public)
 	auth := r.PathPrefix("/auth").Subrouter()
 	auth.HandleFunc("/login", r.login).Methods("POST")
 	auth.HandleFunc("/register", r.register).Methods("POST")
@@ -38,6 +40,7 @@ func NewRouter(db *database.DB) *Router {
 
 	// RMA routes (protected)
 	rma := r.PathPrefix("/rma").Subrouter()
+	rma.Use(middleware.AuthMiddleware)
 	rma.HandleFunc("", r.listRMAs).Methods("GET")
 	rma.HandleFunc("", r.createRMA).Methods("POST")
 	rma.HandleFunc("/{id}", r.getRMA).Methods("GET")
@@ -46,12 +49,14 @@ func NewRouter(db *database.DB) *Router {
 
 	// Warehouse routes (protected)
 	warehouse := r.PathPrefix("/api/warehouse").Subrouter()
+	warehouse.Use(middleware.AuthMiddleware)
 	warehouse.HandleFunc("", r.listWarehouses).Methods("GET")
 	warehouse.HandleFunc("", r.createWarehouse).Methods("POST")
 	warehouse.HandleFunc("/{id}", r.getWarehouse).Methods("GET")
 
 	// Item routes (protected)
 	items := r.PathPrefix("/api/items").Subrouter()
+	items.Use(middleware.AuthMiddleware)
 	items.HandleFunc("", r.listItems).Methods("GET")
 	items.HandleFunc("", r.createItem).Methods("POST")
 	items.HandleFunc("/{id}", r.getItem).Methods("GET")
