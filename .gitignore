@@ -35,8 +35,8 @@ Thumbs.db
 logs/
 
 # Build artifacts
-dist/
-build/
+web/dist/
+web/build/
 
 # Dependencies
 vendor/
