@@ -8,20 +8,27 @@ import (
 
 	"github.com/dmytrosurovtsev/eckwmsgo/internal/database"
 	"github.com/dmytrosurovtsev/eckwmsgo/internal/middleware"
+	"github.com/dmytrosurovtsev/eckwmsgo/internal/websocket"
 	"github.com/gorilla/mux"
 )
 
 // Router wraps the mux router and database
 type Router struct {
 	*mux.Router
-	db *database.DB
+	db  *database.DB
+	hub *websocket.Hub
 }
 
 // NewRouter creates a new HTTP router with all routes
 func NewRouter(db *database.DB) *Router {
+	// Initialize WebSocket Hub
+	hub := websocket.NewHub()
+	go hub.Run()
+
 	r := &Router{
 		Router: mux.NewRouter(),
 		db:     db,
+		hub:    hub,
 	}
 
 	// Health check endpoint
@@ -60,6 +67,19 @@ func NewRouter(db *database.DB) *Router {
 	items.HandleFunc("", r.listItems).Methods("GET")
 	items.HandleFunc("", r.createItem).Methods("POST")
 	items.HandleFunc("/{id}", r.getItem).Methods("GET")
+
+	// Setup & Device routes (protected)
+	setup := r.PathPrefix("/api/internal").Subrouter()
+	setup.Use(middleware.AuthMiddleware)
+	setup.HandleFunc("/pairing-qr", r.generatePairingQR).Methods("GET")
+
+	// Public device registration (device calls this initially)
+	r.HandleFunc("/api/internal/register-device", r.registerDevice).Methods("POST")
+
+	// WebSocket endpoint
+	r.HandleFunc("/ws", func(w http.ResponseWriter, req *http.Request) {
+		websocket.ServeWs(hub, w, req)
+	})
 
 	// Static files - serve from ../eckwms/public
 	publicDir := os.Getenv("FRONTEND_DIR")

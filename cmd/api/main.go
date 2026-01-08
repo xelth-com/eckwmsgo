@@ -37,6 +37,7 @@ func main() {
 		&models.RmaRequest{},
 		&models.RepairOrder{},
 		&models.ProductAlias{},
+		&models.RegisteredDevice{},
 	)
 	if err != nil {
 		log.Printf("⚠️ Migration warning: %v\n", err)
