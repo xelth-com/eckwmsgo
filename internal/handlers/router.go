@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
-	"path/filepath"
+	"strings"
 
 	"github.com/dmytrosurovtsev/eckwmsgo/internal/database"
 	"github.com/dmytrosurovtsev/eckwmsgo/internal/middleware"
 	"github.com/dmytrosurovtsev/eckwmsgo/internal/websocket"
+	"github.com/dmytrosurovtsev/eckwmsgo/web"
 	"github.com/gorilla/mux"
 )
 
@@ -81,13 +82,34 @@ func NewRouter(db *database.DB) *Router {
 		websocket.ServeWs(hub, w, req)
 	})
 
-	// Static files - serve from ../eckwms/public
-	publicDir := os.Getenv("FRONTEND_DIR")
-	if publicDir == "" {
-		// Default: assume eckwms is in parent directory
-		publicDir = filepath.Join("..", "eckwms", "public")
+	// --- Static Files (Svelte Frontend) ---
+	// Get filesystem (embedded or disk)
+	assets, err := web.GetFileSystem()
+	if err != nil {
+		// Fallback if something is wrong with embed
+		publicDir := os.Getenv("FRONTEND_DIR")
+		if publicDir == "" {
+			publicDir = "web/dist" // Default for dev
+		}
+		assets = os.DirFS(publicDir)
 	}
-	r.PathPrefix("/").Handler(http.FileServer(http.Dir(publicDir)))
+
+	// SPA Handler: Serve index.html for unknown routes (so Svelte router works)
+	spaHandler := http.FileServer(http.FS(assets))
+
+	r.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		// If path looks like an API call or file extension, serve normally
+		path := req.URL.Path
+		if strings.HasPrefix(path, "/api") || strings.HasPrefix(path, "/auth") ||
+			strings.HasPrefix(path, "/ws") || strings.HasPrefix(path, "/health") ||
+			strings.HasPrefix(path, "/rma") || strings.Contains(path, ".") {
+			spaHandler.ServeHTTP(w, req)
+			return
+		}
+		// Otherwise serve index.html (SPA)
+		req.URL.Path = "/"
+		spaHandler.ServeHTTP(w, req)
+	})
 
 	return r
 }
