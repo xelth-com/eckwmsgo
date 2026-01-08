@@ -89,7 +89,7 @@ func NewRouter(db *database.DB) *Router {
 		// Fallback if something is wrong with embed
 		publicDir := os.Getenv("FRONTEND_DIR")
 		if publicDir == "" {
-			publicDir = "web/dist" // Default for dev
+			publicDir = "web/build" // Default for SvelteKit
 		}
 		assets = os.DirFS(publicDir)
 	}

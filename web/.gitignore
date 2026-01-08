@@ -1,4 +1,6 @@
-node_modules
-dist
+# web build artifacts
+build/
+.node_modules/
+.svelte-kit/
 .env
 .DS_Store
