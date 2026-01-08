@@ -6,6 +6,8 @@ Go backend для ECKWMS (E-Commerce Warehouse Management System). Перепи�
 - **Database**: Hybrid mode (Embedded/External PostgreSQL) with Auto-migrations
 - **Authentication**: JWT-based auth with Bcrypt password hashing
 - **Testing**: Unit tests for authentication logic
+- **WebSocket**: Real-time device communication with Hub pattern
+- **Device Pairing**: Ed25519 cryptographic registration with QR codes
 - **API**: RESTful endpoints for RMA and Warehouse management
 
 ## Структура проекта
@@ -127,6 +129,11 @@ go build -o eckwmsgo.exe ./cmd/api
 - `POST /auth/register` - Регистрация
 - `POST /auth/logout` - Выход
 
+### WebSocket & Device Pairing
+- `GET /ws` - WebSocket connection
+- `GET /api/internal/pairing-qr` - Pairing QR code image (protected)
+- `POST /api/internal/register-device` - Register device with Ed25519 signature
+
 ### RMA Management
 - `GET /rma` - Список всех RMA
 - `POST /rma` - Создать RMA
@@ -190,9 +197,7 @@ GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o eckwmsgo ./cmd/api
 ### TODO / Не мигрировано 🚧
 - [ ] Сессии
 - [ ] i18n/переводы
-- [ ] WebSocket поддержка
 - [ ] PDF генерация
-- [ ] QR коды
 - [ ] Google OAuth
 - [ ] AI/LLM сервисы
 - [ ] Интеграции с логистикой
@@ -229,11 +234,13 @@ cd eckwmsgo
 - `gorm.io/gorm` - ORM для PostgreSQL
 - `gorm.io/driver/postgres` - PostgreSQL драйвер
 - `github.com/gorilla/mux` - HTTP роутер
+- `github.com/gorilla/websocket` - WebSocket
 - `github.com/joho/godotenv` - .env loader
 - `gorm.io/datatypes` - JSON и другие типы данных
 - `github.com/golang-jwt/jwt/v5` - JWT токены
 - `golang.org/x/crypto/bcrypt` - Хеширование паролей
 - `github.com/fergusstrange/embedded-postgres` - Embedded PostgreSQL для dev
+- `github.com/skip2/go-qrcode` - QR коды
 
 ## Troubleshooting
 
