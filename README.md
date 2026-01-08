@@ -2,6 +2,12 @@
 
 Go backend для ECKWMS (E-Commerce Warehouse Management System). Переписанный с Node.js на Go для улучшения производительности и надежности.
 
+## Implemented Features
+- **Database**: Hybrid mode (Embedded/External PostgreSQL) with Auto-migrations
+- **Authentication**: JWT-based auth with Bcrypt password hashing
+- **Testing**: Unit tests for authentication logic
+- **API**: RESTful endpoints for RMA and Warehouse management
+
 ## Структура проекта
 
 ```
