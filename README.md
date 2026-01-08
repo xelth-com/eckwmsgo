@@ -177,11 +177,11 @@ GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o eckwmsgo ./cmd/api
 - ✅ Конфигурация (.env)
 - ✅ CRUD endpoints для RMA, Warehouse, Items
 - ✅ Статический файловый сервер
+- ✅ JWT аутентификация ( генерация/валидация токенов)
+- ✅ Bcrypt для паролей
+- ✅ Authorization middleware (JWT Bearer)
 
 ### TODO / Не мигрировано 🚧
-- [ ] JWT аутентификация (генерация/валидация токенов)
-- [ ] Bcrypt для паролей
-- [ ] Authorization middleware (RBAC)
 - [ ] Сессии
 - [ ] i18n/переводы
 - [ ] WebSocket поддержка
@@ -225,6 +225,9 @@ cd eckwmsgo
 - `github.com/gorilla/mux` - HTTP роутер
 - `github.com/joho/godotenv` - .env loader
 - `gorm.io/datatypes` - JSON и другие типы данных
+- `github.com/golang-jwt/jwt/v5` - JWT токены
+- `golang.org/x/crypto/bcrypt` - Хеширование паролей
+- `github.com/fergusstrange/embedded-postgres` - Embedded PostgreSQL для dev
 
 ## Troubleshooting
 
