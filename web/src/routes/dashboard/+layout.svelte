@@ -73,6 +73,9 @@
             <a href="/dashboard/warehouse" class:active={$page.url.pathname.includes('/warehouse')}>
                 Warehouse
             </a>
+            <a href="/dashboard/rma" class:active={$page.url.pathname.includes('/rma')}>
+                RMA Requests
+            </a>
         </nav>
 
         <div class="user-panel">
