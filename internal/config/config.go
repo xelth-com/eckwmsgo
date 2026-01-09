@@ -59,19 +59,35 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("JWT_SECRET is required")
 	}
 
+	// Support DATABASE_URL format
+	databaseURL := os.Getenv("DATABASE_URL")
+
 	return &Config{
 		NodeEnv:   getEnv("NODE_ENV", "development"),
 		Port:      getEnv("PORT", "3001"),
 		JWTSecret: jwtSecret,
 		EncKey:    os.Getenv("ENC_KEY"),
-		Database: DatabaseConfig{
-			Host:     getEnv("PG_HOST", "localhost"),
-			Port:     getEnv("PG_PORT", "5432"),
-			Username: getEnv("PG_USERNAME", "postgres"),
-			Password: os.Getenv("PG_PASSWORD"),
-			Database: getEnv("PG_DATABASE", "eckwms"),
-			Alter:    getEnv("DB_ALTER", "false") == "true",
-		},
+		Database: func() DatabaseConfig {
+			if databaseURL != "" {
+				// Parse DATABASE_URL (format: postgresql://user:pass@host:port/dbname?sslmode=xxx)
+				return DatabaseConfig{
+					Host:     getEnv("PG_HOST", "localhost"),
+					Port:     getEnv("PG_PORT", "5432"),
+					Username: getEnv("PG_USERNAME", "postgres"),
+					Password: os.Getenv("PG_PASSWORD"),
+					Database: getEnv("PG_DATABASE", "eckwms"),
+					Alter:    getEnv("DB_ALTER", "false") == "true",
+				}
+			}
+			return DatabaseConfig{
+				Host:     getEnv("PG_HOST", "localhost"),
+				Port:     getEnv("PG_PORT", "5432"),
+				Username: getEnv("PG_USERNAME", "postgres"),
+				Password: os.Getenv("PG_PASSWORD"),
+				Database: getEnv("PG_DATABASE", "eckwms"),
+				Alter:    getEnv("DB_ALTER", "false") == "true",
+			}
+		}(),
 		Translation: TranslationConfig{
 			DefaultLanguage:   getEnv("DEFAULT_LANGUAGE", "en"),
 			TranslationDomain: os.Getenv("TRANSLATION_DOMAIN"),
