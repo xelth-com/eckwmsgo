@@ -23,7 +23,10 @@ func Connect(cfg config.DatabaseConfig) (*DB, error) {
 	var embedded *embeddedpostgres.EmbeddedPostgres
 
 	// Logic for Embedded Mode: Localhost and No Password
-	if cfg.Host == "localhost" && cfg.Password == "" {
+	isEmbedded := cfg.Host == "localhost" && cfg.Password == ""
+
+	var embeddedPassword string
+	if isEmbedded {
 		log.Println("📦 Mode: [Embedded PostgreSQL] - Initializing internal database...")
 
 		// Setup embedded configuration
@@ -31,7 +34,8 @@ func Connect(cfg config.DatabaseConfig) (*DB, error) {
 			DataPath("./db_data"). // Persistent data folder in the app directory
 			Port(5433).            // Use custom port for embedded mode
 			Database(cfg.Database).
-			Username(cfg.Username)
+			Username(cfg.Username).
+			Password("postgres") // Set password for embedded user
 
 		embedded = embeddedpostgres.NewDatabase(embeddedCfg)
 
@@ -41,9 +45,11 @@ func Connect(cfg config.DatabaseConfig) (*DB, error) {
 
 		// Update connection parameters to point to the embedded instance
 		cfg.Port = "5433"
+		embeddedPassword = "postgres"
 		log.Println("✅ Embedded PostgreSQL process started on port 5433")
 	} else {
 		log.Printf("🌐 Mode: [External PostgreSQL] - Connecting to %s:%s\n", cfg.Host, cfg.Port)
+		embeddedPassword = cfg.Password
 	}
 
 	dsn := fmt.Sprintf(
@@ -51,7 +57,7 @@ func Connect(cfg config.DatabaseConfig) (*DB, error) {
 		cfg.Host,
 		cfg.Port,
 		cfg.Username,
-		cfg.Password,
+		embeddedPassword,
 		cfg.Database,
 	)
 

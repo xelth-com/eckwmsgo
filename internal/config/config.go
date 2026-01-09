@@ -61,7 +61,7 @@ func Load() (*Config, error) {
 
 	return &Config{
 		NodeEnv:   getEnv("NODE_ENV", "development"),
-		Port:      getEnv("PORT", "3000"),
+		Port:      getEnv("PORT", "3001"),
 		JWTSecret: jwtSecret,
 		EncKey:    os.Getenv("ENC_KEY"),
 		Database: DatabaseConfig{
