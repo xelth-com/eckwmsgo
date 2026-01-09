@@ -1,42 +1,46 @@
 <script>
-	let count = $state(0);
+    import { onMount } from 'svelte';
+    import { goto } from '$app/navigation';
+    import { authStore } from '$lib/stores/authStore';
 
-	function increment() {
-		count += 1;
-	}
+    onMount(() => {
+        const unsubscribe = authStore.subscribe(state => {
+            if (!state.isLoading) {
+                if (state.isAuthenticated) {
+                    goto('/dashboard');
+                } else {
+                    goto('/login');
+                }
+            }
+        });
+        return unsubscribe;
+    });
 </script>
 
-<main>
-	<h1>ECKWMS</h1>
-	<p>SvelteKit SPA + Go Backend</p>
-
-	<button onclick={increment}>
-		Count is {count}
-	</button>
-</main>
+<div class="loading-screen">
+    <div class="spinner"></div>
+    <p>Loading eckWMS...</p>
+</div>
 
 <style>
-	main {
-		text-align: center;
-		padding: 2rem;
-		font-family: system-ui, sans-serif;
-	}
-
-	h1 {
-		color: #646cff;
-	}
-
-	button {
-		padding: 0.5rem 1rem;
-		font-size: 1rem;
-		cursor: pointer;
-		background: #646cff;
-		color: white;
-		border: none;
-		border-radius: 4px;
-	}
-
-	button:hover {
-		background: #535bf2;
-	}
+    .loading-screen {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background-color: var(--bg-color);
+    }
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid rgba(255,255,255,0.1);
+        border-left-color: var(--accent-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 1rem;
+    }
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
 </style>
