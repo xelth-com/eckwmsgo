@@ -114,31 +114,3 @@ func (r *Router) deleteOrder(w http.ResponseWriter, req *http.Request) {
 		"message": "Order deleted successfully",
 	})
 }
-
-// Legacy RMA endpoints (redirect to orders)
-func (r *Router) listRMAs(w http.ResponseWriter, req *http.Request) {
-	req.URL.Query().Set("type", "rma")
-	r.listOrders(w, req)
-}
-
-func (r *Router) getRMA(w http.ResponseWriter, req *http.Request) {
-	r.getOrder(w, req)
-}
-
-func (r *Router) createRMA(w http.ResponseWriter, req *http.Request) {
-	var input map[string]interface{}
-	if err := json.NewDecoder(req.Body).Decode(&input); err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid request payload")
-		return
-	}
-	input["order_type"] = "rma"
-	r.createOrder(w, req)
-}
-
-func (r *Router) updateRMA(w http.ResponseWriter, req *http.Request) {
-	r.updateOrder(w, req)
-}
-
-func (r *Router) deleteRMA(w http.ResponseWriter, req *http.Request) {
-	r.deleteOrder(w, req)
-}
