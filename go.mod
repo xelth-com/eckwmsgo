@@ -1,6 +1,6 @@
 module github.com/dmytrosurovtsev/eckwmsgo
 
-go 1.25.5
+go 1.21
 
 require (
 	github.com/dmytrosurovtsev/eckwmsgo/web v0.0.0-00010101000000-000000000000
