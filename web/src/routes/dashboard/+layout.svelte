@@ -1,21 +1,56 @@
 <script>
     import { authStore } from '$lib/stores/authStore';
+    import { wsStore } from '$lib/stores/wsStore';
+    import { toastStore } from '$lib/stores/toastStore';
+    import ToastContainer from '$lib/components/ToastContainer.svelte';
     import { goto } from '$app/navigation';
-    import { onMount } from 'svelte';
+    import { onMount, onDestroy } from 'svelte';
     import { page } from '$app/stores';
 
     onMount(() => {
-        const unsubscribe = authStore.subscribe(state => {
+        // 1. Auth Guard
+        const unsubscribeAuth = authStore.subscribe(state => {
             if (!state.isLoading && !state.isAuthenticated) {
                 goto('/login');
             }
         });
-        return unsubscribe;
+
+        // 2. Init WebSocket
+        wsStore.connect();
+
+        return () => {
+            unsubscribeAuth();
+        };
+    });
+
+    onDestroy(() => {
+        // Don't close WS on destroy of layout if navigating within dashboard,
+        // but fine for now as +layout is persistent.
     });
 
     function handleLogout() {
         authStore.logout();
+        wsStore.close();
         goto('/login');
+    }
+
+    // Reactive listener for WebSocket messages
+    $: if ($wsStore.lastMessage) {
+        handleWsMessage($wsStore.lastMessage);
+    }
+
+    function handleWsMessage(msg) {
+        // Prevent processing if message is too old (basic check)
+        if (Date.now() - (msg._receivedAt || 0) > 1000) return;
+
+        if (msg.success && msg.data) {
+             // Example: Scan success
+             toastStore.add(`Scanned: ${msg.data.barcode || 'Unknown'}`, 'success');
+        } else if (msg.type === 'ERROR' || msg.error) {
+             toastStore.add(msg.text || msg.error || 'Error occurred', 'error');
+        } else if (msg.text) {
+             toastStore.add(msg.text, 'info');
+        }
     }
 </script>
 
@@ -23,6 +58,9 @@
     <aside class="sidebar">
         <div class="brand">
             <span class="brand-text">eckWMS</span>
+            <div class="connection-status" class:connected={$wsStore.connected}>
+                {$wsStore.connected ? 'ONLINE' : 'OFFLINE'}
+            </div>
         </div>
 
         <nav>
@@ -49,6 +87,8 @@
     <main class="content">
         <slot />
     </main>
+
+    <ToastContainer />
 </div>
 
 <style>
@@ -70,6 +110,10 @@
     .brand {
         padding: 1rem 0 2rem 0;
         text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
     }
 
     .brand-text {
@@ -77,6 +121,20 @@
         font-weight: 800;
         color: #4a69bd;
         letter-spacing: 1px;
+    }
+
+    .connection-status {
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: #333;
+        color: #666;
+    }
+
+    .connection-status.connected {
+        background: rgba(40, 167, 69, 0.2);
+        color: #28a745;
     }
 
     nav {
