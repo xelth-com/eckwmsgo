@@ -110,6 +110,9 @@
             <a href="/dashboard/rma" class:active={$page.url.pathname.includes('/rma')}>
                 RMA Requests
             </a>
+            <a href="/dashboard/print" class:active={$page.url.pathname.includes('/print')}>
+                Printing
+            </a>
         </nav>
 
         <div class="user-panel">

@@ -1,14 +1,16 @@
 module github.com/dmytrosurovtsev/eckwmsgo
 
-go 1.21
+go 1.24.0
 
 require (
 	github.com/dmytrosurovtsev/eckwmsgo/web v0.0.0-00010101000000-000000000000
 	github.com/fergusstrange/embedded-postgres v1.33.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
+	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/websocket v1.5.3
 	github.com/joho/godotenv v1.5.1
+	github.com/jung-kurt/gofpdf v1.16.2
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	golang.org/x/crypto v0.46.0
 	gorm.io/datatypes v1.2.7
@@ -19,7 +21,6 @@ require (
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/go-sql-driver/mysql v1.9.3 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/pgx/v5 v5.8.0 // indirect

@@ -20,3 +20,9 @@ When the task is complete:
 2.  Fix the bugs / Implement the feature.
 3.  Verify functionality (Run tests!).
 4.  **Loop:** If verification fails, fix it immediately. Do not ask for permission.
+
+
+## 🔐 Access & Credentials
+The following confidential files are available locally but excluded from snapshots/tree:
+- `.eck/SERVER_ACCESS.md`
+> **Note:** Read these files only when strictly necessary.

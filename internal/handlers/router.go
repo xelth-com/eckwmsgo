@@ -82,6 +82,11 @@ func NewRouter(db *database.DB) *Router {
 	setup.Use(middleware.AuthMiddleware)
 	setup.HandleFunc("/pairing-qr", r.generatePairingQR).Methods("GET")
 
+	// Print routes (protected)
+	print := r.PathPrefix("/api/print").Subrouter()
+	print.Use(middleware.AuthMiddleware)
+	print.HandleFunc("/labels", r.generateLabels).Methods("POST")
+
 	// Public device registration (device calls this initially)
 	r.HandleFunc("/api/internal/register-device", r.registerDevice).Methods("POST")
 
