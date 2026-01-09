@@ -6,6 +6,7 @@
 <div class="toast-container">
     {#each $toastStore as toast (toast.id)}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
         <div
             class="toast {toast.type}"
             in:fly="{{ y: 20, duration: 300 }}"
