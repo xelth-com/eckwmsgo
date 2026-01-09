@@ -34,8 +34,7 @@ func main() {
 		&models.Place{},
 		&models.Item{},
 		&models.Box{},
-		&models.RmaRequest{},
-		&models.RepairOrder{},
+		&models.Order{},
 		&models.ProductAlias{},
 		&models.RegisteredDevice{},
 	)

@@ -46,7 +46,7 @@ func NewRouter(db *database.DB) *Router {
 	auth.HandleFunc("/register", r.register).Methods("POST")
 	auth.HandleFunc("/logout", r.logout).Methods("POST")
 
-	// RMA routes (protected)
+	// RMA routes (protected) - Legacy, redirects to orders
 	rma := r.PathPrefix("/rma").Subrouter()
 	rma.Use(middleware.AuthMiddleware)
 	rma.HandleFunc("", r.listRMAs).Methods("GET")
@@ -54,6 +54,15 @@ func NewRouter(db *database.DB) *Router {
 	rma.HandleFunc("/{id}", r.getRMA).Methods("GET")
 	rma.HandleFunc("/{id}", r.updateRMA).Methods("PUT")
 	rma.HandleFunc("/{id}", r.deleteRMA).Methods("DELETE")
+
+	// Orders routes (protected) - Unified order table
+	orders := r.PathPrefix("/api/orders").Subrouter()
+	orders.Use(middleware.AuthMiddleware)
+	orders.HandleFunc("", r.listOrders).Methods("GET")
+	orders.HandleFunc("", r.createOrder).Methods("POST")
+	orders.HandleFunc("/{id}", r.getOrder).Methods("GET")
+	orders.HandleFunc("/{id}", r.updateOrder).Methods("PUT")
+	orders.HandleFunc("/{id}", r.deleteOrder).Methods("DELETE")
 
 	// Warehouse routes (protected)
 	warehouse := r.PathPrefix("/api/warehouse").Subrouter()
@@ -115,7 +124,8 @@ func NewRouter(db *database.DB) *Router {
 		path := req.URL.Path
 		if strings.HasPrefix(path, "/api") || strings.HasPrefix(path, "/auth") ||
 			strings.HasPrefix(path, "/ws") || strings.HasPrefix(path, "/health") ||
-			strings.HasPrefix(path, "/rma") || strings.Contains(path, ".") {
+			strings.HasPrefix(path, "/rma") || strings.HasPrefix(path, "/orders") ||
+			strings.Contains(path, ".") {
 			spaHandler.ServeHTTP(w, req)
 			return
 		}
