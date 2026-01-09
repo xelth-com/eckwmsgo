@@ -68,6 +68,14 @@ func NewRouter(db *database.DB) *Router {
 	items.HandleFunc("", r.listItems).Methods("GET")
 	items.HandleFunc("", r.createItem).Methods("POST")
 	items.HandleFunc("/{id}", r.getItem).Methods("GET")
+	items.HandleFunc("/{id}", r.updateItem).Methods("PUT")
+
+	// Rack routes (protected) - Nested under warehouse API usually, but flat here for simplicity
+	racks := r.PathPrefix("/api/warehouse/racks").Subrouter()
+	racks.Use(middleware.AuthMiddleware)
+	racks.HandleFunc("", r.createRack).Methods("POST")
+	racks.HandleFunc("/{id}", r.updateRack).Methods("PUT")
+	racks.HandleFunc("/{id}", r.deleteRack).Methods("DELETE")
 
 	// Setup & Device routes (protected)
 	setup := r.PathPrefix("/api/internal").Subrouter()

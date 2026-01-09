@@ -98,3 +98,92 @@ func (r *Router) createItem(w http.ResponseWriter, req *http.Request) {
 
 	respondJSON(w, http.StatusCreated, item)
 }
+
+// updateItem updates an existing item
+func (r *Router) updateItem(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	id, err := strconv.ParseUint(vars["id"], 10, 32)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid item ID")
+		return
+	}
+
+	var item models.Item
+	if err := r.db.First(&item, id).Error; err != nil {
+		respondError(w, http.StatusNotFound, "Item not found")
+		return
+	}
+
+	if err := json.NewDecoder(req.Body).Decode(&item); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	if err := r.db.Save(&item).Error; err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to update item")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, item)
+}
+
+// createRack creates a new rack
+func (r *Router) createRack(w http.ResponseWriter, req *http.Request) {
+	var rack models.WarehouseRack
+	if err := json.NewDecoder(req.Body).Decode(&rack); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	if err := r.db.Create(&rack).Error; err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to create rack")
+		return
+	}
+
+	respondJSON(w, http.StatusCreated, rack)
+}
+
+// updateRack updates a rack
+func (r *Router) updateRack(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	id, err := strconv.ParseUint(vars["id"], 10, 32)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid rack ID")
+		return
+	}
+
+	var rack models.WarehouseRack
+	if err := r.db.First(&rack, id).Error; err != nil {
+		respondError(w, http.StatusNotFound, "Rack not found")
+		return
+	}
+
+	if err := json.NewDecoder(req.Body).Decode(&rack); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	if err := r.db.Save(&rack).Error; err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to update rack")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, rack)
+}
+
+// deleteRack deletes a rack
+func (r *Router) deleteRack(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	id, err := strconv.ParseUint(vars["id"], 10, 32)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid rack ID")
+		return
+	}
+
+	if err := r.db.Delete(&models.WarehouseRack{}, id).Error; err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to delete rack")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]string{"message": "Rack deleted"})
+}
