@@ -41,15 +41,49 @@
 
     function handleWsMessage(msg) {
         // Prevent processing if message is too old (basic check)
-        if (Date.now() - (msg._receivedAt || 0) > 1000) return;
+        if (Date.now() - (msg._receivedAt || 0) > 2000) return;
+
+        // Handle Scan Events
+        if (msg.barcode || (msg.data && msg.data.barcode)) {
+             const barcode = msg.barcode || msg.data.barcode;
+             processScan(barcode);
+             return;
+        }
 
         if (msg.success && msg.data) {
-             // Example: Scan success
-             toastStore.add(`Scanned: ${msg.data.barcode || 'Unknown'}`, 'success');
+             toastStore.add(`Operation Success`, 'success');
         } else if (msg.type === 'ERROR' || msg.error) {
              toastStore.add(msg.text || msg.error || 'Error occurred', 'error');
         } else if (msg.text) {
              toastStore.add(msg.text, 'info');
+        }
+    }
+
+    function processScan(barcode) {
+        // Play sound (optional, browser policy might block)
+        // const audio = new Audio('/beep.mp3'); audio.play().catch(e=>{});
+
+        toastStore.add(`Scanned: ${barcode}`, 'info');
+
+        // Logic routing based on barcode prefix
+        if (barcode.startsWith('i')) {
+            // Item Scan
+            // Remove 'i' prefix logic? Usually ID is full string 'i7...'
+            goto(`/dashboard/items/${barcode}`);
+        } else if (barcode.startsWith('RMA')) {
+            // RMA Scan - Find by RMA number
+            // We might need an API lookup first, but for now assuming direct link or search
+            // If backend supports finding by code, we can redirect.
+            // For now, let's just go to list and toast, or search page if we had one.
+            toastStore.add(`RMA Scanned: ${barcode}`, 'success');
+            // goto('/dashboard/rma?search=' + barcode); // Future improvement
+        } else if (barcode.startsWith('b')) {
+            // Box Scan
+            toastStore.add(`Box Scanned: ${barcode}`, 'info');
+            // goto(`/dashboard/boxes/${barcode}`);
+        } else {
+            // Unknown
+            toastStore.add(`Unknown barcode type: ${barcode}`, 'warning');
         }
     }
 </script>

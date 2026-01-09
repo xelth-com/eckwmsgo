@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
 
@@ -89,8 +90,8 @@ func (c *Client) readPump() {
 			}
 		}
 
-		// TODO: Pass other messages to ScanHandler/Business Logic
-		log.Printf("WS Recv: %s", string(message))
+		// Broadcast other messages (like SCAN) to all connected clients (Admin UI)
+		c.hub.broadcast <- message
 	}
 }
 
@@ -147,9 +148,12 @@ func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256)}
+	// Generate temporary ID for web clients until they identify or just stay anonymous listeners
+	clientID := "web_" + uuid.New().String()
+	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256), DeviceID: clientID}
+	// Register immediately for Web Clients to receive broadcasts
+	client.hub.register <- client
 
-	// Allow connection, registration happens via message later
 	go client.writePump()
 	go client.readPump()
 }

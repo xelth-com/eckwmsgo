@@ -17,6 +17,9 @@ type Hub struct {
 	// Unregister requests
 	unregister chan *Client
 
+	// Inbound messages from the clients to be broadcasted
+	broadcast chan []byte
+
 	// Mutex for thread-safe access to clients map
 	mu sync.RWMutex
 }
@@ -27,6 +30,7 @@ func NewHub() *Hub {
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		clients:    make(map[string]*Client),
+		broadcast:  make(chan []byte),
 	}
 }
 
@@ -57,6 +61,18 @@ func (h *Hub) Run() {
 				}
 			}
 			h.mu.Unlock()
+
+		case message := <-h.broadcast:
+			h.mu.RLock()
+			for _, client := range h.clients {
+				select {
+				case client.send <- message:
+				default:
+					close(client.send)
+					delete(h.clients, client.DeviceID)
+				}
+			}
+			h.mu.RUnlock()
 		}
 	}
 }
