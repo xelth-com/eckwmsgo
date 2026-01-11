@@ -50,3 +50,4 @@ db_data/
 # Git push scripts with tokens (DO NOT COMMIT!)
 git_push.bat
 git_push.sh
+bin/
