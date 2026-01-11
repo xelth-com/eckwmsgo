@@ -37,6 +37,12 @@ func main() {
 		&models.Order{},
 		&models.ProductAlias{},
 		&models.RegisteredDevice{},
+		// Sync tables
+		&models.EntityChecksum{},
+		&models.SyncMetadata{},
+		&models.SyncConflict{},
+		&models.SyncQueue{},
+		&models.SyncRoute{},
 	)
 	if err != nil {
 		log.Printf("⚠️ Migration warning: %v\n", err)
