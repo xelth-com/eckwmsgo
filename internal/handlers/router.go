@@ -90,6 +90,28 @@ func NewRouter(db *database.DB) *Router {
 	// Public device registration (device calls this initially)
 	r.HandleFunc("/api/internal/register-device", r.registerDevice).Methods("POST")
 
+	// ==========================================
+	// AI AGENT API ENDPOINTS
+	// ==========================================
+
+	// AI Agent routes (protected with AI auth middleware)
+	aiAgent := r.PathPrefix("/api/ai").Subrouter()
+	aiAgent.Use(middleware.AIAuthMiddleware(db))
+	aiAgent.HandleFunc("/execute", r.executeAIFunction).Methods("POST")
+	aiAgent.HandleFunc("/functions", r.listAIFunctions).Methods("GET")
+	aiAgent.HandleFunc("/status", r.getAIAgentStatus).Methods("GET")
+	aiAgent.HandleFunc("/permissions", r.getAIAgentPermissions).Methods("GET")
+
+	// AI Admin routes (protected with regular user auth - admin only)
+	aiAdmin := r.PathPrefix("/api/admin/ai").Subrouter()
+	aiAdmin.Use(middleware.AuthMiddleware)
+	aiAdmin.HandleFunc("/agents", r.listAIAgents).Methods("GET")
+	aiAdmin.HandleFunc("/agents", r.createAIAgent).Methods("POST")
+	aiAdmin.HandleFunc("/agents/{agent_id}/status", r.updateAIAgentStatus).Methods("PUT")
+	aiAdmin.HandleFunc("/agents/{agent_id}/permissions", r.grantAIPermission).Methods("POST")
+	aiAdmin.HandleFunc("/agents/{agent_id}/permissions", r.revokeAIPermission).Methods("DELETE")
+	aiAdmin.HandleFunc("/agents/{agent_id}/audit", r.getAIAuditLogs).Methods("GET")
+
 	// WebSocket endpoint
 	r.HandleFunc("/ws", func(w http.ResponseWriter, req *http.Request) {
 		websocket.ServeWs(hub, w, req)

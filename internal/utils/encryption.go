@@ -212,3 +212,92 @@ func EckCRCFromString(value string) string {
 	temp := crc32.ChecksumIEEE([]byte(value)) & 1023
 	return string(Base32Chars[temp>>5]) + string(Base32Chars[temp&31])
 }
+
+// EncryptString encrypts a string using AES-192-GCM and returns hex-encoded result
+func EncryptString(plaintext string) (string, error) {
+	encKeyHex := os.Getenv("ENC_KEY")
+	if encKeyHex == "" {
+		return "", errors.New("ENC_KEY environment variable not set")
+	}
+
+	key, err := hex.DecodeString(encKeyHex)
+	if err != nil {
+		return "", errors.New("invalid ENC_KEY format")
+	}
+
+	// AES-192 requires 24-byte key
+	if len(key) != 24 {
+		return "", errors.New("ENC_KEY must be 24 bytes (48 hex chars) for AES-192")
+	}
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+
+	aesGCM, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", err
+	}
+
+	// Generate random nonce
+	nonce := make([]byte, aesGCM.NonceSize())
+	if _, err = rand.Read(nonce); err != nil {
+		return "", err
+	}
+
+	// Encrypt and prepend nonce
+	ciphertext := aesGCM.Seal(nonce, nonce, []byte(plaintext), nil)
+
+	// Return as hex string
+	return hex.EncodeToString(ciphertext), nil
+}
+
+// DecryptString decrypts a hex-encoded encrypted string
+func DecryptString(encryptedHex string) (string, error) {
+	encKeyHex := os.Getenv("ENC_KEY")
+	if encKeyHex == "" {
+		return "", errors.New("ENC_KEY environment variable not set")
+	}
+
+	key, err := hex.DecodeString(encKeyHex)
+	if err != nil {
+		return "", errors.New("invalid ENC_KEY format")
+	}
+
+	if len(key) != 24 {
+		return "", errors.New("ENC_KEY must be 24 bytes for AES-192")
+	}
+
+	// Decode from hex
+	ciphertext, err := hex.DecodeString(encryptedHex)
+	if err != nil {
+		return "", errors.New("invalid encrypted data format")
+	}
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+
+	aesGCM, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", err
+	}
+
+	nonceSize := aesGCM.NonceSize()
+	if len(ciphertext) < nonceSize {
+		return "", errors.New("ciphertext too short")
+	}
+
+	// Extract nonce and ciphertext
+	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
+
+	// Decrypt
+	plaintext, err := aesGCM.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		return "", errors.New("decryption failed")
+	}
+
+	return string(plaintext), nil
+}

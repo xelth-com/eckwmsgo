@@ -72,3 +72,28 @@ func ValidateToken(tokenString string, secret string) (jwt.MapClaims, error) {
 
 	return nil, errors.New("invalid token")
 }
+
+// GenerateAIAgentToken generates a JWT token for an AI agent
+func GenerateAIAgentToken(agentID, name, accessTier string) (string, error) {
+	cfg, err := config.Load()
+	if err != nil {
+		return "", err
+	}
+
+	// AI Agent Token Claims (longer expiration than user tokens)
+	claims := jwt.MapClaims{
+		"agent_id":    agentID,
+		"name":        name,
+		"access_tier": accessTier,
+		"type":        "ai_agent",
+		"exp":         time.Now().Add(time.Hour * 24 * 365).Unix(), // 1 year expiration
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString([]byte(cfg.JWTSecret))
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
+}

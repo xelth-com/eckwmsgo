@@ -43,6 +43,11 @@ func main() {
 		&models.SyncConflict{},
 		&models.SyncQueue{},
 		&models.SyncRoute{},
+		// AI System Models
+		&models.AIAgent{},
+		&models.AIPermission{},
+		&models.AIAuditLog{},
+		&models.AIRateLimit{},
 	)
 	if err != nil {
 		log.Printf("⚠️ Migration warning: %v\n", err)
