@@ -17,6 +17,16 @@ type Warehouse struct {
 	UpdatedAt   time.Time      `json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
 
+	// Sync metadata
+	SyncVersion      int64  `gorm:"default:1" json:"sync_version"`
+	VectorClock      JSONB  `gorm:"type:jsonb;default:'{}'" json:"vector_clock"`
+	SourceInstance   string `gorm:"type:varchar(255)" json:"source_instance"`
+	SourceDevice     *string `gorm:"type:varchar(255)" json:"source_device,omitempty"`
+	SourcePriority   int    `gorm:"default:40" json:"source_priority"`
+	ContentHash      string `gorm:"type:varchar(64)" json:"content_hash"`
+	HierarchyHash    string `gorm:"type:varchar(64)" json:"hierarchy_hash"`
+	SyncedAt         *time.Time `json:"synced_at,omitempty"`
+
 	// Relations
 	Racks       []WarehouseRack `gorm:"foreignKey:WarehouseID" json:"racks,omitempty"`
 }
@@ -40,6 +50,16 @@ type WarehouseRack struct {
 	UpdatedAt   time.Time      `json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
 
+	// Sync metadata
+	SyncVersion      int64  `gorm:"default:1" json:"sync_version"`
+	VectorClock      JSONB  `gorm:"type:jsonb;default:'{}'" json:"vector_clock"`
+	SourceInstance   string `gorm:"type:varchar(255)" json:"source_instance"`
+	SourceDevice     *string `gorm:"type:varchar(255)" json:"source_device,omitempty"`
+	SourcePriority   int    `gorm:"default:40" json:"source_priority"`
+	ContentHash      string `gorm:"type:varchar(64)" json:"content_hash"`
+	HierarchyHash    string `gorm:"type:varchar(64)" json:"hierarchy_hash"`
+	SyncedAt         *time.Time `json:"synced_at,omitempty"`
+
 	// Relations
 	Warehouse   Warehouse      `gorm:"foreignKey:WarehouseID" json:"warehouse,omitempty"`
 	Places      []Place        `gorm:"foreignKey:RackID" json:"places,omitempty"`
@@ -58,10 +78,21 @@ type Place struct {
 	Row         int            `json:"row"`
 	Column      int            `json:"column"`
 	Barcode     string         `gorm:"unique" json:"barcode"`
+	Position    string         `json:"position"`
 	IsOccupied  bool           `gorm:"default:false" json:"is_occupied"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+
+	// Sync metadata
+	SyncVersion      int64  `gorm:"default:1" json:"sync_version"`
+	VectorClock      JSONB  `gorm:"type:jsonb;default:'{}'" json:"vector_clock"`
+	SourceInstance   string `gorm:"type:varchar(255)" json:"source_instance"`
+	SourceDevice     *string `gorm:"type:varchar(255)" json:"source_device,omitempty"`
+	SourcePriority   int    `gorm:"default:40" json:"source_priority"`
+	ContentHash      string `gorm:"type:varchar(64)" json:"content_hash"`
+	HierarchyHash    string `gorm:"type:varchar(64)" json:"hierarchy_hash"`
+	SyncedAt         *time.Time `json:"synced_at,omitempty"`
 
 	// Relations
 	Rack        WarehouseRack  `gorm:"foreignKey:RackID" json:"rack,omitempty"`

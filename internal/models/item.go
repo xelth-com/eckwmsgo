@@ -20,10 +20,20 @@ type Item struct {
 	MinStock    int            `gorm:"default:0" json:"min_stock"`
 	MaxStock    int            `json:"max_stock"`
 	UnitPrice   float64        `json:"unit_price"`
+	Status      string         `gorm:"type:varchar(50);default:'available'" json:"status"`
 	IsActive    bool           `gorm:"default:true" json:"is_active"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+
+	// Sync metadata
+	SyncVersion      int64  `gorm:"default:1" json:"sync_version"`
+	VectorClock      JSONB  `gorm:"type:jsonb;default:'{}'" json:"vector_clock"`
+	SourceInstance   string `gorm:"type:varchar(255)" json:"source_instance"`
+	SourceDevice     *string `gorm:"type:varchar(255)" json:"source_device,omitempty"`
+	SourcePriority   int    `gorm:"default:40" json:"source_priority"`
+	ContentHash      string `gorm:"type:varchar(64)" json:"content_hash"`
+	SyncedAt         *time.Time `json:"synced_at,omitempty"`
 
 	// Relations
 	Place       *Place         `gorm:"foreignKey:PlaceID" json:"place,omitempty"`
@@ -47,6 +57,15 @@ type Box struct {
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+
+	// Sync metadata
+	SyncVersion      int64  `gorm:"default:1" json:"sync_version"`
+	VectorClock      JSONB  `gorm:"type:jsonb;default:'{}'" json:"vector_clock"`
+	SourceInstance   string `gorm:"type:varchar(255)" json:"source_instance"`
+	SourceDevice     *string `gorm:"type:varchar(255)" json:"source_device,omitempty"`
+	SourcePriority   int    `gorm:"default:40" json:"source_priority"`
+	ContentHash      string `gorm:"type:varchar(64)" json:"content_hash"`
+	SyncedAt         *time.Time `json:"synced_at,omitempty"`
 
 	// Relations
 	Place       *Place         `gorm:"foreignKey:PlaceID" json:"place,omitempty"`
