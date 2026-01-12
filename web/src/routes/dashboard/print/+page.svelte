@@ -765,7 +765,7 @@
         grid-template-columns: 1fr 1fr;
         grid-template-rows: 1fr 1fr;
         gap: 8px;
-        padding: 35px;
+        padding: 24px;
         height: 100%;
     }
 
@@ -786,11 +786,12 @@
     .label-box::after {
         content: '';
         position: absolute;
-        top: -15px; left: -20px; right: -20px; bottom: -15px;
+        top: -8px; left: -10px; right: -10px; bottom: -8px;
         background: rgba(90, 123, 169, 0.2);
         border: 1px dashed rgba(90, 123, 169, 0.4);
         border-radius: 4px;
         z-index: -1;
+        pointer-events: none;
     }
 
     .visual-editor.is-safe .label-box {
@@ -803,6 +804,7 @@
         align-items: center;
         gap: 2px;
         font-size: 0.7rem;
+        z-index: 10;
     }
     .gap-x { right: -28px; top: 25%; }
     .gap-y { bottom: -22px; left: 50%; transform: translateX(-50%); }
