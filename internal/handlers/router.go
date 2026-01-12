@@ -178,3 +178,10 @@ func respondError(w http.ResponseWriter, status int, message string) {
 		"error": message,
 	})
 }
+
+// Handler returns the router wrapped with case-insensitive middleware
+// This allows API endpoints to be accessed regardless of case
+// Example: /API/status and /api/status both work
+func (r *Router) Handler() http.Handler {
+	return middleware.CaseInsensitiveMiddleware(r.Router)
+}

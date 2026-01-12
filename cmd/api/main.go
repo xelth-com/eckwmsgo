@@ -65,7 +65,8 @@ func main() {
 	}
 
 	log.Printf("🚀 Server starting on port %s\n", port)
-	if err := http.ListenAndServe(":"+port, router); err != nil {
+	// Use router.Handler() to wrap with case-insensitive middleware
+	if err := http.ListenAndServe(":"+port, router.Handler()); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
 }
