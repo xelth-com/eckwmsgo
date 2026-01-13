@@ -23,10 +23,11 @@ type SyncEngine struct {
 	connectionManager *ConnectionManager
 	conflictResolver  *ConflictResolver
 	checksumCalc      *ChecksumCalculator
+	securityLayer     *SecurityLayer // Added security layer
 
 	// State
-	isRunning     bool
-	lastSync      time.Time
+	isRunning      bool
+	lastSync       time.Time
 	syncInProgress bool
 
 	// Channels
@@ -66,6 +67,13 @@ func NewSyncEngine(db *database.DB, cfg *config.SyncConfig, instanceID string) *
 		})
 	}
 
+	// Initialize Security Layer based on Role
+	role := SyncNodeRole(cfg.Role)
+	if role == "" {
+		role = RolePeer
+	}
+	secLayer := NewSecurityLayer(role)
+
 	engine := &SyncEngine{
 		db:                db,
 		config:            cfg,
@@ -73,6 +81,7 @@ func NewSyncEngine(db *database.DB, cfg *config.SyncConfig, instanceID string) *
 		connectionManager: NewConnectionManager(instanceID, routes),
 		conflictResolver:  NewConflictResolver(instanceID, ConflictResolutionStrategy(cfg.ConflictResolution)),
 		checksumCalc:      NewChecksumCalculator(instanceID),
+		securityLayer:     secLayer,
 		stopChan:          make(chan struct{}),
 		syncChan:          make(chan SyncRequest, 100),
 	}
@@ -472,4 +481,9 @@ func (se *SyncEngine) GetAllChecksums(entityType EntityType) ([]models.EntityChe
 	}
 
 	return checksums, nil
+}
+
+// GetRole returns the node role
+func (se *SyncEngine) GetRole() SyncNodeRole {
+	return se.securityLayer.GetRole()
 }

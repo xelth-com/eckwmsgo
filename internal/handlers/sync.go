@@ -2,9 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/dmytrosurovtsev/eckwmsgo/internal/database"
+	"github.com/dmytrosurovtsev/eckwmsgo/internal/models"
 	"github.com/dmytrosurovtsev/eckwmsgo/internal/sync"
 	"github.com/gorilla/mux"
 )
@@ -217,6 +219,13 @@ func (sh *SyncHandler) SyncEntity(w http.ResponseWriter, r *http.Request) {
 
 // PullUpdates pulls updates from remote
 func (sh *SyncHandler) PullUpdates(w http.ResponseWriter, r *http.Request) {
+	// 1. Check if we are a Blind Relay
+	if sh.syncEngine.GetRole() == sync.RoleBlindRelay {
+		sh.handleRelayPull(w, r)
+		return
+	}
+
+	// Standard peer pull logic
 	var req struct {
 		EntityTypes []string `json:"entity_types"`
 		Since       *string  `json:"since"` // ISO timestamp
@@ -227,17 +236,24 @@ func (sh *SyncHandler) PullUpdates(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Implement pull logic
+	// TODO: Implement standard pull logic for peers
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"message": "Pull updates initiated",
+		"message": "Standard pull not implemented yet",
 		"status":  "processing",
 	})
 }
 
 // PushUpdates pushes local updates to remote
 func (sh *SyncHandler) PushUpdates(w http.ResponseWriter, r *http.Request) {
+	// 1. Check if we are a Blind Relay
+	if sh.syncEngine.GetRole() == sync.RoleBlindRelay {
+		sh.handleRelayPush(w, r)
+		return
+	}
+
+	// Standard peer push logic
 	var req struct {
 		EntityTypes []string `json:"entity_types"`
 		Since       *string  `json:"since"` // ISO timestamp
@@ -248,13 +264,69 @@ func (sh *SyncHandler) PushUpdates(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Implement push logic
+	// TODO: Implement standard push logic for peers
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"message": "Push updates initiated",
+		"message": "Standard push not implemented yet",
 		"status":  "processing",
 	})
+}
+
+// handleRelayPush accepts encrypted packets and stores them blindly
+func (sh *SyncHandler) handleRelayPush(w http.ResponseWriter, r *http.Request) {
+	var packets []models.EncryptedSyncPacket
+	if err := json.NewDecoder(r.Body).Decode(&packets); err != nil {
+		http.Error(w, "Invalid encrypted packet format", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("🔒 Relay: Received %d encrypted packets", len(packets))
+
+	savedCount := 0
+	for _, p := range packets {
+		// Blind Upsert based on EntityID + EntityType
+		// Relay doesn't check conflict logic deeply, just stores the latest version
+		result := sh.db.Where("entity_type = ? AND entity_id = ?", p.EntityType, p.EntityID).
+			Assign(p).
+			FirstOrCreate(&models.EncryptedSyncPacket{})
+
+		if result.Error == nil {
+			savedCount++
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "success",
+		"saved":  savedCount,
+	})
+}
+
+// handleRelayPull serves encrypted packets blindly
+func (sh *SyncHandler) handleRelayPull(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		SinceVersion int64 `json:"since_version"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req) // Optional filter
+
+	var packets []models.EncryptedSyncPacket
+	// In a real scenario, we would filter by client's last known version/vector clock
+	// For now, return all packets newer than requested version
+	query := sh.db.Order("updated_at DESC").Limit(100)
+
+	if req.SinceVersion > 0 {
+		query = query.Where("version > ?", req.SinceVersion)
+	}
+
+	if err := query.Find(&packets).Error; err != nil {
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("🔒 Relay: Serving %d encrypted packets", len(packets))
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(packets)
 }
 
 // Helper functions

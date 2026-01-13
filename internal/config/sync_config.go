@@ -10,6 +10,7 @@ import (
 type SyncConfig struct {
 	// ============ BASIC SETTINGS ============
 	Enabled      bool   `json:"enabled"`
+	Role         string `json:"role"`          // master, peer, edge, blind_relay
 	Mode         string `json:"mode"`          // full, incremental, selective, cache, master
 	CacheProfile string `json:"cache_profile"` // full, extended, standard, light, minimal
 	Direction    string `json:"direction"`     // bidirectional, pull_only, push_only
@@ -124,6 +125,7 @@ func loadSyncConfigFromFile(path string) (*SyncConfig, error) {
 func getDefaultSyncConfig() *SyncConfig {
 	return &SyncConfig{
 		Enabled:      getBoolEnv("SYNC_ENABLED", true),
+		Role:         getEnv("SYNC_ROLE", "peer"), // Default to peer (trusted node)
 		Mode:         getEnv("SYNC_MODE", "incremental"),
 		CacheProfile: getEnv("SYNC_CACHE_PROFILE", "standard"),
 		Direction:    getEnv("SYNC_DIRECTION", "bidirectional"),
