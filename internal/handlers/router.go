@@ -109,15 +109,22 @@ func NewRouter(db *database.DB) *Router {
 			}
 		}
 
+		// Debug logging for static files
+		if strings.HasPrefix(path, "/internal") {
+			// Log what we're trying to serve
+			// fmt.Printf("DEBUG: Serving static file: original=%s, path=%s, prefix=%s\n", originalPath, path, urlPrefix)
+		}
+
 		// Serve static files or SPA
 		// Files with extension or /internal/ path get served as-is
 		if strings.HasPrefix(path, "/internal") || strings.Contains(path, ".") {
-			// For static files, strip prefix
+			// For static files, we need to modify req.URL.Path to the stripped version
+			// before calling the file server
 			if urlPrefix != "" && strings.HasPrefix(originalPath, urlPrefix) {
-				http.StripPrefix(urlPrefix, spaHandler).ServeHTTP(w, req)
-			} else {
-				spaHandler.ServeHTTP(w, req)
+				// Create a new request with modified path
+				req.URL.Path = path
 			}
+			spaHandler.ServeHTTP(w, req)
 			return
 		}
 
