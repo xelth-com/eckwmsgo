@@ -97,8 +97,9 @@ func NewRouter(db *database.DB) *Router {
 
 	spaHandler := http.FileServer(http.FS(assets))
 
-	// SPA Handler Logic - use NotFoundHandler so it's called only when no route matches
-	r.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+	// SPA Handler Logic - register as catch-all AFTER all API routes
+	// This must be registered last so API handlers take precedence
+	r.PathPrefix("/").Handler(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		originalPath := req.URL.Path
 		path := originalPath
 
@@ -110,21 +111,13 @@ func NewRouter(db *database.DB) *Router {
 			}
 		}
 
-		// Debug logging for static files
-		if strings.HasPrefix(path, "/internal") {
-			// Log what we're trying to serve
-			fmt.Printf("DEBUG: Serving static file: original=%s, path=%s, prefix=%s\n", originalPath, path, urlPrefix)
-		}
+		fmt.Printf("DEBUG: SPA handler: original=%s, path=%s, prefix=%s\n", originalPath, path, urlPrefix)
 
 		// Serve static files or SPA
 		// Files with extension or /internal/ path get served as-is
 		if strings.HasPrefix(path, "/internal") || strings.Contains(path, ".") {
-			// For static files, we need to modify req.URL.Path to the stripped version
-			// before calling the file server
-			if urlPrefix != "" && strings.HasPrefix(originalPath, urlPrefix) {
-				// Create a new request with modified path
-				req.URL.Path = path
-			}
+			// For static files, modify req.URL.Path to the stripped version
+			req.URL.Path = path
 			spaHandler.ServeHTTP(w, req)
 			return
 		}
@@ -132,7 +125,7 @@ func NewRouter(db *database.DB) *Router {
 		// Otherwise serve index.html (SPA)
 		req.URL.Path = "/"
 		spaHandler.ServeHTTP(w, req)
-	})
+	}))
 
 	return r
 }
