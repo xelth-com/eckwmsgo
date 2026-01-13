@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -112,7 +113,7 @@ func NewRouter(db *database.DB) *Router {
 		// Debug logging for static files
 		if strings.HasPrefix(path, "/internal") {
 			// Log what we're trying to serve
-			// fmt.Printf("DEBUG: Serving static file: original=%s, path=%s, prefix=%s\n", originalPath, path, urlPrefix)
+			fmt.Printf("DEBUG: Serving static file: original=%s, path=%s, prefix=%s\n", originalPath, path, urlPrefix)
 		}
 
 		// Serve static files or SPA
