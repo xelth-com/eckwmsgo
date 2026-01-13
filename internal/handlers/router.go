@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -100,37 +99,48 @@ func NewRouter(db *database.DB) *Router {
 	// SPA Handler Logic - register as catch-all with matcher that excludes API routes
 	r.PathPrefix("/").MatcherFunc(func(req *http.Request, rm *mux.RouteMatch) bool {
 		path := req.URL.Path
-		fmt.Printf("DEBUG MatcherFunc: path=%s, urlPrefix=%s\n", path, urlPrefix)
 
 		// Check if this is an API path (with or without prefix)
 		if strings.HasPrefix(path, "/api") || strings.HasPrefix(path, "/auth") ||
 			strings.HasPrefix(path, "/ws") || strings.HasPrefix(path, "/health") {
-			fmt.Printf("DEBUG MatcherFunc: Skipping API path (no prefix): %s\n", path)
 			return false // Don't match - let API handlers handle it
 		}
 
-		// Check for prefixed API paths
-		if urlPrefix != "" && strings.HasPrefix(path, urlPrefix) {
-			pathWithoutPrefix := strings.TrimPrefix(path, urlPrefix)
-			fmt.Printf("DEBUG MatcherFunc: Checking prefixed path: %s -> %s\n", path, pathWithoutPrefix)
-			if strings.HasPrefix(pathWithoutPrefix, "/api") ||
-				strings.HasPrefix(pathWithoutPrefix, "/auth") ||
-				strings.HasPrefix(pathWithoutPrefix, "/ws") ||
-				strings.HasPrefix(pathWithoutPrefix, "/health") {
-				fmt.Printf("DEBUG MatcherFunc: Skipping API path (with prefix): %s\n", path)
-				return false // Don't match - let API handlers handle it
+		// Check for prefixed API paths (case insensitive prefix check)
+		if urlPrefix != "" {
+			// Check both lowercase and uppercase prefix because CaseInsensitiveMiddleware
+			// doesn't convert paths with /internal/ to lowercase
+			urlPrefixUpper := strings.ToUpper(urlPrefix)
+			if strings.HasPrefix(path, urlPrefix) || strings.HasPrefix(path, urlPrefixUpper) {
+				pathWithoutPrefix := path
+				if strings.HasPrefix(path, urlPrefix) {
+					pathWithoutPrefix = strings.TrimPrefix(path, urlPrefix)
+				} else {
+					pathWithoutPrefix = strings.TrimPrefix(path, urlPrefixUpper)
+				}
+
+				if strings.HasPrefix(pathWithoutPrefix, "/api") ||
+					strings.HasPrefix(pathWithoutPrefix, "/auth") ||
+					strings.HasPrefix(pathWithoutPrefix, "/ws") ||
+					strings.HasPrefix(pathWithoutPrefix, "/health") {
+					return false // Don't match - let API handlers handle it
+				}
 			}
 		}
 
-		fmt.Printf("DEBUG MatcherFunc: Matching SPA handler for: %s\n", path)
 		return true // Match - this is for SPA handler
 	}).Handler(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		originalPath := req.URL.Path
 		path := originalPath
 
-		// Strip prefix for static file lookup
-		if urlPrefix != "" && strings.HasPrefix(originalPath, urlPrefix) {
-			path = strings.TrimPrefix(originalPath, urlPrefix)
+		// Strip prefix for static file lookup (case insensitive)
+		if urlPrefix != "" {
+			urlPrefixUpper := strings.ToUpper(urlPrefix)
+			if strings.HasPrefix(originalPath, urlPrefix) {
+				path = strings.TrimPrefix(originalPath, urlPrefix)
+			} else if strings.HasPrefix(originalPath, urlPrefixUpper) {
+				path = strings.TrimPrefix(originalPath, urlPrefixUpper)
+			}
 			if path == "" {
 				path = "/"
 			}
