@@ -40,6 +40,8 @@ func NewRouter(db *database.DB) *Router {
 			urlPrefix = "/" + urlPrefix
 		}
 		urlPrefix = strings.TrimRight(urlPrefix, "/")
+		// Convert to lowercase to match CaseInsensitiveMiddleware behavior
+		urlPrefix = strings.ToLower(urlPrefix)
 	}
 
 	// Helper to register simple routes (adds both /path and /PREFIX/path)
