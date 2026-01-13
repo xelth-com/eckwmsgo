@@ -96,6 +96,51 @@ FRONTEND_DIR=../eckwms/public               # Путь к фронтенду (о
 
 **Важно**: По умолчанию Go сервер ищет фронтенд в `../eckwms/public`. Если структура папок другая, установи `FRONTEND_DIR`.
 
+## Деплой в подпапке (Subdirectory Deployment)
+
+**Новая функция (2026-01-13)**: Приложение теперь поддерживает работу в подпапке URL (например, `https://example.com/E/`).
+
+### Быстрая настройка
+
+1. **Сборка frontend с BASE_PATH**:
+```bash
+cd web
+BASE_PATH=/E npm run build
+```
+
+2. **Сборка backend**:
+```bash
+cd ..
+go build -o eckwms ./cmd/api
+```
+
+3. **Запуск с префиксом**:
+```bash
+HTTP_PATH_PREFIX=/E ./eckwms
+```
+
+### Переменные окружения для подпапки
+
+```env
+# В .env или systemd service
+HTTP_PATH_PREFIX=/E    # Префикс для всех URL
+```
+
+### Конфигурация Nginx
+
+```nginx
+location /E/ {
+    proxy_pass http://localhost:3001/E/;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection 'upgrade';
+    proxy_set_header Host $host;
+    proxy_cache_bypass $http_upgrade;
+}
+```
+
+**Подробная документация**: См. `DEPLOYMENT_SUBDIRECTORY.md`
+
 ## Запуск
 
 ### Вариант 1: Скомпилированный бинарник
