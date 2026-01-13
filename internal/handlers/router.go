@@ -109,7 +109,7 @@ func NewRouter(db *database.DB) *Router {
 		// Check for prefixed API paths (case insensitive prefix check)
 		if urlPrefix != "" {
 			// Check both lowercase and uppercase prefix because CaseInsensitiveMiddleware
-			// doesn't convert paths with /internal/ to lowercase
+			// doesn't convert paths with /i/ to lowercase
 			urlPrefixUpper := strings.ToUpper(urlPrefix)
 			if strings.HasPrefix(path, urlPrefix) || strings.HasPrefix(path, urlPrefixUpper) {
 				pathWithoutPrefix := path
@@ -147,8 +147,8 @@ func NewRouter(db *database.DB) *Router {
 		}
 
 		// Serve static files or SPA
-		// Files with extension or /internal/ path get served as-is
-		if strings.HasPrefix(path, "/internal") || strings.Contains(path, ".") {
+		// Files with extension or /i/ path get served as-is
+		if strings.HasPrefix(path, "/i") || strings.Contains(path, ".") {
 			// For static files, modify req.URL.Path to the stripped version
 			req.URL.Path = path
 			spaHandler.ServeHTTP(w, req)

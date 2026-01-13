@@ -3,8 +3,8 @@ import adapter from '@sveltejs/adapter-static';
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
 	kit: {
-		// Изменяем папку с _app на internal, чтобы избежать проблем с Nginx/Go
-		appDir: 'internal',
+		// Короткое имя для минимизации размера URL и QR кодов
+		appDir: 'i',
 
 		adapter: adapter({
 			fallback: 'index.html',
