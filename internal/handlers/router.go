@@ -94,28 +94,24 @@ func NewRouter(db *database.DB) *Router {
 
 	spaHandler := http.FileServer(http.FS(assets))
 
-	// SPA Handler Logic
-	r.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		path := req.URL.Path
+	// SPA Handler Logic - use NotFoundHandler so it's called only when no route matches
+	r.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		originalPath := req.URL.Path
+		path := originalPath
 
-		// If prefix is set (e.g. /E), check if path starts with it
-		if urlPrefix != "" && strings.HasPrefix(path, urlPrefix) {
-			// Strip the prefix for the file server lookup
-			// e.g. /E/internal/style.css -> /internal/style.css
-			path = strings.TrimPrefix(path, urlPrefix)
+		// Strip prefix for static file lookup
+		if urlPrefix != "" && strings.HasPrefix(originalPath, urlPrefix) {
+			path = strings.TrimPrefix(originalPath, urlPrefix)
 			if path == "" {
 				path = "/"
 			}
 		}
 
-		// Logic to decide if we serve file or index.html
-		// Note: "internal" is our new appDir
-		if strings.HasPrefix(path, "/api") || strings.HasPrefix(path, "/auth") ||
-			strings.HasPrefix(path, "/ws") || strings.HasPrefix(path, "/health") ||
-			strings.HasPrefix(path, "/internal") || strings.Contains(path, ".") {
-
-			// For static files, we need to strip prefix if using http.FileServer
-			if urlPrefix != "" && strings.HasPrefix(req.URL.Path, urlPrefix) {
+		// Serve static files or SPA
+		// Files with extension or /internal/ path get served as-is
+		if strings.HasPrefix(path, "/internal") || strings.Contains(path, ".") {
+			// For static files, strip prefix
+			if urlPrefix != "" && strings.HasPrefix(originalPath, urlPrefix) {
 				http.StripPrefix(urlPrefix, spaHandler).ServeHTTP(w, req)
 			} else {
 				spaHandler.ServeHTTP(w, req)
