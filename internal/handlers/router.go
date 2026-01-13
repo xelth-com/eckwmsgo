@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -97,9 +96,29 @@ func NewRouter(db *database.DB) *Router {
 
 	spaHandler := http.FileServer(http.FS(assets))
 
-	// SPA Handler Logic - register as catch-all AFTER all API routes
-	// This must be registered last so API handlers take precedence
-	r.PathPrefix("/").Handler(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+	// SPA Handler Logic - register as catch-all with matcher that excludes API routes
+	r.PathPrefix("/").MatcherFunc(func(req *http.Request, rm *mux.RouteMatch) bool {
+		path := req.URL.Path
+
+		// Check if this is an API path (with or without prefix)
+		if strings.HasPrefix(path, "/api") || strings.HasPrefix(path, "/auth") ||
+			strings.HasPrefix(path, "/ws") || strings.HasPrefix(path, "/health") {
+			return false // Don't match - let API handlers handle it
+		}
+
+		// Check for prefixed API paths
+		if urlPrefix != "" && strings.HasPrefix(path, urlPrefix) {
+			pathWithoutPrefix := strings.TrimPrefix(path, urlPrefix)
+			if strings.HasPrefix(pathWithoutPrefix, "/api") ||
+				strings.HasPrefix(pathWithoutPrefix, "/auth") ||
+				strings.HasPrefix(pathWithoutPrefix, "/ws") ||
+				strings.HasPrefix(pathWithoutPrefix, "/health") {
+				return false // Don't match - let API handlers handle it
+			}
+		}
+
+		return true // Match - this is for SPA handler
+	}).Handler(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		originalPath := req.URL.Path
 		path := originalPath
 
@@ -110,8 +129,6 @@ func NewRouter(db *database.DB) *Router {
 				path = "/"
 			}
 		}
-
-		fmt.Printf("DEBUG: SPA handler: original=%s, path=%s, prefix=%s\n", originalPath, path, urlPrefix)
 
 		// Serve static files or SPA
 		// Files with extension or /internal/ path get served as-is
