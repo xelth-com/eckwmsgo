@@ -89,3 +89,21 @@ const (
 	ConflictStatusResolved ConflictStatus = "resolved"
 	ConflictStatusIgnored  ConflictStatus = "ignored"
 )
+
+// SyncNodeRole defines the role of the server in the mesh
+type SyncNodeRole string
+
+const (
+	RoleMaster     SyncNodeRole = "master"      // Full DB, Read/Write, Authoritative
+	RolePeer       SyncNodeRole = "peer"        // Full DB, Read/Write, Trusted
+	RoleEdge       SyncNodeRole = "edge"        // Partial DB, Trusted
+	RoleBlindRelay SyncNodeRole = "blind_relay" // No DB access, Encrypted storage only, Untrusted
+)
+
+// SyncPacketType defines if payload is plain or encrypted
+type SyncPacketType string
+
+const (
+	PacketPlain     SyncPacketType = "plain"
+	PacketEncrypted SyncPacketType = "encrypted"
+)

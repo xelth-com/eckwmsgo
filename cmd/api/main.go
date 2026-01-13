@@ -43,6 +43,7 @@ func main() {
 		&models.SyncConflict{},
 		&models.SyncQueue{},
 		&models.SyncRoute{},
+		&models.EncryptedSyncPacket{}, // Zero-Knowledge Relay support
 		// AI System Models
 		&models.AIAgent{},
 		&models.AIPermission{},
