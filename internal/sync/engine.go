@@ -198,8 +198,15 @@ func (se *SyncEngine) processSyncRequest(req SyncRequest) {
 		result = se.performFullSync()
 	case "sync":
 		result = se.syncEntity(req.EntityType, req.EntityID)
+	case "relay_sync":
+		err := se.SyncWithRelay()
+		if err != nil {
+			result = &SyncResult{Success: false, Errors: []error{err}}
+		} else {
+			result = &SyncResult{Success: true}
+		}
 	default:
-		log.Printf("⚠️ Unknown sync operation: %s", req.Operation)
+		log.Printf("Unknown sync operation: %s", req.Operation)
 		return
 	}
 
@@ -413,8 +420,14 @@ func (se *SyncEngine) autoSyncLoop() {
 		select {
 		case <-ticker.C:
 			if se.config.AutoSyncEnabled {
-				log.Println("⏰ Auto-sync triggered")
+				log.Println("Auto-sync triggered")
 				se.RequestFullSync()
+
+				// If we are a peer or edge, also sync with relay
+				role := se.GetRole()
+				if role == RolePeer || role == RoleEdge {
+					se.syncChan <- SyncRequest{Operation: "relay_sync", Priority: 5}
+				}
 			}
 		case <-se.stopChan:
 			return
