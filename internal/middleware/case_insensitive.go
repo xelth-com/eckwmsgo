@@ -16,9 +16,11 @@ func CaseInsensitiveMiddleware(next http.Handler) http.Handler {
 
 		// Don't modify paths for static files
 		// - Paths starting with /_app/ or /internal/ (SvelteKit assets)
+		// - Paths containing /internal/ anywhere (e.g., /E/internal/)
 		// - Paths with file extensions (e.g., .js, .css, .png)
 		if strings.HasPrefix(path, "/_app/") ||
 		   strings.HasPrefix(path, "/internal/") ||
+		   strings.Contains(path, "/internal/") ||
 		   strings.Contains(path, ".") && !strings.HasSuffix(path, "/") {
 			// Pass through unchanged for static files
 			next.ServeHTTP(w, r)
