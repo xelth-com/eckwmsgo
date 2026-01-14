@@ -51,3 +51,10 @@ db_data/
 git_push.bat
 git_push.sh
 bin/
+
+# Temporary files
+tmpclaude-*
+nul
+
+# Vite cache
+web/node_modules/.vite/

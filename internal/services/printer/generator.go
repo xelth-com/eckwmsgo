@@ -275,6 +275,14 @@ func GenerateLabelsPDF(cfg LabelConfig) ([]byte, error) {
 			}
 		} else {
 			// Custom configuration from UI
+			// Draw text first (will be on back layer)
+			if cfg.ContentConfig.Checksum != nil {
+				drawText(field2, cfg.ContentConfig.Checksum, "Arial", 0)
+			}
+			if cfg.ContentConfig.Serial != nil {
+				drawText(field1, cfg.ContentConfig.Serial, "Courier", 0.3)
+			}
+			// Draw QR codes on top (will be on front layer)
 			if cfg.ContentConfig.QR1 != nil {
 				drawQR("ECK1.COM", cfg.ContentConfig.QR1)
 			}
@@ -283,12 +291,6 @@ func GenerateLabelsPDF(cfg LabelConfig) ([]byte, error) {
 			}
 			if cfg.ContentConfig.QR3 != nil {
 				drawQR("ECK3.COM", cfg.ContentConfig.QR3)
-			}
-			if cfg.ContentConfig.Checksum != nil {
-				drawText(field2, cfg.ContentConfig.Checksum, "Arial", 0)
-			}
-			if cfg.ContentConfig.Serial != nil {
-				drawText(field1, cfg.ContentConfig.Serial, "Courier", 0.3)
 			}
 		}
 

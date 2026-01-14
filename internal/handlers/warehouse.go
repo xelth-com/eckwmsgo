@@ -9,181 +9,72 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// listWarehouses returns all warehouses
+// listWarehouses returns all locations (formerly warehouses)
 func (r *Router) listWarehouses(w http.ResponseWriter, req *http.Request) {
-	var warehouses []models.Warehouse
-	if err := r.db.Preload("Racks").Find(&warehouses).Error; err != nil {
-		respondError(w, http.StatusInternalServerError, "Failed to fetch warehouses")
+	var locations []models.StockLocation
+	// Fetch top level locations (usually warehouses)
+	if err := r.db.Where("location_id IS NULL").Find(&locations).Error; err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to fetch locations")
 		return
 	}
-
-	respondJSON(w, http.StatusOK, warehouses)
+	respondJSON(w, http.StatusOK, locations)
 }
 
-// getWarehouse returns a single warehouse by ID
+// getWarehouse returns a location hierarchy
 func (r *Router) getWarehouse(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
-	id, err := strconv.ParseUint(vars["id"], 10, 32)
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid warehouse ID")
+	id, _ := strconv.ParseInt(vars["id"], 10, 64)
+
+	var loc models.StockLocation
+	if err := r.db.Preload("Children").First(&loc, id).Error; err != nil {
+		respondError(w, http.StatusNotFound, "Location not found")
 		return
 	}
-
-	var warehouse models.Warehouse
-	if err := r.db.Preload("Racks.Places").First(&warehouse, id).Error; err != nil {
-		respondError(w, http.StatusNotFound, "Warehouse not found")
-		return
-	}
-
-	respondJSON(w, http.StatusOK, warehouse)
+	respondJSON(w, http.StatusOK, loc)
 }
 
-// createWarehouse creates a new warehouse
+// createWarehouse creates a new StockLocation
 func (r *Router) createWarehouse(w http.ResponseWriter, req *http.Request) {
-	var warehouse models.Warehouse
-	if err := json.NewDecoder(req.Body).Decode(&warehouse); err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid request payload")
+	var loc models.StockLocation
+	if err := json.NewDecoder(req.Body).Decode(&loc); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid payload")
 		return
 	}
-
-	if err := r.db.Create(&warehouse).Error; err != nil {
-		respondError(w, http.StatusInternalServerError, "Failed to create warehouse")
+	// TODO: Generate ID if not present (since we use int64 PKs now matching Odoo)
+	// For local-only creation, we might need negative IDs or a separate sequence.
+	if err := r.db.Create(&loc).Error; err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to create location")
 		return
 	}
-
-	respondJSON(w, http.StatusCreated, warehouse)
+	respondJSON(w, http.StatusCreated, loc)
 }
 
-// listItems returns all items
+// listItems returns all products
 func (r *Router) listItems(w http.ResponseWriter, req *http.Request) {
-	var items []models.Item
-	if err := r.db.Preload("Place").Preload("Box").Find(&items).Error; err != nil {
-		respondError(w, http.StatusInternalServerError, "Failed to fetch items")
+	var products []models.ProductProduct
+	if err := r.db.Find(&products).Error; err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to fetch products")
 		return
 	}
-
-	respondJSON(w, http.StatusOK, items)
+	respondJSON(w, http.StatusOK, products)
 }
 
-// getItem returns a single item by ID
+// getItem returns a single product
 func (r *Router) getItem(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
-	id, err := strconv.ParseUint(vars["id"], 10, 32)
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid item ID")
+	id, _ := strconv.ParseInt(vars["id"], 10, 64)
+
+	var product models.ProductProduct
+	if err := r.db.First(&product, id).Error; err != nil {
+		respondError(w, http.StatusNotFound, "Product not found")
 		return
 	}
-
-	var item models.Item
-	if err := r.db.Preload("Place").Preload("Box").First(&item, id).Error; err != nil {
-		respondError(w, http.StatusNotFound, "Item not found")
-		return
-	}
-
-	respondJSON(w, http.StatusOK, item)
+	respondJSON(w, http.StatusOK, product)
 }
 
-// createItem creates a new item
-func (r *Router) createItem(w http.ResponseWriter, req *http.Request) {
-	var item models.Item
-	if err := json.NewDecoder(req.Body).Decode(&item); err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid request payload")
-		return
-	}
-
-	if err := r.db.Create(&item).Error; err != nil {
-		respondError(w, http.StatusInternalServerError, "Failed to create item")
-		return
-	}
-
-	respondJSON(w, http.StatusCreated, item)
-}
-
-// updateItem updates an existing item
-func (r *Router) updateItem(w http.ResponseWriter, req *http.Request) {
-	vars := mux.Vars(req)
-	id, err := strconv.ParseUint(vars["id"], 10, 32)
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid item ID")
-		return
-	}
-
-	var item models.Item
-	if err := r.db.First(&item, id).Error; err != nil {
-		respondError(w, http.StatusNotFound, "Item not found")
-		return
-	}
-
-	if err := json.NewDecoder(req.Body).Decode(&item); err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid request payload")
-		return
-	}
-
-	if err := r.db.Save(&item).Error; err != nil {
-		respondError(w, http.StatusInternalServerError, "Failed to update item")
-		return
-	}
-
-	respondJSON(w, http.StatusOK, item)
-}
-
-// createRack creates a new rack
-func (r *Router) createRack(w http.ResponseWriter, req *http.Request) {
-	var rack models.WarehouseRack
-	if err := json.NewDecoder(req.Body).Decode(&rack); err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid request payload")
-		return
-	}
-
-	if err := r.db.Create(&rack).Error; err != nil {
-		respondError(w, http.StatusInternalServerError, "Failed to create rack")
-		return
-	}
-
-	respondJSON(w, http.StatusCreated, rack)
-}
-
-// updateRack updates a rack
-func (r *Router) updateRack(w http.ResponseWriter, req *http.Request) {
-	vars := mux.Vars(req)
-	id, err := strconv.ParseUint(vars["id"], 10, 32)
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid rack ID")
-		return
-	}
-
-	var rack models.WarehouseRack
-	if err := r.db.First(&rack, id).Error; err != nil {
-		respondError(w, http.StatusNotFound, "Rack not found")
-		return
-	}
-
-	if err := json.NewDecoder(req.Body).Decode(&rack); err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid request payload")
-		return
-	}
-
-	if err := r.db.Save(&rack).Error; err != nil {
-		respondError(w, http.StatusInternalServerError, "Failed to update rack")
-		return
-	}
-
-	respondJSON(w, http.StatusOK, rack)
-}
-
-// deleteRack deletes a rack
-func (r *Router) deleteRack(w http.ResponseWriter, req *http.Request) {
-	vars := mux.Vars(req)
-	id, err := strconv.ParseUint(vars["id"], 10, 32)
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid rack ID")
-		return
-	}
-
-	if err := r.db.Delete(&models.WarehouseRack{}, id).Error; err != nil {
-		respondError(w, http.StatusInternalServerError, "Failed to delete rack")
-		return
-	}
-
-	respondJSON(w, http.StatusOK, map[string]string{"message": "Rack deleted"})
-}
+// Stubs for removed functionality
+func (r *Router) createItem(w http.ResponseWriter, req *http.Request)  { respondJSON(w, 200, nil) }
+func (r *Router) updateItem(w http.ResponseWriter, req *http.Request)  { respondJSON(w, 200, nil) }
+func (r *Router) createRack(w http.ResponseWriter, req *http.Request)  { respondJSON(w, 200, nil) }
+func (r *Router) updateRack(w http.ResponseWriter, req *http.Request)  { respondJSON(w, 200, nil) }
+func (r *Router) deleteRack(w http.ResponseWriter, req *http.Request)  { respondJSON(w, 200, nil) }

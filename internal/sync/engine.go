@@ -270,111 +270,21 @@ func (se *SyncEngine) syncEntityType(entityType EntityType, cfg config.EntitySyn
 	}
 }
 
-// syncItems syncs items
+// syncItems syncs items (stubbed during Odoo migration)
 func (se *SyncEngine) syncItems(cfg config.EntitySyncConfig) (int, int, error) {
-	// Get local items
-	var items []models.Item
-	query := se.db.DB
-
-	// Apply strategy
-	switch cfg.Strategy {
-	case "active_only":
-		query = query.Where("is_active = ?", true)
-	case "time_window":
-		if cfg.HistoryDepth > 0 {
-			cutoff := time.Now().AddDate(0, 0, -cfg.HistoryDepth)
-			query = query.Where("updated_at > ?", cutoff)
-		}
-	}
-
-	// Apply max records limit
-	if cfg.MaxRecords > 0 {
-		query = query.Limit(cfg.MaxRecords)
-	}
-
-	if err := query.Find(&items).Error; err != nil {
-		return 0, 0, err
-	}
-
-	log.Printf("📦 Found %d items to sync", len(items))
-
-	// For now, just calculate and store checksums
-	synced := 0
-	for _, item := range items {
-		hash := se.checksumCalc.CalculateItemHash(&item)
-
-		// Store checksum
-		checksum := models.EntityChecksum{
-			EntityType:     string(EntityTypeItem),
-			EntityID:       fmt.Sprintf("%d", item.ID),
-			ContentHash:    hash,
-			FullHash:       hash,
-			ChildCount:     0,
-			LastUpdated:    time.Now(),
-			SourceInstance: se.instanceID,
-		}
-
-		se.db.DB.Save(&checksum)
-		synced++
-	}
-
-	return synced, 0, nil
+	// TODO: Re-implement for ProductProduct/StockLot models
+	return 0, 0, nil
 }
 
-// syncWarehouses syncs warehouses with their hierarchies
+// syncWarehouses syncs warehouses (stubbed during Odoo migration)
 func (se *SyncEngine) syncWarehouses(cfg config.EntitySyncConfig) (int, int, error) {
-	var warehouses []models.Warehouse
-
-	query := se.db.DB
-	if cfg.Strategy == "active_only" {
-		query = query.Where("is_active = ?", true)
-	}
-
-	if err := query.Preload("Racks.Places").Find(&warehouses).Error; err != nil {
-		return 0, 0, err
-	}
-
-	log.Printf("🏢 Found %d warehouses to sync", len(warehouses))
-
-	synced := 0
-	for _, warehouse := range warehouses {
-		se.calculateWarehouseChecksum(&warehouse)
-		synced++
-	}
-
-	return synced, 0, nil
+	// TODO: Re-implement for StockLocation hierarchy
+	return 0, 0, nil
 }
 
-// calculateWarehouseChecksum calculates checksum for entire warehouse hierarchy
-func (se *SyncEngine) calculateWarehouseChecksum(warehouse *models.Warehouse) {
-	// Calculate checksums bottom-up
-	rackHashes := make([]string, 0)
-
-	for _, rack := range warehouse.Racks {
-		placeHashes := make([]string, 0)
-
-		for _, place := range rack.Places {
-			// Calculate place hash (assuming no items for now)
-			placeHash := se.checksumCalc.CalculatePlaceHash(&place, []string{}, []string{})
-			placeHashes = append(placeHashes, placeHash)
-
-			// Store place checksum
-			se.storeChecksum(EntityTypePlace, fmt.Sprintf("%d", place.ID), placeHash, "", 0)
-		}
-
-		// Calculate rack hash
-		rackHash := se.checksumCalc.CalculateRackHash(&rack, placeHashes)
-		rackHashes = append(rackHashes, rackHash)
-
-		// Store rack checksum
-		se.storeChecksum(EntityTypeRack, fmt.Sprintf("%d", rack.ID), rackHash, "", len(placeHashes))
-	}
-
-	// Calculate warehouse hash
-	warehouseHash := se.checksumCalc.CalculateWarehouseHash(warehouse, rackHashes)
-
-	// Store warehouse checksum
-	se.storeChecksum(EntityTypeWarehouse, fmt.Sprintf("%d", warehouse.ID), warehouseHash, "", len(rackHashes))
+// calculateWarehouseChecksum (stubbed during Odoo migration)
+func (se *SyncEngine) calculateWarehouseChecksum() {
+	// TODO: Re-implement for StockLocation hierarchy
 }
 
 // storeChecksum stores a checksum in the database

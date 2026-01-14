@@ -9,6 +9,7 @@ import (
 	"github.com/dmytrosurovtsev/eckwmsgo/internal/database"
 	"github.com/dmytrosurovtsev/eckwmsgo/internal/handlers"
 	"github.com/dmytrosurovtsev/eckwmsgo/internal/models"
+	"github.com/dmytrosurovtsev/eckwmsgo/internal/services/odoo"
 )
 
 func main() {
@@ -29,14 +30,19 @@ func main() {
 	log.Println("🚀 Synchronizing database schema...")
 	err = db.AutoMigrate(
 		&models.UserAuth{},
-		&models.Warehouse{},
-		&models.WarehouseRack{},
-		&models.Place{},
-		&models.Item{},
-		&models.Box{},
-		&models.Order{},
-		&models.ProductAlias{},
 		&models.RegisteredDevice{},
+		// Odoo Core Models (Replacing old WMS models)
+		&models.ProductProduct{},
+		&models.StockLocation{},
+		&models.StockLot{},
+		&models.StockQuant{},
+		&models.StockQuantPackage{},
+		&models.StockPicking{},
+		&models.StockMoveLine{},
+
+		// Legacy support (Keep for now or refactor later if needed)
+		&models.Order{}, // Keeping Order for RMA logic for now
+
 		// Sync tables
 		&models.EntityChecksum{},
 		&models.SyncMetadata{},
@@ -59,7 +65,17 @@ func main() {
 	// 4. Set up HTTP router
 	router := handlers.NewRouter(db)
 
-	// 5. Start server
+	// 5. Start Odoo Sync Service (Background)
+	odooService := odoo.NewSyncService(db, odoo.Config{
+		URL:          cfg.Odoo.URL,
+		Database:     cfg.Odoo.Database,
+		Username:     cfg.Odoo.Username,
+		Password:     cfg.Odoo.Password,
+		SyncInterval: cfg.Odoo.SyncInterval,
+	})
+	odooService.Start()
+
+	// 6. Start server
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3001" // Use 3001 as default for Go version

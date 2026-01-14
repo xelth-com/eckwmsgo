@@ -16,6 +16,7 @@ type Config struct {
 	Database    DatabaseConfig
 	Translation TranslationConfig
 	Server      ServerConfig
+	Odoo        OdooConfig
 }
 
 // DatabaseConfig holds database configuration
@@ -47,6 +48,15 @@ type ServerConfig struct {
 	ServerPublicKey       string
 	ServerPrivateKey      string
 	GlobalRegisterURL     string
+}
+
+// OdooConfig holds Odoo ERP connection settings
+type OdooConfig struct {
+	URL          string
+	Database     string
+	Username     string
+	Password     string
+	SyncInterval int // in minutes
 }
 
 // Load loads configuration from environment variables
@@ -104,6 +114,13 @@ func Load() (*Config, error) {
 			ServerPublicKey:   os.Getenv("SERVER_PUBLIC_KEY"),
 			ServerPrivateKey:  os.Getenv("SERVER_PRIVATE_KEY"),
 			GlobalRegisterURL: os.Getenv("GLOBAL_SERVER_REGISTER_URL"),
+		},
+		Odoo: OdooConfig{
+			URL:          os.Getenv("ODOO_URL"),
+			Database:     os.Getenv("ODOO_DB"),
+			Username:     os.Getenv("ODOO_USER"),
+			Password:     os.Getenv("ODOO_PASSWORD"),
+			SyncInterval: getIntEnv("ODOO_SYNC_INTERVAL", 15),
 		},
 	}, nil
 }

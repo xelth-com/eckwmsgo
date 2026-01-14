@@ -80,7 +80,7 @@ type Order struct {
 
 	// Relations
 	AssignedUser      *UserAuth      `gorm:"foreignKey:AssignedTo" json:"assigned_user,omitempty"`
-	Item              *Item          `gorm:"foreignKey:ItemID" json:"item,omitempty"`
+	// Item relation removed - use ItemID to link to ProductProduct/StockLot via sync logic
 }
 
 // TableName specifies the table name for Order model
