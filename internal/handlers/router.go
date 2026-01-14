@@ -68,7 +68,12 @@ func NewRouter(db *database.DB) *Router {
 	for _, p := range paths {
 		api := r.PathPrefix(p).Subrouter()
 		api.Use(middleware.AuthMiddleware)
+
+		// System endpoints
 		api.HandleFunc("/status", r.getStatus).Methods("GET")
+
+		// Universal Scan Endpoint
+		api.HandleFunc("/scan", r.handleScan).Methods("POST")
 	}
 
 	// Register route groups with prefix support
