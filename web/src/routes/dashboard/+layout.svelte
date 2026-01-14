@@ -59,31 +59,52 @@
         }
     }
 
-    function processScan(barcode) {
+    async function processScan(barcode) {
         // Play sound (optional, browser policy might block)
         // const audio = new Audio('/beep.mp3'); audio.play().catch(e=>{});
 
-        toastStore.add(`Scanned: ${barcode}`, 'info');
+        toastStore.add('Scanning...', 'info', 1000);
 
-        // Logic routing based on barcode prefix
-        if (barcode.startsWith('i')) {
-            // Item Scan
-            // Remove 'i' prefix logic? Usually ID is full string 'i7...'
-            goto(`/dashboard/items/${barcode}`);
-        } else if (barcode.startsWith('RMA')) {
-            // RMA Scan - Find by RMA number
-            // We might need an API lookup first, but for now assuming direct link or search
-            // If backend supports finding by code, we can redirect.
-            // For now, let's just go to list and toast, or search page if we had one.
-            toastStore.add(`RMA Scanned: ${barcode}`, 'success');
-            // goto('/dashboard/rma?search=' + barcode); // Future improvement
-        } else if (barcode.startsWith('b')) {
-            // Box Scan
-            toastStore.add(`Box Scanned: ${barcode}`, 'info');
-            // goto(`/dashboard/boxes/${barcode}`);
-        } else {
-            // Unknown
-            toastStore.add(`Unknown barcode type: ${barcode}`, 'warning');
+        try {
+            const res = await fetch('/api/scan', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${$authStore.token}`
+                },
+                body: JSON.stringify({ barcode })
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Scan failed');
+            }
+
+            const data = await res.json();
+
+            // Show result
+            toastStore.add(data.message, 'success');
+
+            // Handle Navigation / Action based on type
+            if (data.type === 'item' && data.data?.id) {
+                // Navigate to item detail using internal ID
+                goto(`/dashboard/items/${data.data.id}`);
+            } else if (data.type === 'box' && data.data?.id) {
+                // Box detail page pending - just show console log for now
+                console.log('Box scanned:', data.data);
+                toastStore.add(`Box ${data.data.name || data.data.id} scanned`, 'success');
+            } else if (data.type === 'place' && data.data?.id) {
+                goto(`/dashboard/warehouse/${data.data.id}`);
+            } else if (data.type === 'product' && data.data?.id) {
+                goto(`/dashboard/items/${data.data.id}`);
+            } else if (data.type === 'label') {
+                // Label codes contain action metadata - just log for now
+                console.log('Label scanned:', data.data);
+            }
+
+        } catch (e) {
+            console.error('Scan error:', e);
+            toastStore.add(`Error: ${e.message}`, 'error');
         }
     }
 </script>

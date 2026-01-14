@@ -39,6 +39,29 @@ func (r *Router) handleScan(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// 0. Decrypt if it's an ECK URL (Encrypted QR)
+	// Format: ECK1.COM/ENCRYPTEDSTRINGXX or https://ECK1.COM/...
+	if strings.Contains(barcode, "ECK") && strings.Contains(barcode, ".COM/") {
+		// Clean up URL prefix if present
+		cleanCode := barcode
+		if strings.HasPrefix(cleanCode, "http://") {
+			cleanCode = strings.TrimPrefix(cleanCode, "http://")
+		}
+		if strings.HasPrefix(cleanCode, "https://") {
+			cleanCode = strings.TrimPrefix(cleanCode, "https://")
+		}
+
+		// Attempt decryption
+		decrypted, err := utils.EckURLDecrypt(cleanCode)
+		if err == nil {
+			// Successfully decrypted, switch to the raw code
+			barcode = decrypted
+		} else {
+			// Decryption failed - log but continue (might be a false positive)
+			fmt.Printf("Decryption failed for %s: %v\n", cleanCode, err)
+		}
+	}
+
 	// 1. Identify Type by Prefix
 	prefix := string(barcode[0])
 	var resp ScanResponse
