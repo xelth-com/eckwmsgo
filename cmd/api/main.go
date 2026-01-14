@@ -35,8 +35,9 @@ func main() {
 		&models.ProductProduct{},
 		&models.StockLocation{},
 		&models.StockLot{},
-		&models.StockQuant{},
+		&models.StockPackageType{},
 		&models.StockQuantPackage{},
+		&models.StockQuant{},
 		&models.StockPicking{},
 		&models.StockMoveLine{},
 
