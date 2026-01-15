@@ -21,24 +21,24 @@
             <h1>Warehouse Management <br><span class="accent">Reimagined</span></h1>
 
             <p class="description">
-                Добро пожаловать в <strong>eckWMS</strong> — современную систему управления складом с открытым исходным кодом.
-                Построена на микросервисной архитектуре с использованием <strong>Go</strong> и <strong>SvelteKit</strong>.
+                Welcome to <strong>eckWMS</strong> — a modern open-source warehouse management system.
+                Built on microservices architecture using <strong>Go</strong> and <strong>SvelteKit</strong>.
             </p>
 
             <div class="cta-group">
                 {#if $authStore.isLoading}
-                    <button class="btn primary loading">Загрузка...</button>
+                    <button class="btn primary loading">Loading...</button>
                 {:else if $authStore.isAuthenticated}
                     <a href="/dashboard" class="btn primary">
-                        Открыть Dashboard &rarr;
+                        Open Dashboard &rarr;
                     </a>
                 {:else}
                     <a href="/login" class="btn primary">
-                        Войти в систему
+                        Sign In
                     </a>
                 {/if}
                 <a href="https://github.com/xelth-com/eckwmsgo" target="_blank" rel="noreferrer" class="btn secondary">
-                    Исходный код
+                    View Source
                 </a>
             </div>
         </div>
@@ -46,19 +46,19 @@
         <div class="features-grid">
             <div class="feature-card">
                 <h3>🚀 High Performance</h3>
-                <p>Бэкенд на Go обеспечивает высокую скорость обработки запросов и минимальное потребление ресурсов.</p>
+                <p>Go backend delivers blazing-fast request processing with minimal resource consumption.</p>
             </div>
             <div class="feature-card">
                 <h3>📱 Smart Codes</h3>
-                <p>Поддержка умных штрихкодов (i/b/p/l) для офлайн-валидации и мгновенного сканирования.</p>
+                <p>Support for intelligent barcodes (i/b/p/l) enabling offline validation and instant scanning.</p>
             </div>
             <div class="feature-card">
                 <h3>🔄 Odoo Sync</h3>
-                <p>Двусторонняя синхронизация с ERP Odoo 17. Полная интеграция складского учета.</p>
+                <p>Two-way synchronization with Odoo 17 ERP. Full warehouse accounting integration.</p>
             </div>
             <div class="feature-card">
                 <h3>🔒 Zero-Knowledge</h3>
-                <p>Архитектура Relay позволяет синхронизировать данные через недоверенные сети с шифрованием.</p>
+                <p>Relay architecture enables data synchronization through untrusted networks with encryption.</p>
             </div>
         </div>
     </main>
