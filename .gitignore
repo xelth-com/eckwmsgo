@@ -40,6 +40,11 @@ web/build/
 
 # Dependencies
 vendor/
+node_modules/
+**/node_modules/
+
+# Source maps (not needed in snapshots)
+*.map
 
 # Added by eck-snapshot to ignore metadata directory
 .eck/
@@ -56,5 +61,4 @@ bin/
 tmpclaude-*
 nul
 
-# Vite cache
-web/node_modules/.vite/
+# Vite cache (already excluded by node_modules/)
