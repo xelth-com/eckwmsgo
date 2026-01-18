@@ -4,8 +4,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/config"
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/models"
+	"github.com/xelth-com/eckwmsgo/internal/config"
+	"github.com/xelth-com/eckwmsgo/internal/models"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )

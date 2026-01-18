@@ -5,9 +5,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/database"
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/models"
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/sync"
+	"github.com/xelth-com/eckwmsgo/internal/database"
+	"github.com/xelth-com/eckwmsgo/internal/models"
+	"github.com/xelth-com/eckwmsgo/internal/sync"
 	"github.com/gorilla/mux"
 )
 

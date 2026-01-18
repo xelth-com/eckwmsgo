@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/services/printer"
+	"github.com/xelth-com/eckwmsgo/internal/services/printer"
 )
 
 // generateLabels handles the PDF generation request with full puzzle layout support

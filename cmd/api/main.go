@@ -9,11 +9,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/config"
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/database"
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/handlers"
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/models"
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/services/odoo"
+	"github.com/xelth-com/eckwmsgo/internal/config"
+	"github.com/xelth-com/eckwmsgo/internal/database"
+	"github.com/xelth-com/eckwmsgo/internal/handlers"
+	"github.com/xelth-com/eckwmsgo/internal/models"
+	"github.com/xelth-com/eckwmsgo/internal/services/odoo"
 )
 
 func main() {

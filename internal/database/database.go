@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/config"
+	"github.com/xelth-com/eckwmsgo/internal/config"
 	embeddedpostgres "github.com/fergusstrange/embedded-postgres"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"

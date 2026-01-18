@@ -7,7 +7,7 @@ import (
 	"math"
 	"os"
 
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/utils"
+	"github.com/xelth-com/eckwmsgo/internal/utils"
 	"github.com/jung-kurt/gofpdf"
 	"github.com/skip2/go-qrcode"
 )

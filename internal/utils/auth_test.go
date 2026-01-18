@@ -3,8 +3,8 @@ package utils
 import (
 	"testing"
 
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/config"
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/models"
+	"github.com/xelth-com/eckwmsgo/internal/config"
+	"github.com/xelth-com/eckwmsgo/internal/models"
 )
 
 func TestPasswordHashing(t *testing.T) {
