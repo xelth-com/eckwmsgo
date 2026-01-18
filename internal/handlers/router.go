@@ -55,6 +55,10 @@ func NewRouter(db *database.DB) *Router {
 	// 1. Health check endpoint (Public)
 	handle("/health", r.healthCheck, "GET")
 
+	// Mesh routes (Public - uses JWT token auth)
+	handle("/mesh/handshake", r.handleHandshake, "POST")
+	handle("/mesh/nodes", r.listMeshNodes, "GET")
+
 	// 2. Auth routes (Public)
 	handle("/auth/login", r.login, "POST")
 	handle("/auth/register", r.register, "POST")
@@ -117,7 +121,8 @@ func NewRouter(db *database.DB) *Router {
 
 		// Check if this is an API path (with or without prefix)
 		if strings.HasPrefix(path, "/api") || strings.HasPrefix(path, "/auth") ||
-			strings.HasPrefix(path, "/ws") || strings.HasPrefix(path, "/health") {
+			strings.HasPrefix(path, "/ws") || strings.HasPrefix(path, "/health") ||
+			strings.HasPrefix(path, "/mesh") {
 			return false // Don't match - let API handlers handle it
 		}
 
@@ -137,7 +142,8 @@ func NewRouter(db *database.DB) *Router {
 				if strings.HasPrefix(pathWithoutPrefix, "/api") ||
 					strings.HasPrefix(pathWithoutPrefix, "/auth") ||
 					strings.HasPrefix(pathWithoutPrefix, "/ws") ||
-					strings.HasPrefix(pathWithoutPrefix, "/health") {
+					strings.HasPrefix(pathWithoutPrefix, "/health") ||
+					strings.HasPrefix(pathWithoutPrefix, "/mesh") {
 					return false // Don't match - let API handlers handle it
 				}
 			}

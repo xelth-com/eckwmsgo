@@ -12,6 +12,7 @@ import (
 	"github.com/xelth-com/eckwmsgo/internal/config"
 	"github.com/xelth-com/eckwmsgo/internal/database"
 	"github.com/xelth-com/eckwmsgo/internal/handlers"
+	"github.com/xelth-com/eckwmsgo/internal/mesh"
 	"github.com/xelth-com/eckwmsgo/internal/models"
 	"github.com/xelth-com/eckwmsgo/internal/services/odoo"
 )
@@ -67,6 +68,9 @@ func main() {
 		log.Println("✅ Schema synchronized successfully")
 	}
 
+	// Start Mesh Discovery
+	mesh.StartDiscovery(cfg)
+
 	// 4. Set up HTTP router
 	router := handlers.NewRouter(db)
 
@@ -97,7 +101,7 @@ func main() {
 
 	// Start server in goroutine
 	go func() {
-		log.Printf("🚀 Server starting on port %s\n", port)
+		log.Printf("🚀 Server (%s) starting on port %s [Prefix: '%s']\n", cfg.NodeRole, port, cfg.PathPrefix)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Failed to start server: %v", err)
 		}

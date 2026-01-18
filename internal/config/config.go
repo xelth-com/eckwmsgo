@@ -3,16 +3,37 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
+)
+
+// NodeRole represents the role of a node in the mesh network
+type NodeRole string
+
+const (
+	RoleMaster     NodeRole = "master"
+	RolePeer       NodeRole = "peer"
+	RoleEdge       NodeRole = "edge"
+	RoleBlindRelay NodeRole = "blind_relay"
 )
 
 // Config holds all application configuration
 type Config struct {
 	NodeEnv     string
 	Port        string
+	PathPrefix  string
 	JWTSecret   string
 	EncKey      string
+
+	// Mesh Configuration
+	InstanceID     string
+	NodeRole       NodeRole
+	NodeWeight     int
+	BaseURL        string
+	MeshSecret     string
+	BootstrapNodes []string
+
 	Database    DatabaseConfig
 	Translation TranslationConfig
 	Server      ServerConfig
@@ -69,17 +90,32 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("JWT_SECRET is required")
 	}
 
+	pathPrefix := os.Getenv("HTTP_PATH_PREFIX")
+	if pathPrefix != "" && !strings.HasPrefix(pathPrefix, "/") {
+		pathPrefix = "/" + pathPrefix
+	}
+	pathPrefix = strings.TrimRight(pathPrefix, "/")
+
 	// Support DATABASE_URL format
 	databaseURL := os.Getenv("DATABASE_URL")
 
 	return &Config{
-		NodeEnv:   getEnv("NODE_ENV", "development"),
-		Port:      getEnv("PORT", "3001"),
-		JWTSecret: jwtSecret,
-		EncKey:    os.Getenv("ENC_KEY"),
+		NodeEnv:    getEnv("NODE_ENV", "development"),
+		Port:       getEnv("PORT", "3210"),
+		PathPrefix: pathPrefix,
+		JWTSecret:  jwtSecret,
+		EncKey:     os.Getenv("ENC_KEY"),
+
+		// Mesh Configuration
+		InstanceID:     getEnv("INSTANCE_ID", "unknown_instance"),
+		NodeRole:       NodeRole(getEnv("NODE_ROLE", "edge")),
+		NodeWeight:     getIntEnv("NODE_WEIGHT", 10),
+		BaseURL:        strings.TrimRight(getEnv("BASE_URL", "http://localhost:3210"), "/"),
+		MeshSecret:     getEnv("MESH_SECRET", "change_me_to_something_secure"),
+		BootstrapNodes: parseBootstrapNodes(os.Getenv("BOOTSTRAP_NODES")),
+
 		Database: func() DatabaseConfig {
 			if databaseURL != "" {
-				// Parse DATABASE_URL (format: postgresql://user:pass@host:port/dbname?sslmode=xxx)
 				return DatabaseConfig{
 					Host:     getEnv("PG_HOST", "localhost"),
 					Port:     getEnv("PG_PORT", "5432"),
@@ -104,13 +140,13 @@ func Load() (*Config, error) {
 			OpenAIAPIKey:      os.Getenv("OPENAI_API_KEY"),
 		},
 		Server: ServerConfig{
-			LocalPort:         getEnv("LOCAL_SERVER_PORT", "3000"),
+			LocalPort:         getEnv("LOCAL_SERVER_PORT", "3210"),
 			GlobalPort:        getEnv("GLOBAL_SERVER_PORT", "8080"),
 			GlobalURL:         os.Getenv("GLOBAL_SERVER_URL"),
 			LocalInternalURL:  os.Getenv("LOCAL_SERVER_INTERNAL_URL"),
 			GlobalAPIEndpoint: os.Getenv("GLOBAL_SERVER_API_ENDPOINT"),
 			GlobalAPIKey:      os.Getenv("GLOBAL_SERVER_API_KEY"),
-			InstanceID:        os.Getenv("INSTANCE_ID"),
+			InstanceID:        getEnv("INSTANCE_ID", ""),
 			ServerPublicKey:   os.Getenv("SERVER_PUBLIC_KEY"),
 			ServerPrivateKey:  os.Getenv("SERVER_PRIVATE_KEY"),
 			GlobalRegisterURL: os.Getenv("GLOBAL_SERVER_REGISTER_URL"),
@@ -131,4 +167,20 @@ func getEnv(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+// parseBootstrapNodes parses comma-separated bootstrap node URLs
+func parseBootstrapNodes(s string) []string {
+	if s == "" {
+		return nil
+	}
+	nodes := strings.Split(s, ",")
+	result := make([]string, 0, len(nodes))
+	for _, n := range nodes {
+		n = strings.TrimSpace(n)
+		if n != "" {
+			result = append(result, n)
+		}
+	}
+	return result
 }
