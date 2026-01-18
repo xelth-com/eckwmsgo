@@ -24,7 +24,7 @@ async function request(endpoint, options = {}) {
     if (response.status === 401) {
         authStore.logout();
         if (typeof window !== 'undefined') {
-            window.location.href = '/login';
+            window.location.href = 'login';
         }
         throw new Error('Unauthorized');
     }
