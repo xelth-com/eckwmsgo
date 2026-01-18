@@ -29,11 +29,11 @@
                 {#if $authStore.isLoading}
                     <button class="btn primary loading">Loading...</button>
                 {:else if $authStore.isAuthenticated}
-                    <a href="/dashboard" class="btn primary">
+                    <a href="dashboard" class="btn primary">
                         Open Dashboard &rarr;
                     </a>
                 {:else}
-                    <a href="/login" class="btn primary">
+                    <a href="login" class="btn primary">
                         Sign In
                     </a>
                 {/if}

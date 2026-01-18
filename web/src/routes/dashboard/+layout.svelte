@@ -11,7 +11,7 @@
         // 1. Auth Guard
         const unsubscribeAuth = authStore.subscribe(state => {
             if (!state.isLoading && !state.isAuthenticated) {
-                goto('/login');
+                goto('login');
             }
         });
 
@@ -31,7 +31,7 @@
     function handleLogout() {
         authStore.logout();
         wsStore.close();
-        goto('/login');
+        goto('login');
     }
 
     // Reactive listener for WebSocket messages
@@ -88,15 +88,15 @@
             // Handle Navigation / Action based on type
             if (data.type === 'item' && data.data?.id) {
                 // Navigate to item detail using internal ID
-                goto(`/dashboard/items/${data.data.id}`);
+                goto(`items/${data.data.id}`);
             } else if (data.type === 'box' && data.data?.id) {
                 // Box detail page pending - just show console log for now
                 console.log('Box scanned:', data.data);
                 toastStore.add(`Box ${data.data.name || data.data.id} scanned`, 'success');
             } else if (data.type === 'place' && data.data?.id) {
-                goto(`/dashboard/warehouse/${data.data.id}`);
+                goto(`warehouse/${data.data.id}`);
             } else if (data.type === 'product' && data.data?.id) {
-                goto(`/dashboard/items/${data.data.id}`);
+                goto(`items/${data.data.id}`);
             } else if (data.type === 'label') {
                 // Label codes contain action metadata - just log for now
                 console.log('Label scanned:', data.data);
@@ -119,19 +119,19 @@
         </div>
 
         <nav>
-            <a href="/dashboard" class:active={$page.url.pathname === '/dashboard'}>
+            <a href="." class:active={$page.url.pathname === '/dashboard'}>
                 Dashboard
             </a>
-            <a href="/dashboard/items" class:active={$page.url.pathname.includes('/items')}>
+            <a href="items" class:active={$page.url.pathname.includes('/items')}>
                 Inventory
             </a>
-            <a href="/dashboard/warehouse" class:active={$page.url.pathname.includes('/warehouse')}>
+            <a href="warehouse" class:active={$page.url.pathname.includes('/warehouse')}>
                 Warehouse
             </a>
-            <a href="/dashboard/rma" class:active={$page.url.pathname.includes('/rma')}>
+            <a href="rma" class:active={$page.url.pathname.includes('/rma')}>
                 RMA Requests
             </a>
-            <a href="/dashboard/print" class:active={$page.url.pathname.includes('/print')}>
+            <a href="print" class:active={$page.url.pathname.includes('/print')}>
                 Printing
             </a>
         </nav>
