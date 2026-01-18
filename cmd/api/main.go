@@ -1,15 +1,19 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/config"
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/database"
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/handlers"
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/models"
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/services/odoo"
+	"github.com/xelth-com/eckwmsgo/internal/config"
+	"github.com/xelth-com/eckwmsgo/internal/database"
+	"github.com/xelth-com/eckwmsgo/internal/handlers"
+	"github.com/xelth-com/eckwmsgo/internal/models"
+	"github.com/xelth-com/eckwmsgo/internal/services/odoo"
 )
 
 func main() {
@@ -24,7 +28,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	defer db.Close()
+	// Note: db.Close() is called manually in shutdown handler below
 
 	// 3. Auto-Migrate Schema (Critical for Zero-Config)
 	log.Println("🚀 Synchronizing database schema...")
@@ -76,15 +80,50 @@ func main() {
 	})
 	odooService.Start()
 
-	// 6. Start server
+	// 6. Start server with graceful shutdown
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3001" // Use 3001 as default for Go version
 	}
 
-	log.Printf("🚀 Server starting on port %s\n", port)
-	// Use router.Handler() to wrap with case-insensitive middleware
-	if err := http.ListenAndServe(":"+port, router.Handler()); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+	server := &http.Server{
+		Addr:    ":" + port,
+		Handler: router.Handler(),
 	}
+
+	// Channel to listen for shutdown signals
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+
+	// Start server in goroutine
+	go func() {
+		log.Printf("🚀 Server starting on port %s\n", port)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Failed to start server: %v", err)
+		}
+	}()
+
+	// Wait for shutdown signal
+	sig := <-shutdown
+	log.Printf("\n⚠️  Received signal: %v. Shutting down gracefully...\n", sig)
+
+	// Create context with timeout for graceful shutdown
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Shutdown HTTP server
+	if err := server.Shutdown(ctx); err != nil {
+		log.Printf("HTTP server shutdown error: %v", err)
+	}
+
+	// Stop Odoo sync service
+	odooService.Stop()
+
+	// Close database (this also stops embedded PostgreSQL)
+	log.Println("🛑 Closing database connection...")
+	if err := db.Close(); err != nil {
+		log.Printf("Database close error: %v", err)
+	}
+
+	log.Println("✅ Shutdown complete")
 }

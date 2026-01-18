@@ -8,8 +8,11 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/models"
+	"github.com/xelth-com/eckwmsgo/internal/config"
+	"github.com/xelth-com/eckwmsgo/internal/models"
+	"github.com/xelth-com/eckwmsgo/internal/utils"
 	"github.com/skip2/go-qrcode"
 )
 
@@ -114,6 +117,7 @@ func (r *Router) registerDevice(w http.ResponseWriter, req *http.Request) {
 		// Update existing
 		device.PublicKey = body.DevicePublicKey
 		device.IsActive = true
+		device.Status = "active"
 		if body.DeviceName != "" {
 			device.DeviceName = body.DeviceName
 		}
@@ -125,10 +129,33 @@ func (r *Router) registerDevice(w http.ResponseWriter, req *http.Request) {
 			PublicKey:  body.DevicePublicKey,
 			DeviceName: body.DeviceName,
 			IsActive:   true,
-			Status:     "pending",
+			Status:     "active",
+			CreatedAt:  time.Now(),
+			UpdatedAt:  time.Now(),
 		}
 		r.db.Create(&device)
 	}
 
-	respondJSON(w, http.StatusOK, map[string]string{"status": "registered"})
+	// 3. Generate Token for the device (Android requires this for subsequent calls)
+	cfg, _ := config.Load()
+
+	// Create a dummy user struct for token generation
+	// The device acts as a user "device_[id]"
+	mockUser := &models.UserAuth{
+		ID:    "device_" + body.DeviceID,
+		Role:  "device",
+		Email: "device@" + body.DeviceID,
+	}
+
+	accessToken, _, err := utils.GenerateTokens(mockUser, cfg)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to generate device token")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"status":  "active",
+		"token":   accessToken,
+		"message": "Device registered and authorized",
+	})
 }

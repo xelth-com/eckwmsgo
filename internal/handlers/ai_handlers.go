@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/ai"
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/middleware"
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/models"
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/utils"
+	"github.com/xelth-com/eckwmsgo/internal/ai"
+	"github.com/xelth-com/eckwmsgo/internal/middleware"
+	"github.com/xelth-com/eckwmsgo/internal/models"
+	"github.com/xelth-com/eckwmsgo/internal/utils"
 	"github.com/gorilla/mux"
 )
 

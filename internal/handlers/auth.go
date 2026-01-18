@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/config"
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/models"
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/utils"
+	"github.com/xelth-com/eckwmsgo/internal/config"
+	"github.com/xelth-com/eckwmsgo/internal/models"
+	"github.com/xelth-com/eckwmsgo/internal/utils"
 )
 
 // LoginRequest represents a login request

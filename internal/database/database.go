@@ -1,21 +1,108 @@
 package database
 
 import (
+	"bufio"
 	"fmt"
 	"log"
+	"net"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"syscall"
 	"time"
 
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/config"
+	"github.com/xelth-com/eckwmsgo/internal/config"
 	embeddedpostgres "github.com/fergusstrange/embedded-postgres"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
+const (
+	embeddedDataPath = "./db_data"
+	embeddedPort     = 5433
+)
+
 // DB wraps gorm.DB and includes a reference to an embedded process if active
 type DB struct {
 	*gorm.DB
 	embedded *embeddedpostgres.EmbeddedPostgres
+}
+
+// cleanupStaleEmbeddedPostgres cleans up leftover processes from a previous crash
+func cleanupStaleEmbeddedPostgres() {
+	pidFile := filepath.Join(embeddedDataPath, "postmaster.pid")
+
+	// Check if postmaster.pid exists
+	data, err := os.ReadFile(pidFile)
+	if err != nil {
+		// No pid file = clean state
+		return
+	}
+
+	// Parse PID from first line of postmaster.pid
+	scanner := bufio.NewScanner(strings.NewReader(string(data)))
+	if !scanner.Scan() {
+		return
+	}
+	pid, err := strconv.Atoi(strings.TrimSpace(scanner.Text()))
+	if err != nil {
+		log.Printf("⚠️  Could not parse PID from postmaster.pid: %v", err)
+		return
+	}
+
+	// Check if process is still running
+	process, err := os.FindProcess(pid)
+	if err != nil {
+		// Process doesn't exist, clean up pid file
+		log.Printf("🧹 Cleaning up stale postmaster.pid (PID %d not found)", pid)
+		os.Remove(pidFile)
+		return
+	}
+
+	// On Unix, FindProcess always succeeds, so we need to send signal 0 to check
+	err = process.Signal(syscall.Signal(0))
+	if err != nil {
+		// Process is not running, clean up pid file
+		log.Printf("🧹 Cleaning up stale postmaster.pid (PID %d not running)", pid)
+		os.Remove(pidFile)
+		return
+	}
+
+	// Process is running - try to stop it gracefully
+	log.Printf("⚠️  Found orphaned PostgreSQL process (PID %d), attempting to stop...", pid)
+
+	// Send SIGTERM for graceful shutdown
+	if err := process.Signal(syscall.SIGTERM); err != nil {
+		log.Printf("⚠️  Could not send SIGTERM to PID %d: %v", pid, err)
+	}
+
+	// Wait up to 5 seconds for process to stop
+	for i := 0; i < 10; i++ {
+		time.Sleep(500 * time.Millisecond)
+		if err := process.Signal(syscall.Signal(0)); err != nil {
+			log.Printf("✅ Orphaned PostgreSQL process stopped")
+			os.Remove(pidFile)
+			return
+		}
+	}
+
+	// If still running, force kill
+	log.Printf("⚠️  Process did not stop gracefully, sending SIGKILL...")
+	process.Kill()
+	time.Sleep(500 * time.Millisecond)
+	os.Remove(pidFile)
+}
+
+// isPortInUse checks if a port is already in use
+func isPortInUse(port int) bool {
+	conn, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", port), time.Second)
+	if err != nil {
+		return false
+	}
+	conn.Close()
+	return true
 }
 
 // Connect establishes a connection to a PostgreSQL database (external or embedded)
@@ -29,10 +116,27 @@ func Connect(cfg config.DatabaseConfig) (*DB, error) {
 	if isEmbedded {
 		log.Println("📦 Mode: [Embedded PostgreSQL] - Initializing internal database...")
 
+		// Cleanup any stale processes from previous crash
+		cleanupStaleEmbeddedPostgres()
+
+		// Additional check: if port is still in use after cleanup, wait a bit
+		if isPortInUse(embeddedPort) {
+			log.Printf("⚠️  Port %d still in use, waiting for release...", embeddedPort)
+			for i := 0; i < 6; i++ {
+				time.Sleep(500 * time.Millisecond)
+				if !isPortInUse(embeddedPort) {
+					break
+				}
+			}
+			if isPortInUse(embeddedPort) {
+				return nil, fmt.Errorf("port %d is still in use by another process", embeddedPort)
+			}
+		}
+
 		// Setup embedded configuration
 		embeddedCfg := embeddedpostgres.DefaultConfig().
-			DataPath("./db_data"). // Persistent data folder in the app directory
-			Port(5433).            // Use custom port for embedded mode
+			DataPath(embeddedDataPath).
+			Port(uint32(embeddedPort)).
 			Database(cfg.Database).
 			Username(cfg.Username).
 			Password("postgres") // Set password for embedded user
@@ -44,9 +148,9 @@ func Connect(cfg config.DatabaseConfig) (*DB, error) {
 		}
 
 		// Update connection parameters to point to the embedded instance
-		cfg.Port = "5433"
+		cfg.Port = strconv.Itoa(embeddedPort)
 		embeddedPassword = "postgres"
-		log.Println("✅ Embedded PostgreSQL process started on port 5433")
+		log.Printf("✅ Embedded PostgreSQL process started on port %d", embeddedPort)
 	} else {
 		log.Printf("🌐 Mode: [External PostgreSQL] - Connecting to %s:%s\n", cfg.Host, cfg.Port)
 		embeddedPassword = cfg.Password

@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/database"
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/middleware"
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/websocket"
-	"github.com/dmytrosurovtsev/eckwmsgo/web"
+	"github.com/xelth-com/eckwmsgo/internal/database"
+	"github.com/xelth-com/eckwmsgo/internal/middleware"
+	"github.com/xelth-com/eckwmsgo/internal/websocket"
+	"github.com/xelth-com/eckwmsgo/web"
 	"github.com/gorilla/mux"
 )
 
@@ -82,6 +82,7 @@ func NewRouter(db *database.DB) *Router {
 	r.registerItemsRoutes(urlPrefix)
 	r.registerSetupRoutes(urlPrefix)
 	r.registerPrintRoutes(urlPrefix)
+	r.registerUploadRoutes(urlPrefix)
 	r.registerAIRoutes(urlPrefix, db)
 
 	// WebSocket endpoint
@@ -292,6 +293,28 @@ func (r *Router) registerPrintRoutes(prefix string) {
 		print.Use(middleware.AuthMiddleware)
 		print.HandleFunc("/labels", r.generateLabels).Methods("POST")
 	}
+}
+
+// registerUploadRoutes registers image upload routes with optional prefix
+func (r *Router) registerUploadRoutes(prefix string) {
+	paths := []string{"/api/upload/image"}
+	if prefix != "" {
+		paths = append(paths, prefix+"/api/upload/image")
+	}
+
+	for _, p := range paths {
+		// Stub handler - just returns success
+		r.HandleFunc(p, r.handleImageUpload).Methods("POST")
+	}
+}
+
+// handleImageUpload is a stub that returns success
+func (r *Router) handleImageUpload(w http.ResponseWriter, req *http.Request) {
+	respondJSON(w, http.StatusOK, map[string]string{
+		"status":  "uploaded",
+		"url":     "/storage/placeholder.jpg",
+		"message": "Image upload stub successful",
+	})
 }
 
 // registerAIRoutes registers AI agent routes with optional prefix

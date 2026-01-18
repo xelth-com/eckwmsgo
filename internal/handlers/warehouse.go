@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/models"
+	"github.com/xelth-com/eckwmsgo/internal/models"
 	"github.com/gorilla/mux"
 )
 

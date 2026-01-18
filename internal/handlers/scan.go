@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/models"
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/utils"
+	"github.com/xelth-com/eckwmsgo/internal/models"
+	"github.com/xelth-com/eckwmsgo/internal/utils"
 	"gorm.io/gorm"
 )
 
@@ -19,10 +19,12 @@ type ScanRequest struct {
 
 // ScanResponse standardizes the scan result
 type ScanResponse struct {
-	Type    string      `json:"type"`           // item, box, place, label
-	Message string      `json:"message"`        // Human readable status
-	Action  string      `json:"action"`         // created, found, error
-	Data    interface{} `json:"data,omitempty"` // The resulting object
+	Type          string      `json:"type"`                     // item, box, place, label
+	Message       string      `json:"message"`                  // Human readable status
+	Action        string      `json:"action"`                   // created, found, error
+	Checksum      string      `json:"checksum"`                 // For Android
+	AiInteraction interface{} `json:"ai_interaction,omitempty"` // For Android
+	Data          interface{} `json:"data,omitempty"`           // The resulting object
 }
 
 // handleScan is the universal entry point for all barcode scans

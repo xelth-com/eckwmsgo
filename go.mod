@@ -1,9 +1,8 @@
-module github.com/dmytrosurovtsev/eckwmsgo
+module github.com/xelth-com/eckwmsgo
 
 go 1.24.0
 
 require (
-	github.com/dmytrosurovtsev/eckwmsgo/web v0.0.0-00010101000000-000000000000
 	github.com/fergusstrange/embedded-postgres v1.33.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
@@ -13,6 +12,7 @@ require (
 	github.com/jung-kurt/gofpdf v1.16.2
 	github.com/kolo/xmlrpc v0.0.0-20220921171641-a4b6fa1dd06b
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
+	github.com/xelth-com/eckwmsgo/web v0.0.0-00010101000000-000000000000
 	golang.org/x/crypto v0.46.0
 	gorm.io/datatypes v1.2.7
 	gorm.io/driver/postgres v1.6.0
@@ -37,3 +37,5 @@ require (
 
 // Replace directive to handle local web subpackage
 replace github.com/dmytrosurovtsev/eckwmsgo/web => ./web
+
+replace github.com/xelth-com/eckwmsgo/web => ./web

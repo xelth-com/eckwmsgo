@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/database"
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/models"
+	"github.com/xelth-com/eckwmsgo/internal/database"
+	"github.com/xelth-com/eckwmsgo/internal/models"
 	"gorm.io/gorm"
 )
 

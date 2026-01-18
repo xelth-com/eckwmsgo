@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/config"
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/utils"
+	"github.com/xelth-com/eckwmsgo/internal/config"
+	"github.com/xelth-com/eckwmsgo/internal/utils"
 )
 
 type contextKey string

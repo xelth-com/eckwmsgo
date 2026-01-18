@@ -9,7 +9,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/dmytrosurovtsev/eckwmsgo/internal/models"
+	"github.com/xelth-com/eckwmsgo/internal/models"
 )
 
 // SecurityLayer handles encryption/decryption of sync packets
