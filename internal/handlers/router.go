@@ -52,15 +52,33 @@ func NewRouter(db *database.DB) *Router {
 		}
 	}
 
-	// Health check endpoint (support both prefixed and root)
+	// 1. Health check endpoint (Public)
 	handle("/health", r.healthCheck, "GET")
 
-	// Auth routes (Public)
+	// 2. Auth routes (Public)
 	handle("/auth/login", r.login, "POST")
 	handle("/auth/register", r.register, "POST")
 	handle("/auth/logout", r.logout, "POST")
 
-	// API status endpoint (protected)
+	// 3. Public Device Registration (Specific /api route - MUST BE BEFORE generic /api)
+	handle("/api/internal/register-device", r.registerDevice, "POST")
+
+	// 4. Image Upload Stub (Specific /api route)
+	r.registerUploadRoutes(urlPrefix)
+
+	// 5. Register Specific Route Groups (Protected)
+	// These define their own subrouters. Since they are specific PathPrefixes,
+	// they should be registered before the generic /api catch-all.
+	// r.registerRMARoutes(urlPrefix) // TODO: Implement RMA handlers
+	r.registerWarehouseRoutes(urlPrefix)
+	r.registerItemsRoutes(urlPrefix)
+	r.registerRackRoutes(urlPrefix)
+	r.registerSetupRoutes(urlPrefix) // Protected parts of setup
+	r.registerPrintRoutes(urlPrefix)
+	r.registerAIRoutes(urlPrefix, db)
+
+	// 6. Generic API endpoints (Protected)
+	// This captures remaining /api/* requests like /api/status or /api/scan
 	paths := []string{"/api"}
 	if urlPrefix != "" {
 		paths = append(paths, urlPrefix+"/api")
@@ -75,15 +93,6 @@ func NewRouter(db *database.DB) *Router {
 		// Universal Scan Endpoint
 		api.HandleFunc("/scan", r.handleScan).Methods("POST")
 	}
-
-	// Register route groups with prefix support
-	r.registerOrdersRoutes(urlPrefix)
-	r.registerWarehouseRoutes(urlPrefix)
-	r.registerItemsRoutes(urlPrefix)
-	r.registerSetupRoutes(urlPrefix)
-	r.registerPrintRoutes(urlPrefix)
-	r.registerUploadRoutes(urlPrefix)
-	r.registerAIRoutes(urlPrefix, db)
 
 	// WebSocket endpoint
 	handle("/ws", func(w http.ResponseWriter, req *http.Request) {
@@ -274,10 +283,6 @@ func (r *Router) registerSetupRoutes(prefix string) {
 		setup := r.PathPrefix(p).Subrouter()
 		setup.Use(middleware.AuthMiddleware)
 		setup.HandleFunc("/pairing-qr", r.generatePairingQR).Methods("GET")
-
-		// Public registration route needs to be handled on main router
-		regPath := p + "/register-device"
-		r.HandleFunc(regPath, r.registerDevice).Methods("POST")
 	}
 }
 
@@ -347,5 +352,21 @@ func (r *Router) registerAIRoutes(prefix string, db *database.DB) {
 		aiAdmin.HandleFunc("/agents/{agent_id}/permissions", r.grantAIPermission).Methods("POST")
 		aiAdmin.HandleFunc("/agents/{agent_id}/permissions", r.revokeAIPermission).Methods("DELETE")
 		aiAdmin.HandleFunc("/agents/{agent_id}/audit", r.getAIAuditLogs).Methods("GET")
+	}
+}
+
+// registerRackRoutes registers standalone rack routes
+func (r *Router) registerRackRoutes(prefix string) {
+	paths := []string{"/api/warehouse/racks"}
+	if prefix != "" {
+		paths = append(paths, prefix+"/api/warehouse/racks")
+	}
+
+	for _, p := range paths {
+		racks := r.PathPrefix(p).Subrouter()
+		racks.Use(middleware.AuthMiddleware)
+		racks.HandleFunc("", r.createRack).Methods("POST")
+		racks.HandleFunc("/{id}", r.updateRack).Methods("PUT")
+		racks.HandleFunc("/{id}", r.deleteRack).Methods("DELETE")
 	}
 }
