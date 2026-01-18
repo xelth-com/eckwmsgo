@@ -1,17 +1,22 @@
 <script>
-    import { authStore } from '$lib/stores/authStore';
-    import { wsStore } from '$lib/stores/wsStore';
-    import { toastStore } from '$lib/stores/toastStore';
-    import ToastContainer from '$lib/components/ToastContainer.svelte';
-    import { goto } from '$app/navigation';
-    import { onMount, onDestroy } from 'svelte';
-    import { page } from '$app/stores';
+    import { authStore } from "$lib/stores/authStore";
+    import { wsStore } from "$lib/stores/wsStore";
+    import { toastStore } from "$lib/stores/toastStore";
+    import ToastContainer from "$lib/components/ToastContainer.svelte";
+    import { goto } from "$app/navigation";
+    import { onMount, onDestroy } from "svelte";
+    import { page } from "$app/stores";
+    import { base } from "$app/paths";
 
     onMount(() => {
         // 1. Auth Guard
-        const unsubscribeAuth = authStore.subscribe(state => {
+        const unsubscribeAuth = authStore.subscribe((state) => {
             if (!state.isLoading && !state.isAuthenticated) {
-                goto('login');
+                // Use base for explicit navigation if needed, though goto usually handles relative paths well.
+                // However, full reload or external links need base.
+                // For goto, it handles base automatically if we use relative paths correctly or root-relative with base.
+                // But let's be explicit and consistent.
+                goto(`${base}/login`);
             }
         });
 
@@ -31,7 +36,7 @@
     function handleLogout() {
         authStore.logout();
         wsStore.close();
-        goto('login');
+        goto(`${base}/login`);
     }
 
     // Reactive listener for WebSocket messages
@@ -45,17 +50,17 @@
 
         // Handle Scan Events
         if (msg.barcode || (msg.data && msg.data.barcode)) {
-             const barcode = msg.barcode || msg.data.barcode;
-             processScan(barcode);
-             return;
+            const barcode = msg.barcode || msg.data.barcode;
+            processScan(barcode);
+            return;
         }
 
         if (msg.success && msg.data) {
-             toastStore.add(`Operation Success`, 'success');
-        } else if (msg.type === 'ERROR' || msg.error) {
-             toastStore.add(msg.text || msg.error || 'Error occurred', 'error');
+            toastStore.add(`Operation Success`, "success");
+        } else if (msg.type === "ERROR" || msg.error) {
+            toastStore.add(msg.text || msg.error || "Error occurred", "error");
         } else if (msg.text) {
-             toastStore.add(msg.text, 'info');
+            toastStore.add(msg.text, "info");
         }
     }
 
@@ -63,48 +68,50 @@
         // Play sound (optional, browser policy might block)
         // const audio = new Audio('/beep.mp3'); audio.play().catch(e=>{});
 
-        toastStore.add('Scanning...', 'info', 1000);
+        toastStore.add("Scanning...", "info", 1000);
 
         try {
-            const res = await fetch('/api/scan', {
-                method: 'POST',
+            const res = await fetch("/api/scan", {
+                method: "POST",
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${$authStore.token}`
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${$authStore.token}`,
                 },
-                body: JSON.stringify({ barcode })
+                body: JSON.stringify({ barcode }),
             });
 
             if (!res.ok) {
                 const err = await res.json();
-                throw new Error(err.error || 'Scan failed');
+                throw new Error(err.error || "Scan failed");
             }
 
             const data = await res.json();
 
             // Show result
-            toastStore.add(data.message, 'success');
+            toastStore.add(data.message, "success");
 
             // Handle Navigation / Action based on type
-            if (data.type === 'item' && data.data?.id) {
+            if (data.type === "item" && data.data?.id) {
                 // Navigate to item detail using internal ID
-                goto(`items/${data.data.id}`);
-            } else if (data.type === 'box' && data.data?.id) {
+                goto(`${base}/dashboard/items/${data.data.id}`);
+            } else if (data.type === "box" && data.data?.id) {
                 // Box detail page pending - just show console log for now
-                console.log('Box scanned:', data.data);
-                toastStore.add(`Box ${data.data.name || data.data.id} scanned`, 'success');
-            } else if (data.type === 'place' && data.data?.id) {
-                goto(`warehouse/${data.data.id}`);
-            } else if (data.type === 'product' && data.data?.id) {
-                goto(`items/${data.data.id}`);
-            } else if (data.type === 'label') {
+                console.log("Box scanned:", data.data);
+                toastStore.add(
+                    `Box ${data.data.name || data.data.id} scanned`,
+                    "success",
+                );
+            } else if (data.type === "place" && data.data?.id) {
+                goto(`${base}/dashboard/warehouse/${data.data.id}`);
+            } else if (data.type === "product" && data.data?.id) {
+                goto(`${base}/dashboard/items/${data.data.id}`);
+            } else if (data.type === "label") {
                 // Label codes contain action metadata - just log for now
-                console.log('Label scanned:', data.data);
+                console.log("Label scanned:", data.data);
             }
-
         } catch (e) {
-            console.error('Scan error:', e);
-            toastStore.add(`Error: ${e.message}`, 'error');
+            console.error("Scan error:", e);
+            toastStore.add(`Error: ${e.message}`, "error");
         }
     }
 </script>
@@ -114,32 +121,52 @@
         <div class="brand">
             <span class="brand-text">eckWMS</span>
             <div class="connection-status" class:connected={$wsStore.connected}>
-                {$wsStore.connected ? 'ONLINE' : 'OFFLINE'}
+                {$wsStore.connected ? "ONLINE" : "OFFLINE"}
             </div>
         </div>
 
         <nav>
-            <a href="." class:active={$page.url.pathname === '/dashboard'}>
+            <a
+                href="{base}/dashboard"
+                class:active={$page.url.pathname === `${base}/dashboard` ||
+                    $page.url.pathname === "/dashboard"}
+            >
                 Dashboard
             </a>
-            <a href="items" class:active={$page.url.pathname.includes('/items')}>
+            <a
+                href="{base}/dashboard/items"
+                class:active={$page.url.pathname.includes("/items")}
+            >
                 Inventory
             </a>
-            <a href="warehouse" class:active={$page.url.pathname.includes('/warehouse')}>
+            <a
+                href="{base}/dashboard/warehouse"
+                class:active={$page.url.pathname.includes("/warehouse")}
+            >
                 Warehouse
             </a>
-            <a href="rma" class:active={$page.url.pathname.includes('/rma')}>
+            <a
+                href="{base}/dashboard/rma"
+                class:active={$page.url.pathname.includes("/rma")}
+            >
                 RMA Requests
             </a>
-            <a href="print" class:active={$page.url.pathname.includes('/print')}>
+            <a
+                href="{base}/dashboard/print"
+                class:active={$page.url.pathname.includes("/print")}
+            >
                 Printing
             </a>
         </nav>
 
         <div class="user-panel">
             <div class="user-info">
-                <span class="username">{$authStore.currentUser?.username || 'User'}</span>
-                <span class="role">{$authStore.currentUser?.role || 'Operator'}</span>
+                <span class="username"
+                    >{$authStore.currentUser?.username || "User"}</span
+                >
+                <span class="role"
+                    >{$authStore.currentUser?.role || "Operator"}</span
+                >
             </div>
             <button on:click={handleLogout} class="logout-btn">Logout</button>
         </div>

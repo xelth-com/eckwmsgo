@@ -1,6 +1,7 @@
 <script>
     import { authStore } from '$lib/stores/authStore';
     import { onMount } from 'svelte';
+    import { base } from '$app/paths';
 
     // Мы больше не делаем авто-редирект, чтобы пользователи могли прочитать о системе.
     // Состояние авторизации используется только для переключения кнопки Login/Dashboard.
@@ -29,11 +30,11 @@
                 {#if $authStore.isLoading}
                     <button class="btn primary loading">Loading...</button>
                 {:else if $authStore.isAuthenticated}
-                    <a href="dashboard" class="btn primary">
+                    <a href="{base}/dashboard" class="btn primary">
                         Open Dashboard &rarr;
                     </a>
                 {:else}
-                    <a href="login" class="btn primary">
+                    <a href="{base}/login" class="btn primary">
                         Sign In
                     </a>
                 {/if}
