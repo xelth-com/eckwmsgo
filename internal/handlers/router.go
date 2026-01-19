@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"github.com/xelth-com/eckwmsgo/internal/middleware"
 	"github.com/xelth-com/eckwmsgo/internal/models"
 	odooService "github.com/xelth-com/eckwmsgo/internal/services/odoo"
+	deliveryService "github.com/xelth-com/eckwmsgo/internal/services/delivery"
 	"github.com/xelth-com/eckwmsgo/internal/websocket"
 	"github.com/xelth-com/eckwmsgo/web"
 	"github.com/gorilla/mux"
@@ -18,9 +20,10 @@ import (
 // Router wraps the mux router and database
 type Router struct {
 	*mux.Router
-	db          *database.DB
-	hub         *websocket.Hub
-	odooService interface{} // Set via SetOdooService for Odoo sync routes
+	db               *database.DB
+	hub              *websocket.Hub
+	odooService      interface{} // Set via SetOdooService for Odoo sync routes
+	deliveryService  *deliveryService.Service // Set via SetDeliveryService for delivery routes
 }
 
 // NewRouter creates a new HTTP router with all routes
@@ -537,4 +540,194 @@ func (r *Router) getOdooPicking(w http.ResponseWriter, req *http.Request) {
 		"picking":    picking,
 		"move_lines": moveLines,
 	})
+}
+
+// SetDeliveryService sets the delivery service and registers delivery routes
+func (r *Router) SetDeliveryService(svc *deliveryService.Service) {
+	r.deliveryService = svc
+
+	urlPrefix := os.Getenv("HTTP_PATH_PREFIX")
+	if urlPrefix != "" {
+		if !strings.HasPrefix(urlPrefix, "/") {
+			urlPrefix = "/" + urlPrefix
+		}
+		urlPrefix = strings.TrimRight(strings.ToLower(urlPrefix), "/")
+	}
+
+	r.registerDeliveryRoutes(urlPrefix, svc)
+}
+
+// registerDeliveryRoutes registers delivery API routes
+func (r *Router) registerDeliveryRoutes(prefix string, svc *deliveryService.Service) {
+	if svc == nil {
+		return
+	}
+
+	paths := []string{"/api/delivery"}
+	if prefix != "" {
+		paths = append(paths, prefix+"/api/delivery")
+	}
+
+	for _, p := range paths {
+		delivery := r.PathPrefix(p).Subrouter()
+		delivery.Use(middleware.AuthMiddleware)
+
+		// Shipment management
+		delivery.HandleFunc("/shipments", r.createShipment).Methods("POST")
+		delivery.HandleFunc("/shipments", r.listShipments).Methods("GET")
+		delivery.HandleFunc("/shipments/{id}", r.getShipment).Methods("GET")
+		delivery.HandleFunc("/shipments/{id}/cancel", r.cancelShipment).Methods("POST")
+
+		// Carrier management
+		delivery.HandleFunc("/carriers", r.listCarriers).Methods("GET")
+		delivery.HandleFunc("/carriers", r.createCarrier).Methods("POST")
+		delivery.HandleFunc("/carriers/{id}", r.getCarrier).Methods("GET")
+		delivery.HandleFunc("/carriers/{id}/toggle", r.toggleCarrier).Methods("POST")
+	}
+}
+
+// Delivery handlers
+
+func (r *Router) createShipment(w http.ResponseWriter, req *http.Request) {
+	if r.deliveryService == nil {
+		respondError(w, http.StatusServiceUnavailable, "Delivery service not configured")
+		return
+	}
+
+	var reqBody struct {
+		PickingID     int64  `json:"picking_id"`
+		ProviderCode  string `json:"provider_code"` // e.g., "opal", "dhl"
+	}
+
+	if err := json.NewDecoder(req.Body).Decode(&reqBody); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	err := r.deliveryService.CreateShipment(req.Context(), reqBody.PickingID, reqBody.ProviderCode)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Get the created delivery record
+	delivery, _ := r.deliveryService.GetDeliveryStatus(reqBody.PickingID)
+	respondJSON(w, http.StatusCreated, map[string]interface{}{
+		"message":  "Shipment created and queued for processing",
+		"shipment": delivery,
+	})
+}
+
+func (r *Router) listShipments(w http.ResponseWriter, req *http.Request) {
+	state := req.URL.Query().Get("state")
+	limit := 100
+
+	shipments, err := r.deliveryService.ListShipments(state, limit)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to list shipments")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, shipments)
+}
+
+func (r *Router) getShipment(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	idStr := vars["id"]
+	var id int64
+	if _, err := fmt.Sscanf(idStr, "%d", &id); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid shipment ID")
+		return
+	}
+
+	shipment, err := r.deliveryService.GetShipment(id)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "Shipment not found")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, shipment)
+}
+
+func (r *Router) cancelShipment(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	idStr := vars["id"]
+	var pickingID int64
+	if _, err := fmt.Sscanf(idStr, "%d", &pickingID); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid shipment ID")
+		return
+	}
+
+	if err := r.deliveryService.CancelShipment(req.Context(), pickingID); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]string{"status": "cancelled"})
+}
+
+func (r *Router) listCarriers(w http.ResponseWriter, req *http.Request) {
+	carriers, err := r.deliveryService.ListCarriers()
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to list carriers")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, carriers)
+}
+
+func (r *Router) createCarrier(w http.ResponseWriter, req *http.Request) {
+	var reqBody struct {
+		Name         string `json:"name"`
+		ProviderCode string `json:"provider_code"`
+		ConfigJSON   string `json:"config_json"`
+	}
+
+	if err := json.NewDecoder(req.Body).Decode(&reqBody); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	carrier, err := r.deliveryService.CreateCarrier(reqBody.Name, reqBody.ProviderCode, reqBody.ConfigJSON)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusCreated, carrier)
+}
+
+func (r *Router) getCarrier(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	idStr := vars["id"]
+	var id int64
+	if _, err := fmt.Sscanf(idStr, "%d", &id); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid carrier ID")
+		return
+	}
+
+	carrier, err := r.deliveryService.GetCarrier(id)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "Carrier not found")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, carrier)
+}
+
+func (r *Router) toggleCarrier(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	idStr := vars["id"]
+	var id int64
+	if _, err := fmt.Sscanf(idStr, "%d", &id); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid carrier ID")
+		return
+	}
+
+	if err := r.deliveryService.ToggleCarrier(id); err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]string{"status": "toggled"})
 }

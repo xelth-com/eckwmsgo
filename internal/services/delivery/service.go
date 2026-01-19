@@ -277,3 +277,77 @@ func (s *Service) CancelShipment(ctx context.Context, pickingID int64) error {
 
 	return nil
 }
+
+// ListShipments returns all shipments with optional state filter
+func (s *Service) ListShipments(state string, limit int) ([]models.StockPickingDelivery, error) {
+	var shipments []models.StockPickingDelivery
+
+	query := s.db.Preload("Picking").Preload("Carrier")
+	if state != "" {
+		query = query.Where("status = ?", state)
+	}
+
+	if err := query.Order("created_at DESC").Limit(limit).Find(&shipments).Error; err != nil {
+		return nil, err
+	}
+
+	return shipments, nil
+}
+
+// GetShipment returns a shipment by ID
+func (s *Service) GetShipment(id int64) (*models.StockPickingDelivery, error) {
+	var shipment models.StockPickingDelivery
+	if err := s.db.Preload("Picking").Preload("Carrier").First(& shipment, id).Error; err != nil {
+		return nil, err
+	}
+	return &shipment, nil
+}
+
+// ListCarriers returns all delivery carriers
+func (s *Service) ListCarriers() ([]models.DeliveryCarrier, error) {
+	var carriers []models.DeliveryCarrier
+	if err := s.db.Order("name ASC").Find(&carriers).Error; err != nil {
+		return nil, err
+	}
+	return carriers, nil
+}
+
+// CreateCarrier creates a new delivery carrier
+func (s *Service) CreateCarrier(name, providerCode, configJSON string) (*models.DeliveryCarrier, error) {
+	carrier := models.DeliveryCarrier{
+		Name:         name,
+		ProviderCode: providerCode,
+		ConfigJSON:   configJSON,
+		Active:       true,
+	}
+
+	if err := s.db.Create(&carrier).Error; err != nil {
+		return nil, err
+	}
+
+	return &carrier, nil
+}
+
+// GetCarrier returns a carrier by ID
+func (s *Service) GetCarrier(id int64) (*models.DeliveryCarrier, error) {
+	var carrier models.DeliveryCarrier
+	if err := s.db.First(&carrier, id).Error; err != nil {
+		return nil, err
+	}
+	return &carrier, nil
+}
+
+// ToggleCarrier toggles carrier active status
+func (s *Service) ToggleCarrier(id int64) error {
+	carrier, err := s.GetCarrier(id)
+	if err != nil {
+		return err
+	}
+
+	carrier.Active = !carrier.Active
+	if err := s.db.Save(carrier).Error; err != nil {
+		return err
+	}
+
+	return nil
+}

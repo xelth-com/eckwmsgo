@@ -11,9 +11,12 @@ import (
 
 	"github.com/xelth-com/eckwmsgo/internal/config"
 	"github.com/xelth-com/eckwmsgo/internal/database"
+	"github.com/xelth-com/eckwmsgo/internal/delivery"
+	"github.com/xelth-com/eckwmsgo/internal/delivery/opal"
 	"github.com/xelth-com/eckwmsgo/internal/handlers"
 	"github.com/xelth-com/eckwmsgo/internal/mesh"
 	"github.com/xelth-com/eckwmsgo/internal/models"
+	deliveryService "github.com/xelth-com/eckwmsgo/internal/services/delivery"
 	"github.com/xelth-com/eckwmsgo/internal/services/odoo"
 )
 
@@ -91,6 +94,44 @@ func main() {
 
 	// Register Odoo service with router for API endpoints
 	router.SetOdooService(odooService)
+
+	// --- DELIVERY SYSTEM INIT ---
+	log.Println("📦 Initializing Delivery System...")
+
+	// Create OPAL provider
+	opalProvider, err := opal.NewProvider(opal.Config{
+		ScriptPath: "./scripts/delivery/create-opal-order.js",
+		NodePath:   "node",
+		Username:   os.Getenv("OPAL_USERNAME"),
+		Password:   os.Getenv("OPAL_PASSWORD"),
+		URL:        os.Getenv("OPAL_URL"),
+		Headless:   true,
+		Timeout:    300,
+	})
+	if err != nil {
+		log.Printf("⚠️ Delivery: Failed to init OPAL provider: %v", err)
+	} else {
+		if err := delivery.GetGlobalRegistry().Register(opalProvider); err != nil {
+			log.Printf("⚠️ Delivery: Failed to register OPAL: %v", err)
+		} else {
+			log.Println("✅ Delivery: OPAL provider registered")
+		}
+	}
+
+	// Create and register delivery service
+	delSvc := deliveryService.NewService(db)
+	router.SetDeliveryService(delSvc)
+
+	// Start background worker for processing shipments
+	go func() {
+		ticker := time.NewTicker(1 * time.Minute)
+		for range ticker.C {
+			if err := delSvc.ProcessPendingShipments(context.Background()); err != nil {
+				log.Printf("Delivery Worker Error: %v", err)
+			}
+		}
+	}()
+	log.Println("✅ Delivery: Background worker started")
 
 	// 6. Start server with graceful shutdown
 	port := os.Getenv("PORT")
