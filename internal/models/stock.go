@@ -71,14 +71,19 @@ type StockQuant struct {
 
 func (StockQuant) TableName() string { return "stock_quant" }
 
-// StockPicking (Move Order)
+// StockPicking (Move Order / Transfer Order)
 type StockPicking struct {
-	ID             int64     `gorm:"primaryKey;autoIncrement:false" json:"id" xmlrpc:"id"`
-	Name           string    `gorm:"uniqueIndex" json:"name" xmlrpc:"name"`
-	State          string    `gorm:"index" json:"state" xmlrpc:"state"`
-	LocationID     int64     `json:"location_id" xmlrpc:"location_id"`
-	LocationDestID int64     `json:"location_dest_id" xmlrpc:"location_dest_id"`
-	ScheduledDate  time.Time `json:"scheduled_date" xmlrpc:"scheduled_date"`
+	ID             int64      `gorm:"primaryKey;autoIncrement:false" json:"id" xmlrpc:"id"`
+	Name           string     `gorm:"uniqueIndex" json:"name" xmlrpc:"name"`
+	State          string     `gorm:"index" json:"state" xmlrpc:"state"` // draft, waiting, confirmed, assigned, done, cancel
+	LocationID     int64      `json:"location_id" xmlrpc:"location_id"`
+	LocationDestID int64      `json:"location_dest_id" xmlrpc:"location_dest_id"`
+	ScheduledDate  time.Time  `json:"scheduled_date" xmlrpc:"scheduled_date"`
+	Origin         string     `json:"origin" xmlrpc:"origin"`                   // Source document (e.g., SO001)
+	Priority       string     `json:"priority" xmlrpc:"priority"`               // 0=Normal, 1=Urgent
+	PickingTypeID  *int64     `json:"picking_type_id" xmlrpc:"picking_type_id"` // Operation type
+	PartnerID      *int64     `json:"partner_id" xmlrpc:"partner_id"`           // Customer/Supplier
+	DateDone       *time.Time `json:"date_done" xmlrpc:"date_done"`             // Completion date
 }
 
 func (StockPicking) TableName() string { return "stock_picking" }
@@ -94,6 +99,7 @@ type StockMoveLine struct {
 	PackageID       *int64  `json:"package_id" xmlrpc:"package_id"`
 	ResultPackageID *int64  `json:"result_package_id" xmlrpc:"result_package_id"`
 	LotID           *int64  `json:"lot_id" xmlrpc:"lot_id"`
+	State           string  `gorm:"index" json:"state" xmlrpc:"state"` // draft, waiting, confirmed, assigned, done, cancel
 }
 
 func (StockMoveLine) TableName() string { return "stock_move_line" }
