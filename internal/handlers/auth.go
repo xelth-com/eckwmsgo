@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
@@ -27,24 +28,35 @@ type RegisterRequest struct {
 
 // login handles user login
 func (r *Router) login(w http.ResponseWriter, req *http.Request) {
+	log.Printf("[AUTH] Login attempt from %s", req.RemoteAddr)
+
 	var loginReq LoginRequest
 	if err := json.NewDecoder(req.Body).Decode(&loginReq); err != nil {
+		log.Printf("[AUTH] Invalid request payload: %v", err)
 		respondError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
 
+	log.Printf("[AUTH] Looking for user: %s", loginReq.Email)
+
 	// 1. Find User
 	var user models.UserAuth
 	if err := r.db.Where("email = ?", loginReq.Email).First(&user).Error; err != nil {
+		log.Printf("[AUTH] User not found: %s", loginReq.Email)
 		respondError(w, http.StatusUnauthorized, "Invalid credentials")
 		return
 	}
 
+	log.Printf("[AUTH] User found: %s (ID: %s, active: %v)", user.Email, user.ID, user.IsActive)
+
 	// 2. Check Password
 	if !utils.CheckPasswordHash(loginReq.Password, user.Password) {
+		log.Printf("[AUTH] Password mismatch for user: %s", loginReq.Email)
 		respondError(w, http.StatusUnauthorized, "Invalid credentials")
 		return
 	}
+
+	log.Printf("[AUTH] Login successful for user: %s", user.Email)
 
 	// 3. Update Last Login
 	now := time.Now()

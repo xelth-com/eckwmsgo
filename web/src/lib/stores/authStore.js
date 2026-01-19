@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
+import { base } from '$app/paths';
 
 // Simplified auth store based on the snapshot
 const initialState = {
@@ -26,7 +27,7 @@ function createAuthStore() {
     login: async (email, password) => {
         update(s => ({ ...s, isLoading: true }));
         try {
-            const res = await fetch('/auth/login', {
+            const res = await fetch(`${base}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })

@@ -115,6 +115,39 @@ func NewRouter(db *database.DB) *Router {
 
 	spaHandler := http.FileServer(http.FS(assets))
 
+	// Static file handler for /i/ paths (must be BEFORE SPA catch-all)
+	staticHandler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		path := req.URL.Path
+
+		// Strip prefix if present
+		if urlPrefix != "" {
+			urlPrefixUpper := strings.ToUpper(urlPrefix)
+			if strings.HasPrefix(path, urlPrefix) {
+				path = strings.TrimPrefix(path, urlPrefix)
+			} else if strings.HasPrefix(path, urlPrefixUpper) {
+				path = strings.TrimPrefix(path, urlPrefixUpper)
+			}
+		}
+
+		// Serve static file
+		req.URL.Path = path
+		spaHandler.ServeHTTP(w, req)
+	})
+
+	// Register static file handler first (higher priority)
+	staticPaths := []string{"/i"}
+	if urlPrefix != "" {
+		// Add both lowercase and uppercase prefix for case-insensitive matching
+		staticPaths = append(staticPaths, urlPrefix+"/i")
+		urlPrefixUpper := strings.ToUpper(urlPrefix)
+		if urlPrefixUpper != urlPrefix {
+			staticPaths = append(staticPaths, urlPrefixUpper+"/i")
+		}
+	}
+	for _, sp := range staticPaths {
+		r.PathPrefix(sp).Handler(staticHandler)
+	}
+
 	// SPA Handler Logic - register as catch-all with matcher that excludes API routes
 	r.PathPrefix("/").MatcherFunc(func(req *http.Request, rm *mux.RouteMatch) bool {
 		path := req.URL.Path
@@ -122,7 +155,7 @@ func NewRouter(db *database.DB) *Router {
 		// Check if this is an API path (with or without prefix)
 		if strings.HasPrefix(path, "/api") || strings.HasPrefix(path, "/auth") ||
 			strings.HasPrefix(path, "/ws") || strings.HasPrefix(path, "/health") ||
-			strings.HasPrefix(path, "/mesh") {
+			strings.HasPrefix(path, "/mesh") || strings.HasPrefix(path, "/i") {
 			return false // Don't match - let API handlers handle it
 		}
 
@@ -143,7 +176,8 @@ func NewRouter(db *database.DB) *Router {
 					strings.HasPrefix(pathWithoutPrefix, "/auth") ||
 					strings.HasPrefix(pathWithoutPrefix, "/ws") ||
 					strings.HasPrefix(pathWithoutPrefix, "/health") ||
-					strings.HasPrefix(pathWithoutPrefix, "/mesh") {
+					strings.HasPrefix(pathWithoutPrefix, "/mesh") ||
+					strings.HasPrefix(pathWithoutPrefix, "/i") {
 					return false // Don't match - let API handlers handle it
 				}
 			}
