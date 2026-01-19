@@ -8,6 +8,8 @@ import (
 
 	"github.com/xelth-com/eckwmsgo/internal/database"
 	"github.com/xelth-com/eckwmsgo/internal/middleware"
+	"github.com/xelth-com/eckwmsgo/internal/models"
+	odooService "github.com/xelth-com/eckwmsgo/internal/services/odoo"
 	"github.com/xelth-com/eckwmsgo/internal/websocket"
 	"github.com/xelth-com/eckwmsgo/web"
 	"github.com/gorilla/mux"
@@ -16,8 +18,9 @@ import (
 // Router wraps the mux router and database
 type Router struct {
 	*mux.Router
-	db  *database.DB
-	hub *websocket.Hub
+	db          *database.DB
+	hub         *websocket.Hub
+	odooService interface{} // Set via SetOdooService for Odoo sync routes
 }
 
 // NewRouter creates a new HTTP router with all routes
@@ -409,4 +412,129 @@ func (r *Router) registerRackRoutes(prefix string) {
 		racks.HandleFunc("/{id}", r.updateRack).Methods("PUT")
 		racks.HandleFunc("/{id}", r.deleteRack).Methods("DELETE")
 	}
+}
+
+// SetOdooService sets the Odoo sync service and registers its routes
+func (r *Router) SetOdooService(service interface{}) {
+	r.odooService = service
+
+	urlPrefix := os.Getenv("HTTP_PATH_PREFIX")
+	if urlPrefix != "" {
+		if !strings.HasPrefix(urlPrefix, "/") {
+			urlPrefix = "/" + urlPrefix
+		}
+		urlPrefix = strings.TrimRight(strings.ToLower(urlPrefix), "/")
+	}
+
+	r.registerOdooRoutes(urlPrefix, service)
+}
+
+// registerOdooRoutes registers Odoo sync API routes
+func (r *Router) registerOdooRoutes(prefix string, svc interface{}) {
+	if svc == nil {
+		return
+	}
+
+	paths := []string{"/api/odoo"}
+	if prefix != "" {
+		paths = append(paths, prefix+"/api/odoo")
+	}
+
+	for _, p := range paths {
+		odoo := r.PathPrefix(p).Subrouter()
+		odoo.Use(middleware.AuthMiddleware)
+		odoo.HandleFunc("/sync/trigger", r.triggerOdooSync).Methods("POST")
+		odoo.HandleFunc("/sync/status", r.getOdooSyncStatus).Methods("GET")
+		odoo.HandleFunc("/pickings", r.listOdooPickings).Methods("GET")
+		odoo.HandleFunc("/pickings/{id}", r.getOdooPicking).Methods("GET")
+	}
+}
+
+func (r *Router) triggerOdooSync(w http.ResponseWriter, req *http.Request) {
+	if r.odooService == nil {
+		http.Error(w, "Odoo sync not configured", http.StatusServiceUnavailable)
+		return
+	}
+
+	service := r.odooService.(*odooService.SyncService)
+	go service.TriggerManualSync()
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+		"message": "Odoo sync started in background",
+	})
+}
+
+func (r *Router) getOdooSyncStatus(w http.ResponseWriter, req *http.Request) {
+	var productCount, locationCount, pickingCount, quantCount int64
+
+	r.db.Model(&models.ProductProduct{}).Count(&productCount)
+	r.db.Model(&models.StockLocation{}).Count(&locationCount)
+	r.db.Model(&models.StockPicking{}).Count(&pickingCount)
+	r.db.Model(&models.StockQuant{}).Count(&quantCount)
+
+	var lastProduct models.ProductProduct
+	var lastLocation models.StockLocation
+	var lastPicking models.StockPicking
+
+	r.db.Order("last_synced_at DESC").First(&lastProduct)
+	r.db.Order("last_synced_at DESC").First(&lastLocation)
+	r.db.Order("scheduled_date DESC").First(&lastPicking)
+
+	status := map[string]interface{}{
+		"products": map[string]interface{}{
+			"count":       productCount,
+			"last_synced": lastProduct.LastSyncedAt,
+		},
+		"locations": map[string]interface{}{
+			"count":       locationCount,
+			"last_synced": lastLocation.LastSyncedAt,
+		},
+		"pickings": map[string]interface{}{
+			"count":         pickingCount,
+			"last_received": lastPicking.ScheduledDate,
+		},
+		"quants": map[string]interface{}{
+			"count": quantCount,
+		},
+	}
+
+	respondJSON(w, http.StatusOK, status)
+}
+
+func (r *Router) listOdooPickings(w http.ResponseWriter, req *http.Request) {
+	state := req.URL.Query().Get("state")
+	limit := 100
+
+	query := r.db.Model(&models.StockPicking{})
+	if state != "" {
+		query = query.Where("state = ?", state)
+	}
+
+	var pickings []models.StockPicking
+	if err := query.Order("scheduled_date DESC").Limit(limit).Find(&pickings).Error; err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to fetch pickings")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, pickings)
+}
+
+func (r *Router) getOdooPicking(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	pickingID := vars["id"]
+
+	var picking models.StockPicking
+	if err := r.db.First(&picking, pickingID).Error; err != nil {
+		respondError(w, http.StatusNotFound, "Picking not found")
+		return
+	}
+
+	var moveLines []models.StockMoveLine
+	r.db.Where("picking_id = ?", pickingID).Find(&moveLines)
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"picking":    picking,
+		"move_lines": moveLines,
+	})
 }

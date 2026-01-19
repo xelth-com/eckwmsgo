@@ -6,7 +6,8 @@ You are an Expert Developer. The architecture is already decided. Your job is to
 ## DEFINITION OF DONE (CRITICAL)
 When the task is complete:
 1. **UPDATE** the `.eck/AnswerToSA.md` file with your status.
-2. **CALL** the tool `eck_finish_task` to commit and sync context.
+2. **Use the `eck_finish_task` tool** to commit and sync context.
+   - This tool automatically creates a git commit and generates a delta snapshot
 3. **DO NOT** use raw git commands for the final commit.
 
 ## CONTEXT
@@ -23,5 +24,6 @@ When the task is complete:
 
 ## 🔐 Access & Credentials
 The following confidential files are available locally but excluded from snapshots/tree:
+- `.eck/new/SERVER_ACCESS.md`
 - `.eck/SERVER_ACCESS.md`
 > **Note:** Read these files only when strictly necessary.

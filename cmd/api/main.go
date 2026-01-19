@@ -46,6 +46,11 @@ func main() {
 		&models.StockPicking{},
 		&models.StockMoveLine{},
 
+		// Delivery Models (OPAL integration)
+		&models.DeliveryCarrier{},
+		&models.StockPickingDelivery{},
+		&models.DeliveryTracking{},
+
 		// Legacy support (Keep for now or refactor later if needed)
 		&models.Order{}, // Keeping Order for RMA logic for now
 
@@ -84,10 +89,13 @@ func main() {
 	})
 	odooService.Start()
 
+	// Register Odoo service with router for API endpoints
+	router.SetOdooService(odooService)
+
 	// 6. Start server with graceful shutdown
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "3001" // Use 3001 as default for Go version
+		port = "3210" // Standard eckWMS port
 	}
 
 	server := &http.Server{

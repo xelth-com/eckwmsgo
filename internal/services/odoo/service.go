@@ -81,6 +81,12 @@ func (s *SyncService) Stop() {
 	close(s.stop)
 }
 
+// TriggerManualSync triggers a manual sync immediately
+func (s *SyncService) TriggerManualSync() {
+	log.Println("🔔 Manual sync triggered")
+	s.runFullSync()
+}
+
 // runFullSync runs all sync operations
 func (s *SyncService) runFullSync() {
 	log.Println("🔄 Odoo: Starting full sync...")
@@ -91,6 +97,8 @@ func (s *SyncService) runFullSync() {
 	s.syncLots()
 	s.syncPackages()
 	s.syncQuants()
+	s.syncPickings()
+	s.syncMoveLines()
 
 	log.Println("✅ Odoo: Full sync completed")
 }
@@ -292,4 +300,88 @@ func (s *SyncService) syncQuants() {
 	}
 
 	log.Printf("✅ Odoo: Updated %d quants", count)
+}
+
+// syncPickings pulls picking (transfer order) data from Odoo
+func (s *SyncService) syncPickings() {
+	log.Println("📋 Odoo: Syncing Pickings (Transfer Orders)...")
+
+	var lastPicking models.StockPicking
+	var lastWriteDate string = "2000-01-01 00:00:00"
+
+	result := s.db.Order("scheduled_date DESC").First(&lastPicking)
+	if result.Error == nil && !lastPicking.ScheduledDate.IsZero() {
+		lastWriteDate = lastPicking.ScheduledDate.Format("2006-01-02 15:04:05")
+	}
+
+	domain := []interface{}{
+		"&",
+		[]interface{}{"scheduled_date", ">", lastWriteDate},
+		[]interface{}{"state", "in", []string{"draft", "waiting", "confirmed", "assigned", "done"}},
+	}
+
+	var pickings []models.StockPicking
+	err := s.client.SearchRead("stock.picking", domain, []string{
+		"name", "state", "location_id", "location_dest_id", "scheduled_date",
+		"origin", "priority", "picking_type_id", "partner_id", "date_done",
+	}, 1000, 0, &pickings)
+
+	if err != nil {
+		log.Printf("❌ Odoo Sync Error (Pickings): %v", err)
+		return
+	}
+
+	if len(pickings) == 0 {
+		return
+	}
+
+	count := 0
+	for _, p := range pickings {
+		if err := s.db.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "id"}},
+			UpdateAll: true,
+		}).Create(&p).Error; err != nil {
+			log.Printf("Failed to save picking %d: %v", p.ID, err)
+		} else {
+			count++
+		}
+	}
+
+	log.Printf("✅ Odoo: Updated %d pickings", count)
+}
+
+// syncMoveLines pulls move line data from Odoo
+func (s *SyncService) syncMoveLines() {
+	log.Println("📝 Odoo: Syncing Move Lines...")
+
+	domain := []interface{}{}
+
+	var moveLines []models.StockMoveLine
+	err := s.client.SearchRead("stock.move.line", domain, []string{
+		"picking_id", "product_id", "qty_done", "location_id", "location_dest_id",
+		"package_id", "result_package_id", "lot_id", "state",
+	}, 1000, 0, &moveLines)
+
+	if err != nil {
+		log.Printf("❌ Odoo Sync Error (Move Lines): %v", err)
+		return
+	}
+
+	if len(moveLines) == 0 {
+		return
+	}
+
+	count := 0
+	for _, ml := range moveLines {
+		if err := s.db.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "id"}},
+			UpdateAll: true,
+		}).Create(&ml).Error; err != nil {
+			log.Printf("Failed to save move line %d: %v", ml.ID, err)
+		} else {
+			count++
+		}
+	}
+
+	log.Printf("✅ Odoo: Updated %d move lines", count)
 }
