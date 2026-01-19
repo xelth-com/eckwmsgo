@@ -62,4 +62,7 @@ tmpclaude-*
 nul
 
 # Vite cache (already excluded by node_modules/)
+# Go binary builds (all variants)
 eckwms
+eckwms-*
+eckwmsgo-*
