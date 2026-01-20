@@ -9,6 +9,7 @@ import (
 	"github.com/xelth-com/eckwmsgo/internal/config"
 	"github.com/xelth-com/eckwmsgo/internal/database"
 	"github.com/xelth-com/eckwmsgo/internal/delivery"
+	"github.com/xelth-com/eckwmsgo/internal/delivery/opal"
 	"github.com/xelth-com/eckwmsgo/internal/models"
 )
 
@@ -371,5 +372,103 @@ func (s *Service) ToggleCarrier(id int64) error {
 		return err
 	}
 
+	return nil
+}
+
+// ImportOpalOrders fetches orders from OPAL and updates the database
+func (s *Service) ImportOpalOrders(ctx context.Context) error {
+	log := func(format string, args ...interface{}) {
+		fmt.Printf("[OPAL Import] "+format+"\n", args...)
+	}
+
+	log("Starting OPAL order import...")
+
+	// Get the OPAL provider from registry
+	providerInt, err := s.registry.Get("opal")
+	if err != nil {
+		return fmt.Errorf("OPAL provider not registered: %w", err)
+	}
+
+	// Type assert to get access to FetchRecentOrders
+	opalProvider, ok := providerInt.(*opal.Provider)
+	if !ok {
+		return fmt.Errorf("provider is not OPAL")
+	}
+
+	// Fetch orders from OPAL
+	orders, err := opalProvider.FetchRecentOrders(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to fetch OPAL orders: %w", err)
+	}
+
+	log("Fetched %d orders from OPAL", len(orders))
+
+	// Process each order
+	for _, order := range orders {
+		// Skip orders without valid identifiers
+		if order.TrackingNumber == "" && order.HwbNumber == "" {
+			continue
+		}
+
+		// Search for existing delivery by tracking number or HWB
+		var delivery models.StockPickingDelivery
+
+		query := s.db.Where("tracking_number = ?", order.TrackingNumber)
+		if order.HwbNumber != "" {
+			query = query.Or("tracking_number = ?", order.HwbNumber)
+		}
+
+		result := query.First(&delivery)
+
+		if result.Error == nil {
+			// Order found - update status if changed
+			if delivery.Status != order.Status {
+				oldStatus := delivery.Status
+				delivery.Status = order.Status
+
+				if err := s.db.Save(&delivery).Error; err != nil {
+					log("Error updating delivery %d: %v", delivery.ID, err)
+					continue
+				}
+
+				// Create tracking entry
+				s.createTrackingEntry(delivery.ID,
+					fmt.Sprintf("Status updated from OPAL import: %s -> %s", oldStatus, order.Status),
+					order.Status)
+
+				log("Updated delivery %d: %s -> %s", delivery.ID, oldStatus, order.Status)
+			}
+		} else {
+			// Order not found - this could be a new incoming shipment
+			log("New unknown shipment from OPAL: OCU=%s, HWB=%s, Status=%s",
+				order.TrackingNumber, order.HwbNumber, order.Status)
+
+			// Create a pending delivery record for unknown shipments
+			// This allows manual assignment later
+			newDelivery := models.StockPickingDelivery{
+				TrackingNumber: order.TrackingNumber,
+				Status:         models.DeliveryStatusPending,
+				RawResponse:    order.RawText,
+			}
+
+			// If we have HWB, use it as tracking number if OCU is empty
+			if order.HwbNumber != "" && order.TrackingNumber == "" {
+				newDelivery.TrackingNumber = order.HwbNumber
+			}
+
+			if err := s.db.Create(&newDelivery).Error; err != nil {
+				log("Error creating delivery record: %v", err)
+				continue
+			}
+
+			s.createTrackingEntry(newDelivery.ID,
+				fmt.Sprintf("Created from OPAL import (unknown source)"),
+				models.DeliveryStatusPending)
+
+			log("Created new delivery record %d for unknown shipment", newDelivery.ID)
+		}
+	}
+
+	log("OPAL import completed successfully")
 	return nil
 }

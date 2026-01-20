@@ -158,6 +158,34 @@ func main() {
 	}()
 	log.Println("✅ Delivery: Background worker started")
 
+	// Start OPAL import scheduler (every hour)
+	go func() {
+		// Wait for system startup
+		time.Sleep(1 * time.Minute)
+
+		// Run initial import
+		log.Println("⏰ Running initial OPAL import...")
+		if err := delSvc.ImportOpalOrders(context.Background()); err != nil {
+			log.Printf("❌ OPAL Import (initial) failed: %v", err)
+		} else {
+			log.Println("✅ OPAL Import (initial) completed")
+		}
+
+		// Schedule regular imports
+		opalTicker := time.NewTicker(1 * time.Hour)
+		for range opalTicker.C {
+			log.Println("⏰ Starting scheduled OPAL import...")
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			if err := delSvc.ImportOpalOrders(ctx); err != nil {
+				log.Printf("❌ OPAL Import failed: %v", err)
+			} else {
+				log.Println("✅ OPAL Import completed")
+			}
+			cancel()
+		}
+	}()
+	log.Println("✅ Delivery: OPAL import scheduler started (hourly)")
+
 	// 6. Start server with graceful shutdown
 	port := os.Getenv("PORT")
 	if port == "" {

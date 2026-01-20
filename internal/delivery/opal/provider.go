@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 
 	"github.com/xelth-com/eckwmsgo/internal/delivery"
@@ -155,6 +156,73 @@ func (p *Provider) CreateShipment(ctx context.Context, req *delivery.DeliveryReq
 	}
 
 	return response, nil
+}
+
+// ScrapedOrder represents the JSON structure returned by the Node.js scraper
+type ScrapedOrder struct {
+	TrackingNumber string `json:"tracking_number"` // OCU number
+	HwbNumber      string `json:"hwb_number"`      // GO Barcode
+	OrderNumber    string `json:"order_number"`    // Reference/Order number
+	Status         string `json:"status"`
+	Date           string `json:"date"`
+	Sender         string `json:"sender"`
+	RawText        string `json:"raw_text"`
+}
+
+// FetchRecentOrders executes the Node.js scraper to get recent orders from OPAL
+func (p *Provider) FetchRecentOrders(ctx context.Context) ([]ScrapedOrder, error) {
+	// Build path to fetch script (same directory as create script)
+	scriptDir := filepath.Dir(p.config.ScriptPath)
+	fetchScriptPath := filepath.Join(scriptDir, "fetch-opal-orders.js")
+
+	// Check if fetch script exists
+	if _, err := os.Stat(fetchScriptPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("fetch script not found at %s", fetchScriptPath)
+	}
+
+	// Prepare command
+	args := []string{fetchScriptPath, "--json-output"}
+
+	if p.config.Headless {
+		args = append(args, "--headless")
+	}
+
+	// Create command with timeout context
+	timeoutCtx, cancel := context.WithTimeout(ctx, time.Duration(p.config.Timeout)*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(timeoutCtx, p.config.NodePath, args...)
+
+	// Set environment variables
+	cmd.Env = append(os.Environ(),
+		"OPAL_URL="+p.config.URL,
+		"OPAL_USERNAME="+p.config.Username,
+		"OPAL_PASSWORD="+p.config.Password,
+	)
+
+	// Execute command and capture output
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("scraper execution failed: %w\nOutput: %s", err, string(output))
+	}
+
+	// Parse JSON response from script
+	var result struct {
+		Success bool           `json:"success"`
+		Orders  []ScrapedOrder `json:"orders"`
+		Error   string         `json:"error"`
+		Count   int            `json:"count"`
+	}
+
+	if err := json.Unmarshal(output, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse scraper output: %w\nOutput: %s", err, string(output))
+	}
+
+	if !result.Success {
+		return nil, fmt.Errorf("scraper returned error: %s", result.Error)
+	}
+
+	return result.Orders, nil
 }
 
 // CancelShipment cancels an OPAL shipment
