@@ -42,6 +42,11 @@ func (sh *SyncHandler) RegisterRoutes(r *mux.Router) {
 	r.HandleFunc("/api/sync/entity/{entity_type}/{entity_id}", sh.SyncEntity).Methods("POST")
 	r.HandleFunc("/api/sync/pull", sh.PullUpdates).Methods("POST")
 	r.HandleFunc("/api/sync/push", sh.PushUpdates).Methods("POST")
+
+	// Mesh sync endpoints (for node-to-node synchronization)
+	r.HandleFunc("/api/mesh/pull", sh.MeshPull).Methods("POST")
+	r.HandleFunc("/api/mesh/push", sh.MeshPush).Methods("POST")
+	r.HandleFunc("/api/mesh/trigger", sh.TriggerMeshSync).Methods("POST")
 }
 
 // GetChecksum returns the checksum for a specific entity
@@ -327,6 +332,115 @@ func (sh *SyncHandler) handleRelayPull(w http.ResponseWriter, r *http.Request) {
 	log.Printf("🔒 Relay: Serving %d encrypted packets", len(packets))
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(packets)
+}
+
+// MeshPull handles data pull requests from other mesh nodes
+func (sh *SyncHandler) MeshPull(w http.ResponseWriter, r *http.Request) {
+	var req sync.MeshSyncRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("Mesh Pull: Request from peer for entities: %v", req.EntityTypes)
+
+	resp, err := sh.syncEngine.GetDataForPull(&req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+// MeshPush handles data push from other mesh nodes
+func (sh *SyncHandler) MeshPush(w http.ResponseWriter, r *http.Request) {
+	var data sync.MeshSyncResponse
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("Mesh Push: Received data from %s (products: %d, locations: %d)",
+		data.NodeID, len(data.Products), len(data.Locations))
+
+	// Apply updates using transaction
+	tx := sh.db.DB.Begin()
+
+	// Upsert products
+	for _, p := range data.Products {
+		if p.ID == 0 {
+			continue
+		}
+		tx.Where("id = ?", p.ID).Assign(p).FirstOrCreate(&models.ProductProduct{})
+	}
+
+	// Upsert locations
+	for _, l := range data.Locations {
+		if l.ID == 0 {
+			continue
+		}
+		tx.Where("id = ?", l.ID).Assign(l).FirstOrCreate(&models.StockLocation{})
+	}
+
+	// Upsert quants
+	for _, q := range data.Quants {
+		if q.ID == 0 {
+			continue
+		}
+		tx.Where("id = ?", q.ID).Assign(q).FirstOrCreate(&models.StockQuant{})
+	}
+
+	// Upsert lots
+	for _, lot := range data.Lots {
+		if lot.ID == 0 {
+			continue
+		}
+		tx.Where("id = ?", lot.ID).Assign(lot).FirstOrCreate(&models.StockLot{})
+	}
+
+	// Upsert packages
+	for _, pkg := range data.Packages {
+		if pkg.ID == 0 {
+			continue
+		}
+		tx.Where("id = ?", pkg.ID).Assign(pkg).FirstOrCreate(&models.StockQuantPackage{})
+	}
+
+	// Upsert partners
+	for _, partner := range data.Partners {
+		if partner.ID == 0 {
+			continue
+		}
+		tx.Where("id = ?", partner.ID).Assign(partner).FirstOrCreate(&models.ResPartner{})
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":  "success",
+		"message": "Data received and applied",
+	})
+}
+
+// TriggerMeshSync triggers synchronization with mesh nodes
+func (sh *SyncHandler) TriggerMeshSync(w http.ResponseWriter, r *http.Request) {
+	go func() {
+		if err := sh.syncEngine.SyncWithRelay(); err != nil {
+			log.Printf("Mesh Sync Error: %v", err)
+		}
+	}()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "Mesh sync triggered",
+		"status":  "processing",
+	})
 }
 
 // Helper functions

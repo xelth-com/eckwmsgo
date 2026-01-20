@@ -18,6 +18,7 @@ import (
 	"github.com/xelth-com/eckwmsgo/internal/models"
 	deliveryService "github.com/xelth-com/eckwmsgo/internal/services/delivery"
 	"github.com/xelth-com/eckwmsgo/internal/services/odoo"
+	"github.com/xelth-com/eckwmsgo/internal/sync"
 )
 
 func main() {
@@ -80,6 +81,26 @@ func main() {
 	// Start Mesh Discovery
 	mesh.StartDiscovery(cfg)
 
+	// --- MESH SYNC ENGINE INIT ---
+	log.Println("🔄 Initializing Mesh Sync Engine...")
+	syncCfg := config.LoadSyncConfig()
+	syncCfg.Role = string(cfg.NodeRole) // Use node role from main config
+
+	syncEngine := sync.NewSyncEngine(db, syncCfg, &sync.MeshConfig{
+		InstanceID: cfg.InstanceID,
+		MeshSecret: cfg.MeshSecret,
+		BaseURL:    cfg.BaseURL,
+		NodeRole:   string(cfg.NodeRole),
+	})
+
+	if syncCfg.Enabled {
+		if err := syncEngine.Start(); err != nil {
+			log.Printf("⚠️ Sync Engine: Failed to start: %v", err)
+		} else {
+			log.Println("✅ Sync Engine: Started successfully")
+		}
+	}
+
 	// 4. Set up HTTP router
 	router := handlers.NewRouter(db)
 
@@ -95,6 +116,9 @@ func main() {
 
 	// Register Odoo service with router for API endpoints
 	router.SetOdooService(odooService)
+
+	// Register Sync Engine with router for mesh sync endpoints
+	router.SetSyncEngine(syncEngine)
 
 	// --- DELIVERY SYSTEM INIT ---
 	log.Println("📦 Initializing Delivery System...")
@@ -172,6 +196,11 @@ func main() {
 
 	// Stop Odoo sync service
 	odooService.Stop()
+
+	// Stop Mesh sync engine
+	if syncEngine != nil {
+		syncEngine.Stop()
+	}
 
 	// Close database (this also stops embedded PostgreSQL)
 	log.Println("🛑 Closing database connection...")

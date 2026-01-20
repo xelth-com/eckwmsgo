@@ -12,6 +12,7 @@ import (
 	"github.com/xelth-com/eckwmsgo/internal/models"
 	odooService "github.com/xelth-com/eckwmsgo/internal/services/odoo"
 	deliveryService "github.com/xelth-com/eckwmsgo/internal/services/delivery"
+	"github.com/xelth-com/eckwmsgo/internal/sync"
 	"github.com/xelth-com/eckwmsgo/internal/websocket"
 	"github.com/xelth-com/eckwmsgo/web"
 	"github.com/gorilla/mux"
@@ -24,6 +25,7 @@ type Router struct {
 	hub              *websocket.Hub
 	odooService      interface{} // Set via SetOdooService for Odoo sync routes
 	deliveryService  *deliveryService.Service // Set via SetDeliveryService for delivery routes
+	syncEngine       *sync.SyncEngine // Set via SetSyncEngine for mesh sync routes
 }
 
 // NewRouter creates a new HTTP router with all routes
@@ -730,4 +732,53 @@ func (r *Router) toggleCarrier(w http.ResponseWriter, req *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, map[string]string{"status": "toggled"})
+}
+
+// SetSyncEngine sets the sync engine and registers mesh sync routes
+func (r *Router) SetSyncEngine(engine *sync.SyncEngine) {
+	r.syncEngine = engine
+
+	urlPrefix := os.Getenv("HTTP_PATH_PREFIX")
+	if urlPrefix != "" {
+		if !strings.HasPrefix(urlPrefix, "/") {
+			urlPrefix = "/" + urlPrefix
+		}
+		urlPrefix = strings.TrimRight(strings.ToLower(urlPrefix), "/")
+	}
+
+	r.registerSyncRoutes(urlPrefix, engine)
+}
+
+// registerSyncRoutes registers mesh sync API routes
+func (r *Router) registerSyncRoutes(prefix string, engine *sync.SyncEngine) {
+	if engine == nil {
+		return
+	}
+
+	syncHandler := NewSyncHandler(r.db, engine)
+
+	// Use same pattern as Odoo routes
+	meshPaths := []string{"/api/mesh"}
+	syncPaths := []string{"/api/sync"}
+	if prefix != "" {
+		meshPaths = append(meshPaths, prefix+"/api/mesh")
+		syncPaths = append(syncPaths, prefix+"/api/sync")
+	}
+
+	// Register mesh routes (no auth - uses mesh JWT)
+	for _, p := range meshPaths {
+		mesh := r.PathPrefix(p).Subrouter()
+		mesh.HandleFunc("/pull", syncHandler.MeshPull).Methods("POST")
+		mesh.HandleFunc("/push", syncHandler.MeshPush).Methods("POST")
+		mesh.HandleFunc("/trigger", syncHandler.TriggerMeshSync).Methods("POST")
+	}
+
+	// Register sync routes (protected)
+	for _, p := range syncPaths {
+		syncApi := r.PathPrefix(p).Subrouter()
+		syncApi.Use(middleware.AuthMiddleware)
+		syncApi.HandleFunc("/status", syncHandler.GetSyncStatus).Methods("GET")
+		syncApi.HandleFunc("/start", syncHandler.StartSync).Methods("POST")
+		syncApi.HandleFunc("/full", syncHandler.TriggerFullSync).Methods("POST")
+	}
 }

@@ -25,6 +25,11 @@ type SyncEngine struct {
 	checksumCalc      *ChecksumCalculator
 	securityLayer     *SecurityLayer // Added security layer
 
+	// Mesh config
+	meshSecret string
+	baseURL    string
+	nodeRole   string
+
 	// State
 	isRunning      bool
 	lastSync       time.Time
@@ -54,8 +59,18 @@ type SyncResult struct {
 	Timestamp        time.Time
 }
 
+// MeshConfig holds mesh network configuration for SyncEngine
+type MeshConfig struct {
+	InstanceID string
+	MeshSecret string
+	BaseURL    string
+	NodeRole   string
+}
+
 // NewSyncEngine creates a new sync engine
-func NewSyncEngine(db *database.DB, cfg *config.SyncConfig, instanceID string) *SyncEngine {
+func NewSyncEngine(db *database.DB, cfg *config.SyncConfig, meshCfg *MeshConfig) *SyncEngine {
+	instanceID := meshCfg.InstanceID
+
 	// Build routes from config
 	routes := make([]SyncRouteConfig, 0)
 	for _, r := range cfg.Routes {
@@ -78,6 +93,9 @@ func NewSyncEngine(db *database.DB, cfg *config.SyncConfig, instanceID string) *
 		db:                db,
 		config:            cfg,
 		instanceID:        instanceID,
+		meshSecret:        meshCfg.MeshSecret,
+		baseURL:           meshCfg.BaseURL,
+		nodeRole:          meshCfg.NodeRole,
 		connectionManager: NewConnectionManager(instanceID, routes),
 		conflictResolver:  NewConflictResolver(instanceID, ConflictResolutionStrategy(cfg.ConflictResolution)),
 		checksumCalc:      NewChecksumCalculator(instanceID),
