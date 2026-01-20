@@ -139,12 +139,27 @@ func Connect(cfg config.DatabaseConfig) (*DB, error) {
 			Port(uint32(embeddedPort)).
 			Database(cfg.Database).
 			Username(cfg.Username).
-			Password("postgres") // Set password for embedded user
+			Password("postgres").              // Set password for embedded user
+			StartTimeout(60 * time.Second) // Increase timeout for slow systems
 
 		embedded = embeddedpostgres.NewDatabase(embeddedCfg)
 
 		if err := embedded.Start(); err != nil {
-			return nil, fmt.Errorf("failed to start embedded database: %w", err)
+			// On Windows, the Start() may timeout even though PostgreSQL is running
+			// Check if the port is now in use (indicating PostgreSQL started)
+			if !isPortInUse(embeddedPort) {
+				return nil, fmt.Errorf("failed to start embedded database: %w", err)
+			}
+			log.Printf("⚠️  Start() returned error but port %d is in use, continuing...", embeddedPort)
+		}
+
+		// Additional wait for database to be fully ready
+		log.Printf("⏳ Waiting for embedded PostgreSQL to be fully ready...")
+		for i := 0; i < 30; i++ {
+			time.Sleep(500 * time.Millisecond)
+			if isPortInUse(embeddedPort) {
+				break
+			}
 		}
 
 		// Update connection parameters to point to the embedded instance

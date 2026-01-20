@@ -93,7 +93,7 @@ type StockMoveLine struct {
 	ID              int64   `gorm:"primaryKey;autoIncrement:false" json:"id" xmlrpc:"id"`
 	PickingID       int64   `gorm:"index" json:"picking_id" xmlrpc:"picking_id"`
 	ProductID       int64   `gorm:"index" json:"product_id" xmlrpc:"product_id"`
-	QtyDone         float64 `json:"qty_done" xmlrpc:"qty_done"`
+	QtyDone         float64 `json:"qty_done" xmlrpc:"quantity"` // Odoo 19 uses 'quantity'
 	LocationID      int64   `json:"location_id" xmlrpc:"location_id"`
 	LocationDestID  int64   `json:"location_dest_id" xmlrpc:"location_dest_id"`
 	PackageID       *int64  `json:"package_id" xmlrpc:"package_id"`

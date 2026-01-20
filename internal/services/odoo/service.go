@@ -358,7 +358,7 @@ func (s *SyncService) syncMoveLines() {
 
 	var moveLines []models.StockMoveLine
 	err := s.client.SearchRead("stock.move.line", domain, []string{
-		"picking_id", "product_id", "qty_done", "location_id", "location_dest_id",
+		"picking_id", "product_id", "quantity", "location_id", "location_dest_id", // Odoo 19: qty_done -> quantity
 		"package_id", "result_package_id", "lot_id", "state",
 	}, 1000, 0, &moveLines)
 
