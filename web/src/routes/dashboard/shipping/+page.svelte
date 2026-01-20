@@ -1,7 +1,7 @@
 <script>
 import { onMount } from 'svelte';
 import { api } from '$lib/api';
-import { toastStore } from '$lib/stores';
+import { toastStore } from '$lib/stores/toastStore.js';
 
 let pickings = [];
 let shipments = [];
