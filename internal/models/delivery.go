@@ -22,8 +22,8 @@ func (DeliveryCarrier) TableName() string { return "delivery_carrier" }
 // This extends the stock_picking model with delivery-specific data
 type StockPickingDelivery struct {
 	ID             int64      `gorm:"primaryKey;autoIncrement" json:"id"`
-	PickingID      int64      `gorm:"uniqueIndex;not null" json:"picking_id"` // One-to-one with stock_picking
-	CarrierID      *int64     `gorm:"index" json:"carrier_id"`                // Foreign key to delivery_carrier
+	PickingID      *int64     `gorm:"uniqueIndex" json:"picking_id"`                 // Pointer to allow null (orphaned shipments from OPAL import)
+	CarrierID      *int64     `gorm:"index" json:"carrier_id"`                       // Foreign key to delivery_carrier
 	TrackingNumber string     `gorm:"index" json:"tracking_number"`
 	CarrierPrice   float64    `json:"carrier_price"`
 	Currency       string     `gorm:"default:EUR" json:"currency"`

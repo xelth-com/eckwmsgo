@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -580,6 +581,9 @@ func (r *Router) registerDeliveryRoutes(prefix string, svc *deliveryService.Serv
 		delivery.HandleFunc("/shipments/{id}", r.getShipment).Methods("GET")
 		delivery.HandleFunc("/shipments/{id}/cancel", r.cancelShipment).Methods("POST")
 
+		// Import from OPAL
+		delivery.HandleFunc("/import/opal", r.triggerOpalImport).Methods("POST")
+
 		// Carrier management
 		delivery.HandleFunc("/carriers", r.listCarriers).Methods("GET")
 		delivery.HandleFunc("/carriers", r.createCarrier).Methods("POST")
@@ -715,6 +719,26 @@ func (r *Router) getCarrier(w http.ResponseWriter, req *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, carrier)
+}
+
+func (r *Router) triggerOpalImport(w http.ResponseWriter, req *http.Request) {
+	if r.deliveryService == nil {
+		respondError(w, http.StatusServiceUnavailable, "Delivery service not configured")
+		return
+	}
+
+	// Run import in background to not block the HTTP request
+	go func() {
+		// Use a fresh context as the request context will be cancelled
+		if err := r.deliveryService.ImportOpalOrders(context.Background()); err != nil {
+			fmt.Printf("Manual OPAL import failed: %v\n", err)
+		}
+	}()
+
+	respondJSON(w, http.StatusOK, map[string]string{
+		"status":  "started",
+		"message": "OPAL synchronization started in background. Refresh in a few seconds.",
+	})
 }
 
 func (r *Router) toggleCarrier(w http.ResponseWriter, req *http.Request) {

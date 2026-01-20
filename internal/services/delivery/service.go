@@ -54,7 +54,7 @@ func (s *Service) CreateShipment(ctx context.Context, pickingID int64, providerC
 		}
 
 		deliveryRecord = models.StockPickingDelivery{
-			PickingID: pickingID,
+			PickingID: &pickingID,
 			CarrierID: &carrier.ID,
 			Status:    models.DeliveryStatusPending,
 		}

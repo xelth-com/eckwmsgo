@@ -1,6 +1,7 @@
 <script>
 import { onMount } from 'svelte';
 import { api } from '$lib/api';
+import { toastStore } from '$lib/stores';
 
 let pickings = [];
 let shipments = [];
@@ -8,6 +9,7 @@ let loading = true;
 let error = null;
 let activeTab = 'pickings'; // 'pickings' or 'shipments'
 let processingPickings = new Set();
+let isSyncing = false; // New state for OPAL sync
 
 onMount(async () => {
     await loadData();
@@ -68,6 +70,24 @@ async function cancelShipment(pickingId) {
     }
 }
 
+async function syncOpal() {
+    isSyncing = true;
+    toastStore.add('Syncing with OPAL...', 'info');
+    try {
+        await api.post('/api/delivery/import/opal', {});
+        toastStore.add('Sync started. Refreshing data...', 'success');
+
+        // Wait a bit before reloading to let the scraper start/finish
+        setTimeout(async () => {
+            await loadData();
+            isSyncing = false;
+        }, 4000);
+    } catch (e) {
+        toastStore.add('Sync failed: ' + e.message, 'error');
+        isSyncing = false;
+    }
+}
+
 function formatDate(dateStr) {
     if (!dateStr) return '-';
     return new Date(dateStr).toLocaleDateString('de-DE', {
@@ -106,9 +126,14 @@ function getDeliveryStateColor(state) {
 <div class="shipping-page">
     <header>
         <h1>📦 Shipping & Delivery</h1>
-        <button class="refresh-btn" on:click={loadData} disabled={loading}>
-            {loading ? '↻ Loading...' : '↻ Refresh'}
-        </button>
+        <div class="header-actions">
+            <button class="action-btn secondary" on:click={syncOpal} disabled={isSyncing || loading}>
+                {isSyncing ? '⏳ Syncing...' : '🔄 Sync OPAL'}
+            </button>
+            <button class="refresh-btn" on:click={loadData} disabled={loading}>
+                {loading ? '↻ Loading...' : '↻ Refresh'}
+            </button>
+        </div>
     </header>
 
     <div class="tabs">
@@ -284,6 +309,11 @@ h1 {
     margin: 0;
 }
 
+.header-actions {
+    display: flex;
+    gap: 1rem;
+}
+
 .refresh-btn {
     padding: 0.6rem 1.2rem;
     border-radius: 4px;
@@ -303,6 +333,17 @@ h1 {
 .refresh-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.action-btn.secondary {
+    background: #333;
+    color: #ccc;
+    border: 1px solid #444;
+}
+
+.action-btn.secondary:hover:not(:disabled) {
+    background: #444;
+    color: #fff;
 }
 
 .tabs {
