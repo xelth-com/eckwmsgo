@@ -11,7 +11,6 @@ type ResPartner struct {
 	StateID     *int64 `json:"state_id" xmlrpc:"state_id"`         // Federal state/region
 	CountryID   *int64 `json:"country_id" xmlrpc:"country_id"`     // Country (res.country)
 	Phone       string `json:"phone" xmlrpc:"phone"`
-	Mobile      string `json:"mobile" xmlrpc:"mobile"`
 	Email       string `json:"email" xmlrpc:"email"`
 	Vat         string `json:"vat" xmlrpc:"vat"`                   // Tax ID
 	CompanyType string `json:"company_type" xmlrpc:"company_type"` // 'person' or 'company'

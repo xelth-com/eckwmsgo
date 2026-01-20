@@ -170,7 +170,7 @@ func (s *SyncService) syncPartners() {
 	var partners []models.ResPartner
 	err := s.client.SearchRead("res.partner", domain, []string{
 		"name", "street", "street2", "zip", "city", "state_id", "country_id",
-		"phone", "mobile", "email", "vat", "company_type", "is_company",
+		"phone", "email", "vat", "company_type", "is_company",
 	}, 1000, 0, &partners)
 
 	if err != nil {

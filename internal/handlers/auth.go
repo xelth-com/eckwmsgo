@@ -39,12 +39,15 @@ func (r *Router) login(w http.ResponseWriter, req *http.Request) {
 
 	log.Printf("[AUTH] Looking for user: %s", loginReq.Email)
 
-	// 1. Find User
+	// 1. Find User (search by username OR email)
 	var user models.UserAuth
-	if err := r.db.Where("email = ?", loginReq.Email).First(&user).Error; err != nil {
-		log.Printf("[AUTH] User not found: %s", loginReq.Email)
-		respondError(w, http.StatusUnauthorized, "Invalid credentials")
-		return
+	if err := r.db.Where("username = ?", loginReq.Email).First(&user).Error; err != nil {
+		// Also try email field for backwards compatibility
+		if err := r.db.Where("email = ?", loginReq.Email).First(&user).Error; err != nil {
+			log.Printf("[AUTH] User not found: %s", loginReq.Email)
+			respondError(w, http.StatusUnauthorized, "Invalid credentials")
+			return
+		}
 	}
 
 	log.Printf("[AUTH] User found: %s (ID: %s, active: %v)", user.Email, user.ID, user.IsActive)

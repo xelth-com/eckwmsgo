@@ -27,10 +27,11 @@ function createAuthStore() {
     login: async (email, password) => {
         update(s => ({ ...s, isLoading: true }));
         try {
+            // Use Email (capital E) to match Go struct field name
             const res = await fetch(`${base}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ Email: email, Password: password })
             });
 
             if (!res.ok) throw new Error('Login failed');

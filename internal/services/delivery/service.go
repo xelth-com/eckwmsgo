@@ -214,11 +214,10 @@ func (s *Service) buildDeliveryRequest(picking *models.StockPicking) (*delivery.
 		ReceiverAddress: delivery.Address{
 			Name1:   partner.Name,
 			Street:  partner.Street,
-			Street2: partner.Street2,
 			Zip:     partner.Zip,
 			City:    partner.City,
 			Country: s.config.Warehouse.Country, // TODO: Map partner.CountryID to ISO code
-			Phone:   partner.Phone,
+			PhoneNumber: partner.Phone,
 			Email:   partner.Email,
 		},
 		Parcels: []delivery.Package{
