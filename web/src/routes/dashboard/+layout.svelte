@@ -146,6 +146,12 @@
                 Warehouse
             </a>
             <a
+                href="{base}/dashboard/shipping"
+                class:active={$page.url.pathname.includes("/shipping")}
+            >
+                Shipping
+            </a>
+            <a
                 href="{base}/dashboard/rma"
                 class:active={$page.url.pathname.includes("/rma")}
             >

@@ -48,6 +48,7 @@ func main() {
 		&models.StockQuant{},
 		&models.StockPicking{},
 		&models.StockMoveLine{},
+		&models.ResPartner{}, // Customer/Supplier addresses
 
 		// Delivery Models (OPAL integration)
 		&models.DeliveryCarrier{},
@@ -119,7 +120,7 @@ func main() {
 	}
 
 	// Create and register delivery service
-	delSvc := deliveryService.NewService(db)
+	delSvc := deliveryService.NewService(db, cfg)
 	router.SetDeliveryService(delSvc)
 
 	// Start background worker for processing shipments

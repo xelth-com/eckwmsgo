@@ -91,9 +91,10 @@ func (s *SyncService) TriggerManualSync() {
 func (s *SyncService) runFullSync() {
 	log.Println("🔄 Odoo: Starting full sync...")
 
-	// Order matters: locations first (for hierarchy), then products, then quants/lots/packages
+	// Order matters: locations first (for hierarchy), then products, then partners, then quants/lots/packages
 	s.syncLocations()
 	s.syncProducts()
+	s.syncPartners() // Sync customer/supplier addresses
 	s.syncLots()
 	s.syncPackages()
 	s.syncQuants()
@@ -153,6 +154,49 @@ func (s *SyncService) syncProducts() {
 	}
 
 	log.Printf("✅ Odoo: Updated %d products", count)
+}
+
+// syncPartners pulls partner (customer/supplier) data from Odoo
+func (s *SyncService) syncPartners() {
+	log.Println("👥 Odoo: Syncing Partners (Customers/Suppliers)...")
+
+	// Fetch only companies and contacts (not addresses which are child records)
+	domain := []interface{}{
+		[]interface{}{"active", "=", true},
+		// Optionally filter by type: "contact", "invoice", "delivery", "other"
+		// For delivery, we mainly need "contact" and "delivery" types
+	}
+
+	var partners []models.ResPartner
+	err := s.client.SearchRead("res.partner", domain, []string{
+		"name", "street", "street2", "zip", "city", "state_id", "country_id",
+		"phone", "mobile", "email", "vat", "company_type", "is_company",
+	}, 1000, 0, &partners)
+
+	if err != nil {
+		log.Printf("❌ Odoo Sync Error (Partners): %v", err)
+		return
+	}
+
+	if len(partners) == 0 {
+		return
+	}
+
+	// Save to local DB
+	count := 0
+	for _, partner := range partners {
+		// Upsert based on Odoo ID
+		if err := s.db.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "id"}},
+			UpdateAll: true,
+		}).Create(&partner).Error; err != nil {
+			log.Printf("Failed to save partner %d: %v", partner.ID, err)
+		} else {
+			count++
+		}
+	}
+
+	log.Printf("✅ Odoo: Updated %d partners", count)
 }
 
 // syncLocations pulls location data from Odoo directly into 'stock_location' table

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/xelth-com/eckwmsgo/internal/config"
 	"github.com/xelth-com/eckwmsgo/internal/database"
 	"github.com/xelth-com/eckwmsgo/internal/delivery"
 	"github.com/xelth-com/eckwmsgo/internal/models"
@@ -15,13 +16,15 @@ import (
 type Service struct {
 	db       *database.DB
 	registry *delivery.Registry
+	config   *config.Config
 }
 
 // NewService creates a new delivery service
-func NewService(db *database.DB) *Service {
+func NewService(db *database.DB, cfg *config.Config) *Service {
 	return &Service{
 		db:       db,
 		registry: delivery.GetGlobalRegistry(),
+		config:   cfg,
 	}
 }
 
@@ -177,33 +180,53 @@ func (s *Service) createTrackingEntry(pickingDeliveryID int64, description, stat
 
 // buildDeliveryRequest builds a delivery request from a stock picking
 func (s *Service) buildDeliveryRequest(picking *models.StockPicking) (*delivery.DeliveryRequest, error) {
-	// TODO: This is a simplified version
-	// In production, you would fetch partner addresses, calculate weights, etc.
-	// For now, return a minimal request structure
+	// Validate warehouse configuration
+	if s.config.Warehouse.Street == "" || s.config.Warehouse.Zip == "" || s.config.Warehouse.City == "" {
+		return nil, fmt.Errorf("warehouse address not configured - set WAREHOUSE_STREET, WAREHOUSE_ZIP, WAREHOUSE_CITY environment variables")
+	}
 
+	// Validate partner ID (customer)
+	if picking.PartnerID == nil || *picking.PartnerID == 0 {
+		return nil, fmt.Errorf("picking %s has no partner_id - cannot determine customer address", picking.Name)
+	}
+
+	// Fetch partner (customer) address from res_partner table
+	var partner models.ResPartner
+	if err := s.db.First(&partner, *picking.PartnerID).Error; err != nil {
+		return nil, fmt.Errorf("partner %d not found in database - ensure Odoo partner sync is running: %w", *picking.PartnerID, err)
+	}
+
+	// Validate partner has required address fields
+	if partner.Street == "" || partner.Zip == "" || partner.City == "" {
+		return nil, fmt.Errorf("partner %d (%s) has incomplete address (missing street/zip/city)", partner.ID, partner.Name)
+	}
+
+	// Build delivery request
 	req := &delivery.DeliveryRequest{
 		OrderNumber: picking.Name,
-		// TODO: Fetch actual sender and receiver addresses from related models
 		SenderAddress: delivery.Address{
-			Name1:   "Your Company",
-			Street:  "Your Street",
-			Zip:     "12345",
-			City:    "Your City",
-			Country: "DE",
+			Name1:   s.config.Warehouse.Name,
+			Street:  s.config.Warehouse.Street,
+			Zip:     s.config.Warehouse.Zip,
+			City:    s.config.Warehouse.City,
+			Country: s.config.Warehouse.Country,
 		},
 		ReceiverAddress: delivery.Address{
-			Name1:   "Customer Name",
-			Street:  "Customer Street",
-			Zip:     "54321",
-			City:    "Customer City",
-			Country: "DE",
+			Name1:   partner.Name,
+			Street:  partner.Street,
+			Street2: partner.Street2,
+			Zip:     partner.Zip,
+			City:    partner.City,
+			Country: s.config.Warehouse.Country, // TODO: Map partner.CountryID to ISO code
+			Phone:   partner.Phone,
+			Email:   partner.Email,
 		},
 		Parcels: []delivery.Package{
 			{
 				Count:       1,
-				Weight:      10.0,
+				Weight:      10.0, // TODO: Calculate from move lines
 				Description: "Order " + picking.Name,
-				Value:       0,
+				Value:       0, // TODO: Calculate from order
 				Currency:    "EUR",
 			},
 		},

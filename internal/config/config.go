@@ -38,6 +38,7 @@ type Config struct {
 	Translation TranslationConfig
 	Server      ServerConfig
 	Odoo        OdooConfig
+	Warehouse   WarehouseConfig
 }
 
 // DatabaseConfig holds database configuration
@@ -78,6 +79,15 @@ type OdooConfig struct {
 	Username     string
 	Password     string
 	SyncInterval int // in minutes
+}
+
+// WarehouseConfig holds warehouse/company address for deliveries
+type WarehouseConfig struct {
+	Name    string
+	Street  string
+	Zip     string
+	City    string
+	Country string
 }
 
 // Load loads configuration from environment variables
@@ -157,6 +167,13 @@ func Load() (*Config, error) {
 			Username:     os.Getenv("ODOO_USER"),
 			Password:     os.Getenv("ODOO_PASSWORD"),
 			SyncInterval: getIntEnv("ODOO_SYNC_INTERVAL", 15),
+		},
+		Warehouse: WarehouseConfig{
+			Name:    getEnv("WAREHOUSE_NAME", "Your Company"),
+			Street:  getEnv("WAREHOUSE_STREET", ""),
+			Zip:     getEnv("WAREHOUSE_ZIP", ""),
+			City:    getEnv("WAREHOUSE_CITY", ""),
+			Country: getEnv("WAREHOUSE_COUNTRY", "DE"),
 		},
 	}, nil
 }
