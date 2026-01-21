@@ -24,7 +24,9 @@ async function request(endpoint, options = {}) {
     if (response.status === 401) {
         authStore.logout();
         if (typeof window !== 'undefined') {
-            window.location.href = 'login';
+            // Use base path from current location to construct proper login URL
+            const basePath = window.location.pathname.split('/dashboard')[0] || '';
+            window.location.href = basePath + '/login';
         }
         throw new Error('Unauthorized');
     }

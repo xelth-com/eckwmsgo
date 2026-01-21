@@ -31,8 +31,7 @@ const JSON_OUTPUT = process.argv.includes('--json-output');
  * Logger utility
  */
 function log(message, level = 'info') {
-    if (JSON_OUTPUT && level !== 'error') return;
-
+    // Only log to stderr so stdout stays clean for JSON output
     const timestamp = new Date().toISOString();
     const prefix = {
         'info': 'i',
@@ -47,7 +46,7 @@ function log(message, level = 'info') {
 }
 
 /**
- * Output JSON result
+ * Output JSON result to STDOUT
  */
 function outputJSON(data) {
     console.log(JSON.stringify(data));
@@ -327,16 +326,34 @@ async function parseOrderTable(page) {
             const dateMatch = rowText.match(/(\d{2}[\.\/]\d{2}[\.\/]\d{2,4})/);
             const date = dateMatch ? dateMatch[1] : '';
 
-            // Try to extract status from styled elements
+            // --- IMPROVED STATUS EXTRACTION ---
             let status = 'Unknown';
+
+            // Strategy 1: Look for styled elements (classic OPAL)
             const statusElement = row.querySelector('[style*="background"], [class*="status"]');
             if (statusElement) {
-                status = statusElement.innerText.trim() || 'Unknown';
+                const sText = statusElement.innerText.trim();
+                if (sText && sText.length > 2) status = sText;
+            }
+
+            // Strategy 2: Fallback to Regex on row text (e.g., "OK 15.01.26-07:56 BECKER")
+            if (status === 'Unknown') {
+                const statusRegex = /(OK|AKTIV|STORNIERT|OFFEN|ABGESCHLOSSEN|FEHLER)\s+\d{2}\.\d{2}\.\d{2}/i;
+                const match = rowText.match(statusRegex);
+                if (match) {
+                    status = match[1]; // e.g. "OK"
+                }
+            }
+
+            // Strategy 3: Heuristic keywords at start of line if no tracking number there
+            if (status === 'Unknown') {
+                if (rowText.includes('OK ')) status = 'OK';
+                else if (rowText.includes('AKTIV')) status = 'AKTIV';
             }
 
             // Extract sender/recipient name if present
-            const nameMatch = rowText.match(/^(.{1,30})\s{2,}/);
-            const senderName = nameMatch ? nameMatch[1].trim() : '';
+            let senderName = '';
+            // (Skipping complex name extraction for now to avoid false positives)
 
             // Skip if no valid identifiers found
             if (!ocuMatch && !hwbMatch && !orderMatch) continue;
@@ -405,8 +422,9 @@ async function fetchOpalOrders() {
 
 // Run if executed directly
 if (require.main === module) {
+    // Only output banner if NOT in JSON mode to keep stdout clean
     if (!JSON_OUTPUT) {
-        console.log('\n=== OPAL Kurier Order Fetcher ===\n');
+        console.error('\n=== OPAL Kurier Order Fetcher ===\n');
     }
 
     fetchOpalOrders()

@@ -6,10 +6,15 @@
     "install:playwright": "npx playwright install chromium"
   },
   "dependencies": {
-    "playwright": "^1.40.0",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.6.1",
+    "playwright": "^1.57.0"
   },
   "engines": {
     "node": ">=16.0.0"
-  }
+  },
+  "main": "create-opal-order.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
 }
