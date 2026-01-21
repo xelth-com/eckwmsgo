@@ -423,23 +423,43 @@ func (s *Service) ImportOpalOrders(ctx context.Context) error {
 
 		// Build raw response JSON with all the scraped data
 		rawData := map[string]interface{}{
-			"ocu_number":       order.TrackingNumber,
-			"hwb_number":       order.HwbNumber,
-			"pickup_date":      order.PickupDate,
-			"pickup_time":      fmt.Sprintf("%s-%s", order.PickupTimeFrom, order.PickupTimeTo),
-			"pickup_name":      order.PickupName,
-			"pickup_city":      order.PickupCity,
-			"pickup_street":    order.PickupStreet,
-			"product_type":     order.ProductType,
-			"delivery_date":    order.DeliveryDate,
-			"delivery_time":    fmt.Sprintf("%s-%s", order.DeliveryTimeFrom, order.DeliveryTimeTo),
-			"delivery_name":    order.DeliveryName,
-			"delivery_city":    order.DeliveryCity,
-			"delivery_street":  order.DeliveryStreet,
-			"ref_number":       order.RefNumber,
-			"status":           order.Status,
-			"actual_delivered": order.ActualDeliveryDate,
-			"receiver":         order.ActualReceiver,
+			"ocu_number":        order.TrackingNumber,
+			"hwb_number":        order.HwbNumber,
+			"product_type":      order.ProductType,
+			"reference":         order.Reference,
+			"created_at":        order.CreatedAt,
+			"created_by":        order.CreatedBy,
+			"pickup_name":       order.PickupName,
+			"pickup_name2":      order.PickupName2,
+			"pickup_contact":    order.PickupContact,
+			"pickup_phone":      order.PickupPhone,
+			"pickup_email":      order.PickupEmail,
+			"pickup_street":     order.PickupStreet,
+			"pickup_city":       order.PickupCity,
+			"pickup_zip":        order.PickupZip,
+			"pickup_country":    order.PickupCountry,
+			"pickup_note":       order.PickupNote,
+			"pickup_date":       order.PickupDate,
+			"pickup_time":       fmt.Sprintf("%s-%s", order.PickupTimeFrom, order.PickupTimeTo),
+			"pickup_vehicle":    order.PickupVehicle,
+			"delivery_name":     order.DeliveryName,
+			"delivery_name2":    order.DeliveryName2,
+			"delivery_contact":  order.DeliveryContact,
+			"delivery_phone":    order.DeliveryPhone,
+			"delivery_email":    order.DeliveryEmail,
+			"delivery_street":   order.DeliveryStreet,
+			"delivery_city":     order.DeliveryCity,
+			"delivery_zip":      order.DeliveryZip,
+			"delivery_country":  order.DeliveryCountry,
+			"delivery_note":     order.DeliveryNote,
+			"delivery_date":     order.DeliveryDate,
+			"delivery_time":     fmt.Sprintf("%s-%s", order.DeliveryTimeFrom, order.DeliveryTimeTo),
+			"description":       order.Description,
+			"dimensions":        order.Dimensions,
+			"status":            order.Status,
+			"status_date":       order.StatusDate,
+			"status_time":       order.StatusTime,
+			"receiver":          order.Receiver,
 		}
 		if order.PackageCount != nil {
 			rawData["package_count"] = *order.PackageCount
@@ -447,15 +467,18 @@ func (s *Service) ImportOpalOrders(ctx context.Context) error {
 		if order.Weight != nil {
 			rawData["weight"] = *order.Weight
 		}
+		if order.Value != nil {
+			rawData["value"] = *order.Value
+		}
 		rawJSON, _ := json.Marshal(rawData)
 
 		// Determine status - use OPAL status if available, otherwise pending
 		status := models.DeliveryStatusPending
-		if order.Status == "OK" {
+		if order.Status == "Zugestellt" {
 			status = models.DeliveryStatusDelivered
-		} else if order.Status == "AKTIV" {
+		} else if order.Status == "Abgeholt" || order.Status == "AKTIV" {
 			status = models.DeliveryStatusShipped
-		} else if order.Status == "STORNO" {
+		} else if order.Status == "Storniert" || order.Status == "STORNO" {
 			status = models.DeliveryStatusCancelled
 		}
 
@@ -481,7 +504,7 @@ func (s *Service) ImportOpalOrders(ctx context.Context) error {
 
 				s.createTrackingEntry(delivery.ID,
 					fmt.Sprintf("Status updated from OPAL: %s -> %s (%s)",
-						oldStatus, status, order.ActualReceiver),
+						oldStatus, status, order.Receiver),
 					status)
 
 				log("Updated: #%d %s -> %s", delivery.ID, oldStatus, status)

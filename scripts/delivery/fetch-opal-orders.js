@@ -1,22 +1,18 @@
 #!/usr/bin/env node
 
 /**
- * OPAL Kurier Order Fetcher (CLI-friendly version for eckwmsgo)
+ * OPAL Kurier Order Fetcher - Detail Page Parser
  *
- * This script uses Playwright to scrape the order list from
- * the OPAL Kurier web system and outputs JSON to stdout.
- *
- * Based on the working implementation from inBody service-center-server.
+ * This script uses Playwright to scrape orders from OPAL by:
+ * 1. Opening the order list
+ * 2. Clicking into each order's detail page
+ * 3. Parsing complete order information
+ * 4. Returning to list and processing next order
  *
  * Usage:
- *   node fetch-opal-orders.js [--json-output] [--verbose] [--headless]
- *
- * When --json-output is specified, outputs structured JSON to stdout:
- * {"success": true, "orders": [...]}
- * {"success": false, "error": "..."}
+ *   node fetch-opal-orders.js [--json-output] [--verbose] [--headless] [--limit=N]
  */
 
-// Load environment variables
 require('dotenv').config();
 
 const { chromium } = require('playwright');
@@ -29,20 +25,17 @@ const VERBOSE = process.argv.includes('--verbose');
 const HEADLESS = process.argv.includes('--headless');
 const JSON_OUTPUT = process.argv.includes('--json-output');
 
+// Parse --limit=N argument
+const limitArg = process.argv.find(arg => arg.startsWith('--limit='));
+const ORDER_LIMIT = limitArg ? parseInt(limitArg.split('=')[1]) : 50;
+
 /**
  * Logger utility - logs to stderr to keep stdout clean for JSON
  */
 function log(message, level = 'info') {
     const timestamp = new Date().toISOString();
-    const prefix = {
-        'info': 'i',
-        'warn': '!',
-        'error': 'x',
-        'debug': '.'
-    }[level] || '.';
-
+    const prefix = { 'info': 'i', 'warn': '!', 'error': 'x', 'debug': '.' }[level] || '.';
     if (level === 'debug' && !VERBOSE) return;
-
     console.error(`[${timestamp}] ${prefix} ${message}`);
 }
 
@@ -66,13 +59,11 @@ async function initializeBrowser() {
 
     const context = await browser.newContext({
         viewport: { width: 1920, height: 1080 },
-        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     });
 
     const page = await context.newPage();
-
     log('Browser initialized', 'debug');
-
     return { browser, context, page };
 }
 
@@ -86,20 +77,17 @@ async function performLogin(page) {
         throw new Error('OPAL_USERNAME and OPAL_PASSWORD must be set');
     }
 
-    // Wait for the login form to be ready
+    // Wait for login form
     try {
-        await page.waitForSelector('#opal-login-form, input[name="username"], input[type="password"]', { timeout: 10000 });
+        await page.waitForSelector('input[type="password"]', { timeout: 10000 });
     } catch (e) {
-        log('Login form selector timeout, trying generic approach', 'debug');
+        log('Login form not found', 'debug');
     }
 
-    // Find and fill username field
+    // Fill username
     const usernameSelectors = [
-        'input[name="username"]',
-        'input[name="email"]',
-        'input[type="email"]',
-        'input[id*="user"]',
-        'input[id*="email"]'
+        'input[name="username"]', 'input[name="email"]',
+        'input[type="email"]', 'input[id*="user"]'
     ];
 
     let usernameFilled = false;
@@ -108,123 +96,101 @@ async function performLogin(page) {
             const field = await page.locator(selector).first();
             if (await field.count() > 0 && await field.isVisible()) {
                 await field.fill(OPAL_USERNAME);
-                log(`Username filled using ${selector}`, 'debug');
                 usernameFilled = true;
                 break;
             }
-        } catch (e) {
-            // Try next selector
-        }
+        } catch (e) { }
     }
 
     if (!usernameFilled) {
-        const textInputs = await page.locator('input[type="text"], input[type="email"], input:not([type])').all();
+        const textInputs = await page.locator('input[type="text"], input:not([type])').all();
         for (const input of textInputs) {
             if (await input.isVisible()) {
                 await input.fill(OPAL_USERNAME);
-                log('Username filled in first visible input', 'debug');
                 usernameFilled = true;
                 break;
             }
         }
     }
 
-    if (!usernameFilled) {
-        throw new Error('Could not find username field for login');
-    }
+    if (!usernameFilled) throw new Error('Could not find username field');
 
     // Fill password
     const passwordField = await page.locator('input[type="password"]').first();
-    if (await passwordField.count() === 0) {
-        throw new Error('Could not find password field for login');
-    }
     await passwordField.fill(OPAL_PASSWORD);
-    log('Password filled', 'debug');
 
-    // Submit form
+    // Submit
     const buttonSelectors = [
-        'button[type="submit"]',
-        'input[type="submit"]',
-        'button:has-text("Login")',
-        'button:has-text("Anmelden")'
+        'button[type="submit"]', 'input[type="submit"]',
+        'button:has-text("Login")', 'button:has-text("Anmelden")'
     ];
 
-    let buttonClicked = false;
     for (const selector of buttonSelectors) {
         try {
             const button = await page.locator(selector).first();
             if (await button.count() > 0 && await button.isVisible()) {
                 await button.click();
-                log('Login submitted', 'debug');
-                buttonClicked = true;
                 break;
             }
-        } catch (e) {
-            // Try next selector
-        }
+        } catch (e) { }
     }
 
-    if (!buttonClicked) {
-        await passwordField.press('Enter');
-        log('Login submitted via Enter key', 'debug');
-    }
-
-    // Wait for navigation
     await page.waitForLoadState('networkidle', { timeout: 30000 });
     await page.waitForTimeout(2000);
-
     log('Login completed', 'info');
 }
 
 /**
- * Navigate to OPAL and wait for frameset
+ * Navigate to OPAL and handle login
  */
 async function navigateToOpal(page) {
     log('Navigating to OPAL...', 'debug');
-
     await page.goto(OPAL_URL, { waitUntil: 'networkidle', timeout: TIMEOUT });
 
-    // Wait for frameset to load
     try {
         await page.waitForSelector('frameset, frame[name="optop"]', { timeout: 30000 });
         log('OPAL frameset loaded', 'info');
     } catch (e) {
-        // Check for login form
         const hasLoginForm = await page.locator('input[type="password"]').count();
         if (hasLoginForm > 0) {
-            log('Login form detected - attempting automatic login...', 'info');
             await performLogin(page);
-
-            // After login, wait for frameset again
-            try {
-                await page.waitForSelector('frameset, frame[name="optop"]', { timeout: 30000 });
-                log('OPAL frameset loaded after login', 'info');
-            } catch (e2) {
-                throw new Error('Login succeeded but frameset still not found');
-            }
+            await page.waitForSelector('frameset, frame[name="optop"]', { timeout: 30000 });
         } else {
-            throw new Error('Could not find OPAL frameset and no login form detected');
+            throw new Error('Could not find OPAL frameset');
         }
     }
-
     return page;
 }
 
 /**
- * Navigate to "Auftragsliste" (Order List)
+ * Get the main content frame
+ */
+async function getMainFrame(page) {
+    for (let i = 0; i < 20; i++) {
+        const frames = page.frames();
+        for (const frame of frames) {
+            if (await frame.name() === 'opmain') {
+                return frame;
+            }
+        }
+        await page.waitForTimeout(500);
+    }
+    throw new Error('Could not find opmain frame');
+}
+
+/**
+ * Navigate to Auftragsliste
  */
 async function navigateToAuftragsliste(page) {
     log('Navigating to Auftragsliste...', 'info');
 
-    // Find header frame (optop)
+    // Find header frame
     let headerFrame = null;
-    for (let attempt = 0; attempt < 20; attempt++) {
+    for (let i = 0; i < 20; i++) {
         const frames = page.frames();
         for (const frame of frames) {
-            const frameName = await frame.name();
-            if (frameName === 'optop') {
+            if (await frame.name() === 'optop') {
                 headerFrame = frame;
-                log('Found header frame (optop)', 'debug');
                 break;
             }
         }
@@ -232,262 +198,364 @@ async function navigateToAuftragsliste(page) {
         await page.waitForTimeout(500);
     }
 
-    if (!headerFrame) {
-        throw new Error('Could not find header frame (optop)');
-    }
+    if (!headerFrame) throw new Error('Could not find optop frame');
 
-    // Wait for navigation links
     await headerFrame.waitForSelector('a', { timeout: 10000 });
 
-    // Try to find and click "Auftragsliste" link
+    // Click Auftragsliste
     const selectors = [
         'a:has-text("Auftragsliste")',
-        'a:has-text("auftragsliste")',
         'a:has-text("Liste")',
-        'a[href*="list"]',
-        'a[href*="auftrag"]'
+        'a[href*="list"]'
     ];
 
-    let clicked = false;
     for (const selector of selectors) {
         try {
             await headerFrame.click(selector, { timeout: 5000 });
-            log(`Clicked on Auftragsliste using selector: ${selector}`, 'info');
-            clicked = true;
+            log('Clicked on Auftragsliste', 'info');
             break;
-        } catch (e) {
-            log(`Selector ${selector} not found, trying next...`, 'debug');
-        }
+        } catch (e) { }
     }
 
-    if (!clicked) {
-        throw new Error('Could not find Auftragsliste link');
-    }
-
-    // Wait for order list to load
     await page.waitForTimeout(3000);
-
-    log('Successfully navigated to Auftragsliste', 'info');
 }
 
 /**
- * Parse order table from the main frame
- * Based on the working implementation from inBody service-center-server
+ * Parse detail page content
  */
-async function parseOrderTable(page) {
-    log('Parsing order table...', 'info');
+function parseDetailPage(text) {
+    const order = {
+        tracking_number: '',
+        hwb_number: '',
+        product_type: '',
+        reference: '',
+        created_at: '',
+        created_by: '',
 
-    // Find main content frame (opmain)
-    let mainFrame = null;
-    for (let i = 0; i < 10; i++) {
-        const frames = page.frames();
-        for (const frame of frames) {
-            const frameName = await frame.name();
-            if (frameName === 'opmain') {
-                mainFrame = frame;
-                log('Found main content frame (opmain)', 'debug');
-                break;
-            }
+        pickup_name: '',
+        pickup_name2: '',
+        pickup_contact: '',
+        pickup_phone: '',
+        pickup_email: '',
+        pickup_street: '',
+        pickup_city: '',
+        pickup_zip: '',
+        pickup_country: 'DE',
+        pickup_note: '',
+        pickup_date: '',
+        pickup_time_from: '',
+        pickup_time_to: '',
+        pickup_vehicle: '',
+
+        delivery_name: '',
+        delivery_name2: '',
+        delivery_contact: '',
+        delivery_phone: '',
+        delivery_email: '',
+        delivery_street: '',
+        delivery_city: '',
+        delivery_zip: '',
+        delivery_country: 'DE',
+        delivery_note: '',
+        delivery_date: '',
+        delivery_time_from: '',
+        delivery_time_to: '',
+
+        package_count: null,
+        weight: null,
+        value: null,
+        description: '',
+        dimensions: '',
+
+        status: '',
+        status_date: '',
+        status_time: '',
+        receiver: ''
+    };
+
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+
+    // Parse SendungsNr and HWB
+    for (const line of lines) {
+        if (line.includes('SendungsNr')) {
+            const match = line.match(/SendungsNr\s+(OCU[-\d]+)/);
+            if (match) order.tracking_number = match[1];
         }
-        if (mainFrame) break;
-        await page.waitForTimeout(500);
-    }
-
-    if (!mainFrame) {
-        throw new Error('Could not find main content frame (opmain)');
-    }
-
-    // Wait for order list body to be present
-    try {
-        await mainFrame.waitForSelector('#order-list-body, table', { timeout: 30000 });
-    } catch (e) {
-        log('Order list body not found', 'warn');
-        return [];
-    }
-
-    // Parse orders from the page using the correct OPAL HTML structure
-    const orders = await mainFrame.evaluate(() => {
-        const orderRows = [];
-
-        // Find the order list container
-        const orderListBody = document.querySelector('#order-list-body');
-        if (!orderListBody) {
-            // Fallback: try to find any table
-            const tables = document.querySelectorAll('table');
-            if (tables.length === 0) return orderRows;
+        if (line.includes('HWB') && !order.hwb_number) {
+            const match = line.match(/HWB\s+(\d{12})/);
+            if (match) order.hwb_number = match[1];
         }
+        if (line.includes('Auftragsart')) {
+            const match = line.match(/Auftragsart\s+(\S+)/);
+            if (match) order.product_type = match[1];
+        }
+        if (line.includes('Referenz') && !line.includes('Ref/KST')) {
+            const match = line.match(/Referenz\s+(\S+)/);
+            if (match) order.reference = match[1];
+        }
+    }
 
-        // Each order is a <tr> with onmouseover attribute containing a nested table
-        // The nested table has 2 rows: pickup info (row 1) and delivery info (row 2)
-        const rows = document.querySelectorAll('tr[onmouseover]');
+    // Parse created info
+    const createdMatch = text.match(/erfasst am\s+([\d\.\-\s:]+Uhr)/);
+    if (createdMatch) order.created_at = createdMatch[1].trim();
 
-        rows.forEach(row => {
-            try {
-                // Find the nested table inside this row
-                const nestedTable = row.querySelector('table');
-                if (!nestedTable) return;
+    const createdByMatch = text.match(/erfasst durch\s+(\S+)/);
+    if (createdByMatch) order.created_by = createdByMatch[1];
 
-                // Get the 2 data rows from nested table (pickup and delivery)
-                const dataRows = nestedTable.querySelectorAll('tr');
-                if (dataRows.length < 2) return;
-
-                const firstRow = dataRows[0];  // Pickup info
-                const secondRow = dataRows[1]; // Delivery info
-
-                // Extract cells from first row (pickup info)
-                const firstCells = firstRow.querySelectorAll('td');
-                // Extract cells from second row (delivery info)
-                const secondCells = secondRow.querySelectorAll('td');
-
-                if (firstCells.length < 8) return;
-
-                // Column mapping based on actual OPAL HTML structure:
-                // First row (pickup):
-                // [0] = checkbox (rowspan=2)
-                // [1] = OCU tracking number (e.g., "OCU-998-511590")
-                // [2] = pickup date
-                // [3] = pickup time from
-                // [4] = pickup time to
-                // [5] = pickup company name
-                // [6] = pickup city (e.g., "DE-65760 Eschborn")
-                // [7] = pickup street
-                // [8] = product type (e.g., "Overnight", "X-Change / Swap")
-                // [9] = NN field
-                // [10] = + Adr field
-                // [11] = package count and weight (e.g., "1 Pks. 43,50 kg")
-                //
-                // Second row (delivery):
-                // [0] = HWB number / GO barcode (e.g., "041940529157")
-                // [1] = delivery date
-                // [2] = delivery time from
-                // [3] = delivery time to
-                // [4] = delivery company name
-                // [5] = delivery city
-                // [6] = delivery street
-                // [7] = Ref field
-                // [8-10] = Status (e.g., "OK 15.01.26-07:56 BECKER")
-
-                const trackingNumber = firstCells[1]?.textContent?.trim() || '';
-                const hwbNumber = secondCells[0]?.textContent?.trim() || '';
-
-                // Skip if no valid tracking numbers
-                if (!trackingNumber && !hwbNumber) return;
-
-                // Parse package info (e.g., "1 Pks. 43,50 kg")
-                const packageInfo = firstCells[11]?.textContent?.trim() || '';
-                let packageCount = null;
-                let weight = null;
-
-                if (packageInfo) {
-                    const pkgMatch = packageInfo.match(/(\d+)\s*Pks/);
-                    const weightMatch = packageInfo.match(/(\d+[,.]?\d*)\s*kg/);
-                    if (pkgMatch) packageCount = parseInt(pkgMatch[1]);
-                    if (weightMatch) weight = parseFloat(weightMatch[1].replace(',', '.'));
+    // Parse Abholung section
+    const abholungIdx = lines.findIndex(l => l === 'Abholung');
+    if (abholungIdx >= 0) {
+        for (let i = abholungIdx + 1; i < Math.min(abholungIdx + 15, lines.length); i++) {
+            const line = lines[i];
+            if (line.startsWith('Name1')) order.pickup_name = line.replace('Name1', '').trim();
+            if (line.startsWith('Name2')) order.pickup_name2 = line.replace('Name2', '').trim();
+            if (line.startsWith('Ansprechpartner')) order.pickup_contact = line.replace('Ansprechpartner', '').trim();
+            if (line.startsWith('Telefon')) order.pickup_phone = line.replace('Telefon', '').trim();
+            if (line.startsWith('Mail')) order.pickup_email = line.replace('Mail', '').trim();
+            if (line.startsWith('Straße/Hs')) order.pickup_street = line.replace('Straße/Hs', '').trim();
+            if (line.startsWith('LKZ-Land')) {
+                const addr = line.replace('LKZ-Land', '').trim();
+                const match = addr.match(/([A-Z]{2})-(\d{5})\s+(.+)/);
+                if (match) {
+                    order.pickup_country = match[1];
+                    order.pickup_zip = match[2];
+                    order.pickup_city = match[3];
                 }
-
-                // Parse actual delivery status from cells [8-10]
-                // Format: "OK 30.10.25-09:48 KAUFMANN" in a colored div
-                let status = '';
-                let actualDeliveryDate = '';
-                let actualDeliveryReceiver = '';
-
-                // Check cells 8, 9, 10 for status div
-                for (let i = 8; i <= 10 && i < secondCells.length; i++) {
-                    const statusDiv = secondCells[i]?.querySelector('div[style*="background-color"]');
-                    if (statusDiv) {
-                        const statusText = statusDiv.textContent.trim();
-                        status = statusText;
-
-                        // Parse status text: "OK 30.10.25-09:48 KAUFMANN"
-                        const statusMatch = statusText.match(/^([A-Z]+)\s+(\d{2}\.\d{2}\.\d{2})-(\d{2}:\d{2})\s+(.+)$/);
-                        if (statusMatch) {
-                            status = statusMatch[1]; // OK, STORNO, AKTIV, etc.
-                            actualDeliveryDate = `${statusMatch[2]} ${statusMatch[3]}`; // 30.10.25 09:48
-                            actualDeliveryReceiver = statusMatch[4]; // KAUFMANN
-                        }
-                        break;
-                    }
-                }
-
-                // If no status div found, check for text directly
-                if (!status) {
-                    for (let i = 8; i <= 10 && i < secondCells.length; i++) {
-                        const cellText = secondCells[i]?.textContent?.trim() || '';
-                        if (cellText && cellText.match(/^(OK|AKTIV|STORNO|OFFEN)/)) {
-                            const statusMatch = cellText.match(/^([A-Z]+)\s+(\d{2}\.\d{2}\.\d{2})-?(\d{2}:\d{2})?\s*(.*)$/);
-                            if (statusMatch) {
-                                status = statusMatch[1];
-                                if (statusMatch[2]) {
-                                    actualDeliveryDate = statusMatch[2];
-                                    if (statusMatch[3]) actualDeliveryDate += ' ' + statusMatch[3];
-                                }
-                                if (statusMatch[4]) actualDeliveryReceiver = statusMatch[4];
-                            } else {
-                                status = cellText;
-                            }
-                            break;
-                        }
-                    }
-                }
-
-                orderRows.push({
-                    tracking_number: trackingNumber,
-                    hwb_number: hwbNumber,
-                    pickup_date: firstCells[2]?.textContent?.trim() || '',
-                    pickup_time_from: firstCells[3]?.textContent?.trim() || '',
-                    pickup_time_to: firstCells[4]?.textContent?.trim() || '',
-                    pickup_name: firstCells[5]?.textContent?.trim() || '',
-                    pickup_city: firstCells[6]?.textContent?.trim() || '',
-                    pickup_street: firstCells[7]?.textContent?.trim() || '',
-                    product_type: firstCells[8]?.textContent?.trim() || '',
-                    package_count: packageCount,
-                    weight: weight,
-                    delivery_date: secondCells[1]?.textContent?.trim() || '',
-                    delivery_time_from: secondCells[2]?.textContent?.trim() || '',
-                    delivery_time_to: secondCells[3]?.textContent?.trim() || '',
-                    delivery_name: secondCells[4]?.textContent?.trim() || '',
-                    delivery_city: secondCells[5]?.textContent?.trim() || '',
-                    delivery_street: secondCells[6]?.textContent?.trim() || '',
-                    ref_number: secondCells[7]?.textContent?.trim() || '',
-                    status: status,
-                    actual_delivery_date: actualDeliveryDate,
-                    actual_receiver: actualDeliveryReceiver
-                });
-            } catch (error) {
-                console.error('Error parsing order row:', error);
             }
-        });
+            if (line.startsWith('Hinweis') && !order.pickup_note) order.pickup_note = line.replace('Hinweis', '').trim();
+            if (line === 'Zustellung') break;
+        }
+    }
 
-        return orderRows;
+    // Parse Zustellung section
+    const zustellungIdx = lines.findIndex(l => l === 'Zustellung');
+    if (zustellungIdx >= 0) {
+        for (let i = zustellungIdx + 1; i < Math.min(zustellungIdx + 15, lines.length); i++) {
+            const line = lines[i];
+            if (line.startsWith('Name1')) order.delivery_name = line.replace('Name1', '').trim();
+            if (line.startsWith('Name2')) order.delivery_name2 = line.replace('Name2', '').trim();
+            if (line.startsWith('Ansprechpartner')) order.delivery_contact = line.replace('Ansprechpartner', '').trim();
+            if (line.startsWith('Telefon')) order.delivery_phone = line.replace('Telefon', '').trim();
+            if (line.startsWith('Mail')) order.delivery_email = line.replace('Mail', '').trim();
+            if (line.startsWith('Straße/Hs')) order.delivery_street = line.replace('Straße/Hs', '').trim();
+            if (line.startsWith('LKZ-Land')) {
+                const addr = line.replace('LKZ-Land', '').trim();
+                const match = addr.match(/([A-Z]{2})-(\d{5})\s+(.+)/);
+                if (match) {
+                    order.delivery_country = match[1];
+                    order.delivery_zip = match[2];
+                    order.delivery_city = match[3];
+                }
+            }
+            if (line.startsWith('Hinweis') && !order.delivery_note) order.delivery_note = line.replace('Hinweis', '').trim();
+            if (line.includes('Abholtermin') || line.includes('Frühtermine')) break;
+        }
+    }
+
+    // Parse pickup date/time
+    const abholTerminIdx = lines.findIndex(l => l.includes('Abholtermin'));
+    if (abholTerminIdx >= 0) {
+        for (let i = abholTerminIdx + 1; i < Math.min(abholTerminIdx + 5, lines.length); i++) {
+            const line = lines[i];
+            const dateMatch = line.match(/(\d{2}\.\d{2}\.\d{4})/);
+            if (dateMatch) order.pickup_date = dateMatch[1];
+
+            const timeMatch = line.match(/Zeit\s+(\d{2}:\d{2})\s+-\s+(\d{2}:\d{2})/);
+            if (timeMatch) {
+                order.pickup_time_from = timeMatch[1];
+                order.pickup_time_to = timeMatch[2];
+            }
+
+            if (line.includes('Fahrzeug')) {
+                const vehicleMatch = line.match(/Fahrzeug\s+(\S+)/);
+                if (vehicleMatch) order.pickup_vehicle = vehicleMatch[1];
+            }
+            if (line.includes('Zustelltermin')) break;
+        }
+    }
+
+    // Parse delivery date/time
+    const zustellTerminIdx = lines.findIndex(l => l.includes('Zustelltermin'));
+    if (zustellTerminIdx >= 0) {
+        for (let i = zustellTerminIdx + 1; i < Math.min(zustellTerminIdx + 3, lines.length); i++) {
+            const line = lines[i];
+            const dateMatch = line.match(/(\d{2}\.\d{2}\.\d{4})/);
+            if (dateMatch) order.delivery_date = dateMatch[1];
+
+            const timeMatch = line.match(/Zeit\s+(\d{2}:\d{2})\s+-\s+(\d{2}:\d{2})/);
+            if (timeMatch) {
+                order.delivery_time_from = timeMatch[1];
+                order.delivery_time_to = timeMatch[2];
+            }
+            if (line.includes('Sendung & Pack')) break;
+        }
+    }
+
+    // Parse package info
+    const wertMatch = text.match(/Wert\s+([\d\.,]+)\s*EUR/);
+    if (wertMatch) order.value = parseFloat(wertMatch[1].replace('.', '').replace(',', '.'));
+
+    // Parse weight and description
+    const weightMatch = text.match(/(\d+)\s+([\d,]+)\s+([A-Za-z_][\w\s]+?)(?:\s+VolG|$)/m);
+    if (weightMatch) {
+        order.package_count = parseInt(weightMatch[1]);
+        order.weight = parseFloat(weightMatch[2].replace(',', '.'));
+        order.description = weightMatch[3].trim();
+    }
+
+    // Parse dimensions
+    const dimMatch = text.match(/L:\s*([\d,]+)\s*B:\s*([\d,]+)\s*H:\s*([\d,]+)/);
+    if (dimMatch) {
+        order.dimensions = `${dimMatch[1]}x${dimMatch[2]}x${dimMatch[3]}`;
+    }
+
+    // Parse status history
+    const statusMatch = text.match(/(\d{12})\s+(\d{2}\.\d{2}\.\d{2})\s+(\d{2}:\d{2})\s+(Zugestellt|Abgeholt|Storniert|AKTIV)\s*(\S*)/);
+    if (statusMatch) {
+        order.status = statusMatch[4];
+        order.status_date = statusMatch[2];
+        order.status_time = statusMatch[3];
+        order.receiver = statusMatch[5] || '';
+    }
+
+    return order;
+}
+
+/**
+ * Parse orders by clicking into detail pages
+ */
+async function parseOrdersFromDetailPages(page, mainFrame, limit) {
+    const orders = [];
+
+    // Get total count
+    const countText = await mainFrame.evaluate(() => {
+        const text = document.body.innerText;
+        const match = text.match(/(\d+)\s+von\s+(\d+)\s+Datensätzen/);
+        return match ? { current: match[1], total: match[2] } : null;
     });
 
-    log(`Found ${orders.length} orders`, 'info');
+    if (countText) {
+        log(`Found ${countText.total} total orders, processing up to ${limit}`, 'info');
+    }
+
+    let currentRow = 0;
+
+    while (orders.length < limit) {
+        // Get current row count
+        const rowCount = await mainFrame.evaluate(() => {
+            return document.querySelectorAll('tr[onmouseover]').length;
+        });
+
+        if (currentRow >= rowCount) {
+            // Try to go to next page
+            log('Trying to go to next page...', 'debug');
+            const hasNextPage = await mainFrame.evaluate(() => {
+                const links = document.querySelectorAll('a, td[onclick]');
+                for (const link of links) {
+                    if (link.textContent.trim() === '>') {
+                        link.click();
+                        return true;
+                    }
+                }
+                return false;
+            });
+
+            if (!hasNextPage) {
+                log('No more pages', 'info');
+                break;
+            }
+
+            await page.waitForTimeout(2000);
+            currentRow = 0;
+            continue;
+        }
+
+        // Click on the order row to open detail page
+        log(`Opening order ${orders.length + 1}/${limit} (row ${currentRow})...`, 'debug');
+
+        const clicked = await mainFrame.evaluate((rowIndex) => {
+            const rows = document.querySelectorAll('tr[onmouseover]');
+            if (rows[rowIndex]) {
+                const clickableTD = rows[rowIndex].querySelector('td[onclick]');
+                if (clickableTD) {
+                    clickableTD.click();
+                    return true;
+                }
+            }
+            return false;
+        }, currentRow);
+
+        if (!clicked) {
+            log(`Could not click row ${currentRow}`, 'warn');
+            currentRow++;
+            continue;
+        }
+
+        await page.waitForTimeout(1500);
+
+        // Parse detail page
+        const detailText = await mainFrame.evaluate(() => {
+            return document.body.innerText;
+        });
+
+        // Check if we're on detail page
+        if (!detailText.includes('zur Liste zurück')) {
+            log('Not on detail page, retrying...', 'warn');
+            currentRow++;
+            continue;
+        }
+
+        const order = parseDetailPage(detailText);
+
+        if (order.tracking_number || order.hwb_number) {
+            orders.push(order);
+            log(`Parsed: ${order.tracking_number || order.hwb_number} - ${order.delivery_name} - ${order.status}`, 'info');
+        }
+
+        // Go back to list
+        const wentBack = await mainFrame.evaluate(() => {
+            const links = document.querySelectorAll('a, button');
+            for (const link of links) {
+                if (link.textContent.includes('zur Liste')) {
+                    link.click();
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        if (!wentBack) {
+            log('Could not go back to list', 'error');
+            break;
+        }
+
+        await page.waitForTimeout(1500);
+        currentRow++;
+    }
 
     return orders;
 }
 
 /**
- * Main function to fetch OPAL orders
+ * Main function
  */
 async function fetchOpalOrders() {
     let browser, context, page;
 
     try {
-        // Initialize browser
         ({ browser, context, page } = await initializeBrowser());
-
-        // Navigate to OPAL
         await navigateToOpal(page);
-
-        // Navigate to order list
         await navigateToAuftragsliste(page);
 
-        // Parse orders from table
-        const orders = await parseOrderTable(page);
+        const mainFrame = await getMainFrame(page);
 
-        log('Orders fetched successfully!', 'info');
+        // Wait for order list to load
+        await mainFrame.waitForSelector('tr[onmouseover]', { timeout: 30000 });
 
-        // Return success
+        const orders = await parseOrdersFromDetailPages(page, mainFrame, ORDER_LIMIT);
+
+        log(`Successfully fetched ${orders.length} orders`, 'info');
+
         return {
             success: true,
             orders: orders,
@@ -511,9 +579,8 @@ async function fetchOpalOrders() {
 
 // Run if executed directly
 if (require.main === module) {
-    // Only output banner if NOT in JSON mode to keep stdout clean
     if (!JSON_OUTPUT) {
-        console.error('\n=== OPAL Kurier Order Fetcher ===\n');
+        console.error('\n=== OPAL Kurier Order Fetcher (Detail Mode) ===\n');
     }
 
     fetchOpalOrders()
@@ -535,6 +602,4 @@ if (require.main === module) {
         });
 }
 
-module.exports = {
-    fetchOpalOrders
-};
+module.exports = { fetchOpalOrders };

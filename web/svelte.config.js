@@ -11,9 +11,8 @@ const config = {
 			strict: false
 		}),
 		paths: {
-			// Базовый путь берется из ENV. Если не задан - корень.
-			// Для продакшена вы будете собирать с BASE_PATH=/E
-			base: process.env.BASE_PATH || ''
+			// Базовый путь для продакшена
+			base: '/E'
 		}
 	}
 };

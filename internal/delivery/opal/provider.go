@@ -162,37 +162,58 @@ func (p *Provider) CreateShipment(ctx context.Context, req *delivery.DeliveryReq
 	return response, nil
 }
 
-// ScrapedOrder represents the JSON structure returned by the Node.js scraper
+// ScrapedOrder represents the JSON structure returned by the Node.js detail page scraper
 type ScrapedOrder struct {
 	TrackingNumber string `json:"tracking_number"` // OCU number (e.g., "OCU-998-511590")
 	HwbNumber      string `json:"hwb_number"`      // GO Barcode (e.g., "041940529157")
+	ProductType    string `json:"product_type"`    // Overnight, X-Change, etc.
+	Reference      string `json:"reference"`       // Reference number
+	CreatedAt      string `json:"created_at"`      // When order was created
+	CreatedBy      string `json:"created_by"`      // Who created the order
 
 	// Pickup info
+	PickupName     string `json:"pickup_name"`
+	PickupName2    string `json:"pickup_name2"`
+	PickupContact  string `json:"pickup_contact"`
+	PickupPhone    string `json:"pickup_phone"`
+	PickupEmail    string `json:"pickup_email"`
+	PickupStreet   string `json:"pickup_street"`
+	PickupCity     string `json:"pickup_city"`
+	PickupZip      string `json:"pickup_zip"`
+	PickupCountry  string `json:"pickup_country"`
+	PickupNote     string `json:"pickup_note"`
 	PickupDate     string `json:"pickup_date"`
 	PickupTimeFrom string `json:"pickup_time_from"`
 	PickupTimeTo   string `json:"pickup_time_to"`
-	PickupName     string `json:"pickup_name"`
-	PickupCity     string `json:"pickup_city"`
-	PickupStreet   string `json:"pickup_street"`
-
-	// Product info
-	ProductType  string   `json:"product_type"`
-	PackageCount *int     `json:"package_count"`
-	Weight       *float64 `json:"weight"`
+	PickupVehicle  string `json:"pickup_vehicle"`
 
 	// Delivery info
+	DeliveryName     string `json:"delivery_name"`
+	DeliveryName2    string `json:"delivery_name2"`
+	DeliveryContact  string `json:"delivery_contact"`
+	DeliveryPhone    string `json:"delivery_phone"`
+	DeliveryEmail    string `json:"delivery_email"`
+	DeliveryStreet   string `json:"delivery_street"`
+	DeliveryCity     string `json:"delivery_city"`
+	DeliveryZip      string `json:"delivery_zip"`
+	DeliveryCountry  string `json:"delivery_country"`
+	DeliveryNote     string `json:"delivery_note"`
 	DeliveryDate     string `json:"delivery_date"`
 	DeliveryTimeFrom string `json:"delivery_time_from"`
 	DeliveryTimeTo   string `json:"delivery_time_to"`
-	DeliveryName     string `json:"delivery_name"`
-	DeliveryCity     string `json:"delivery_city"`
-	DeliveryStreet   string `json:"delivery_street"`
-	RefNumber        string `json:"ref_number"`
+
+	// Package info
+	PackageCount *int     `json:"package_count"`
+	Weight       *float64 `json:"weight"`
+	Value        *float64 `json:"value"`
+	Description  string   `json:"description"`
+	Dimensions   string   `json:"dimensions"`
 
 	// Status
-	Status               string `json:"status"`                 // OK, AKTIV, STORNO, etc.
-	ActualDeliveryDate   string `json:"actual_delivery_date"`   // When actually delivered
-	ActualReceiver       string `json:"actual_receiver"`        // Who received it
+	Status     string `json:"status"`      // Zugestellt, Abgeholt, Storniert, AKTIV
+	StatusDate string `json:"status_date"` // When status changed
+	StatusTime string `json:"status_time"` // Time of status change
+	Receiver   string `json:"receiver"`    // Who received it
 }
 
 // FetchRecentOrders executes the Node.js scraper to get recent orders from OPAL

@@ -10,6 +10,7 @@ let error = null;
 let activeTab = 'pickings'; // 'pickings' or 'shipments'
 let processingPickings = new Set();
 let isSyncing = false; // New state for OPAL sync
+let expandedShipments = new Set(); // Track which shipments are expanded
 
 onMount(async () => {
     await loadData();
@@ -120,6 +121,34 @@ function getDeliveryStateColor(state) {
         'cancelled': '#6c757d'
     };
     return colors[state] || '#6c757d';
+}
+
+function toggleShipmentDetails(id) {
+    if (expandedShipments.has(id)) {
+        expandedShipments.delete(id);
+    } else {
+        expandedShipments.add(id);
+    }
+    expandedShipments = expandedShipments; // Trigger reactivity
+}
+
+function parseRawResponse(rawResponse) {
+    if (!rawResponse) return null;
+    try {
+        return JSON.parse(rawResponse);
+    } catch {
+        return null;
+    }
+}
+
+function formatAddress(data, prefix) {
+    if (!data) return '-';
+    const parts = [
+        data[`${prefix}_name`],
+        data[`${prefix}_street`],
+        [data[`${prefix}_zip`], data[`${prefix}_city`]].filter(Boolean).join(' ')
+    ].filter(Boolean);
+    return parts.join(', ') || '-';
 }
 </script>
 
@@ -234,42 +263,69 @@ function getDeliveryStateColor(state) {
                         <table>
                             <thead>
                                 <tr>
-                                    <th>Shipment ID</th>
-                                    <th>Picking</th>
-                                    <th>Provider</th>
+                                    <th></th>
                                     <th>Tracking</th>
+                                    <th>From → To</th>
+                                    <th>Product</th>
                                     <th>Status</th>
-                                    <th>Created</th>
+                                    <th>Delivered</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {#each shipments as shipment}
-                                    <tr>
-                                        <td class="shipment-id">#{shipment.id}</td>
-                                        <td>{shipment.picking_id}</td>
-                                        <td>
-                                            <span class="provider-badge">
-                                                {shipment.provider_code || 'N/A'}
-                                            </span>
+                                    {@const details = parseRawResponse(shipment.raw_response)}
+                                    <tr class="shipment-row" class:expanded={expandedShipments.has(shipment.id)} on:click={() => toggleShipmentDetails(shipment.id)}>
+                                        <td class="expand-cell">
+                                            <span class="expand-icon">{expandedShipments.has(shipment.id) ? '▼' : '▶'}</span>
                                         </td>
-                                        <td>
+                                        <td class="tracking-cell">
                                             {#if shipment.tracking_number}
-                                                <a href={shipment.tracking_url || '#'} target="_blank" class="tracking-link">
-                                                    {shipment.tracking_number}
-                                                </a>
+                                                <span class="tracking-number">{shipment.tracking_number}</span>
+                                                {#if details?.hwb_number}
+                                                    <span class="hwb-number">HWB: {details.hwb_number}</span>
+                                                {/if}
                                             {:else}
                                                 <span class="muted">Pending...</span>
                                             {/if}
                                         </td>
+                                        <td class="route-cell">
+                                            {#if details}
+                                                <div class="route">
+                                                    <span class="from">{details.pickup_name || details.pickup_city || '-'}</span>
+                                                    <span class="arrow">→</span>
+                                                    <span class="to">{details.delivery_name || details.delivery_city || '-'}</span>
+                                                </div>
+                                            {:else}
+                                                <span class="muted">-</span>
+                                            {/if}
+                                        </td>
                                         <td>
-                                            <span class="state-badge" style="background-color: {getDeliveryStateColor(shipment.state)}">
-                                                {shipment.state}
+                                            {#if details?.product_type}
+                                                <span class="product-badge">{details.product_type}</span>
+                                            {:else}
+                                                <span class="muted">-</span>
+                                            {/if}
+                                        </td>
+                                        <td>
+                                            <span class="state-badge" style="background-color: {getDeliveryStateColor(shipment.status)}">
+                                                {shipment.status}
                                             </span>
                                         </td>
-                                        <td>{formatDate(shipment.created_at)}</td>
                                         <td>
-                                            {#if shipment.state === 'pending' || shipment.state === 'processing'}
+                                            {#if details?.status_date}
+                                                <div class="delivery-info">
+                                                    <span>{details.status_date} {details.status_time || ''}</span>
+                                                    {#if details.receiver}
+                                                        <span class="receiver">📝 {details.receiver}</span>
+                                                    {/if}
+                                                </div>
+                                            {:else}
+                                                <span class="muted">-</span>
+                                            {/if}
+                                        </td>
+                                        <td on:click|stopPropagation>
+                                            {#if shipment.status === 'pending' || shipment.status === 'processing'}
                                                 <button
                                                     class="action-btn cancel-btn"
                                                     on:click={() => cancelShipment(shipment.picking_id)}
@@ -281,6 +337,143 @@ function getDeliveryStateColor(state) {
                                             {/if}
                                         </td>
                                     </tr>
+                                    {#if expandedShipments.has(shipment.id) && details}
+                                        <tr class="details-row">
+                                            <td colspan="7">
+                                                <div class="shipment-details">
+                                                    <div class="details-grid">
+                                                        <div class="detail-section">
+                                                            <h4>📦 Pickup (Abholung)</h4>
+                                                            <div class="detail-item">
+                                                                <label>Company:</label>
+                                                                <span>{details.pickup_name || '-'}</span>
+                                                            </div>
+                                                            {#if details.pickup_contact}
+                                                            <div class="detail-item">
+                                                                <label>Contact:</label>
+                                                                <span>{details.pickup_contact}</span>
+                                                            </div>
+                                                            {/if}
+                                                            <div class="detail-item">
+                                                                <label>Address:</label>
+                                                                <span>{details.pickup_street || '-'}, {details.pickup_zip} {details.pickup_city}</span>
+                                                            </div>
+                                                            {#if details.pickup_phone && details.pickup_phone !== '+49 ()'}
+                                                            <div class="detail-item">
+                                                                <label>Phone:</label>
+                                                                <span>{details.pickup_phone}</span>
+                                                            </div>
+                                                            {/if}
+                                                            <div class="detail-item">
+                                                                <label>Date/Time:</label>
+                                                                <span>{details.pickup_date || '-'} {details.pickup_time || ''}</span>
+                                                            </div>
+                                                            {#if details.pickup_note}
+                                                            <div class="detail-item note">
+                                                                <label>Note:</label>
+                                                                <span>{details.pickup_note}</span>
+                                                            </div>
+                                                            {/if}
+                                                        </div>
+
+                                                        <div class="detail-section">
+                                                            <h4>🚚 Delivery (Zustellung)</h4>
+                                                            <div class="detail-item">
+                                                                <label>Company:</label>
+                                                                <span>{details.delivery_name || '-'}</span>
+                                                            </div>
+                                                            {#if details.delivery_contact}
+                                                            <div class="detail-item">
+                                                                <label>Contact:</label>
+                                                                <span>{details.delivery_contact}</span>
+                                                            </div>
+                                                            {/if}
+                                                            <div class="detail-item">
+                                                                <label>Address:</label>
+                                                                <span>{details.delivery_street || '-'}, {details.delivery_zip} {details.delivery_city}</span>
+                                                            </div>
+                                                            {#if details.delivery_phone && details.delivery_phone !== '+49 ()'}
+                                                            <div class="detail-item">
+                                                                <label>Phone:</label>
+                                                                <span>{details.delivery_phone}</span>
+                                                            </div>
+                                                            {/if}
+                                                            <div class="detail-item">
+                                                                <label>Date/Time:</label>
+                                                                <span>{details.delivery_date || '-'} {details.delivery_time || ''}</span>
+                                                            </div>
+                                                            {#if details.delivery_note}
+                                                            <div class="detail-item note">
+                                                                <label>Note:</label>
+                                                                <span>{details.delivery_note}</span>
+                                                            </div>
+                                                            {/if}
+                                                        </div>
+
+                                                        <div class="detail-section">
+                                                            <h4>📋 Package Info</h4>
+                                                            {#if details.description}
+                                                            <div class="detail-item">
+                                                                <label>Contents:</label>
+                                                                <span class="highlight">{details.description}</span>
+                                                            </div>
+                                                            {/if}
+                                                            {#if details.package_count}
+                                                            <div class="detail-item">
+                                                                <label>Packages:</label>
+                                                                <span>{details.package_count} pcs</span>
+                                                            </div>
+                                                            {/if}
+                                                            {#if details.weight}
+                                                            <div class="detail-item">
+                                                                <label>Weight:</label>
+                                                                <span>{details.weight} kg</span>
+                                                            </div>
+                                                            {/if}
+                                                            {#if details.dimensions}
+                                                            <div class="detail-item">
+                                                                <label>Dimensions:</label>
+                                                                <span>{details.dimensions} cm</span>
+                                                            </div>
+                                                            {/if}
+                                                            {#if details.value}
+                                                            <div class="detail-item">
+                                                                <label>Value:</label>
+                                                                <span class="value">{details.value.toLocaleString('de-DE')} EUR</span>
+                                                            </div>
+                                                            {/if}
+                                                        </div>
+
+                                                        <div class="detail-section">
+                                                            <h4>📊 Status</h4>
+                                                            <div class="detail-item">
+                                                                <label>OPAL Status:</label>
+                                                                <span class="status-value">{details.status || '-'}</span>
+                                                            </div>
+                                                            {#if details.status_date}
+                                                            <div class="detail-item">
+                                                                <label>Date/Time:</label>
+                                                                <span>{details.status_date} {details.status_time || ''}</span>
+                                                            </div>
+                                                            {/if}
+                                                            {#if details.receiver}
+                                                            <div class="detail-item">
+                                                                <label>Received by:</label>
+                                                                <span class="highlight">{details.receiver}</span>
+                                                            </div>
+                                                            {/if}
+                                                            {#if details.created_at}
+                                                            <div class="detail-item">
+                                                                <label>Created:</label>
+                                                                <span>{details.created_at} by {details.created_by || '-'}</span>
+                                                            </div>
+                                                            {/if}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {/if}
                                 {/each}
                             </tbody>
                         </table>
@@ -549,5 +742,160 @@ tbody tr:hover {
 .cancel-btn:hover {
     background: #dc3545;
     color: white;
+}
+
+/* Expandable rows */
+.shipment-row {
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.shipment-row:hover {
+    background: #2a2a2a;
+}
+
+.shipment-row.expanded {
+    background: #252525;
+    border-bottom: none;
+}
+
+.expand-cell {
+    width: 30px;
+    text-align: center;
+}
+
+.expand-icon {
+    color: #666;
+    font-size: 0.8rem;
+}
+
+.tracking-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.tracking-number {
+    font-family: monospace;
+    color: #4a69bd;
+    font-weight: 600;
+}
+
+.hwb-number {
+    font-family: monospace;
+    font-size: 0.75rem;
+    color: #888;
+}
+
+.route-cell .route {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.route .from {
+    color: #ffc107;
+    font-weight: 500;
+}
+
+.route .arrow {
+    color: #666;
+}
+
+.route .to {
+    color: #28a745;
+    font-weight: 500;
+}
+
+.product-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    background: #2a2a2a;
+    font-size: 0.8rem;
+    color: #aaa;
+}
+
+.delivery-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.receiver {
+    font-size: 0.8rem;
+    color: #28a745;
+}
+
+/* Details row */
+.details-row {
+    background: #1a1a1a;
+}
+
+.details-row td {
+    padding: 0;
+    border-bottom: 2px solid #333;
+}
+
+.shipment-details {
+    padding: 1.5rem;
+}
+
+.details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.detail-section {
+    background: #252525;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.detail-section h4 {
+    margin: 0 0 1rem 0;
+    color: #fff;
+    font-size: 0.95rem;
+    border-bottom: 1px solid #333;
+    padding-bottom: 0.5rem;
+}
+
+.detail-item {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.detail-item label {
+    color: #888;
+    min-width: 80px;
+    flex-shrink: 0;
+}
+
+.detail-item span {
+    color: #e0e0e0;
+}
+
+.detail-item .highlight {
+    color: #4a69bd;
+    font-weight: 600;
+}
+
+.detail-item .value {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.detail-item .status-value {
+    color: #28a745;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.detail-item.note span {
+    color: #ffc107;
+    font-style: italic;
 }
 </style>
