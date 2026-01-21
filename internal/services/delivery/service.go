@@ -404,71 +404,114 @@ func (s *Service) ImportOpalOrders(ctx context.Context) error {
 	log("Fetched %d orders from OPAL", len(orders))
 
 	// Process each order
+	created := 0
+	updated := 0
+	skipped := 0
+
 	for _, order := range orders {
 		// Skip orders without valid identifiers
 		if order.TrackingNumber == "" && order.HwbNumber == "" {
+			skipped++
 			continue
 		}
 
-		// Search for existing delivery by tracking number or HWB
-		var delivery models.StockPickingDelivery
+		// Build tracking number (prefer OCU, fallback to HWB)
+		trackingNum := order.TrackingNumber
+		if trackingNum == "" {
+			trackingNum = order.HwbNumber
+		}
 
+		// Build raw response JSON with all the scraped data
+		rawData := map[string]interface{}{
+			"ocu_number":       order.TrackingNumber,
+			"hwb_number":       order.HwbNumber,
+			"pickup_date":      order.PickupDate,
+			"pickup_time":      fmt.Sprintf("%s-%s", order.PickupTimeFrom, order.PickupTimeTo),
+			"pickup_name":      order.PickupName,
+			"pickup_city":      order.PickupCity,
+			"pickup_street":    order.PickupStreet,
+			"product_type":     order.ProductType,
+			"delivery_date":    order.DeliveryDate,
+			"delivery_time":    fmt.Sprintf("%s-%s", order.DeliveryTimeFrom, order.DeliveryTimeTo),
+			"delivery_name":    order.DeliveryName,
+			"delivery_city":    order.DeliveryCity,
+			"delivery_street":  order.DeliveryStreet,
+			"ref_number":       order.RefNumber,
+			"status":           order.Status,
+			"actual_delivered": order.ActualDeliveryDate,
+			"receiver":         order.ActualReceiver,
+		}
+		if order.PackageCount != nil {
+			rawData["package_count"] = *order.PackageCount
+		}
+		if order.Weight != nil {
+			rawData["weight"] = *order.Weight
+		}
+		rawJSON, _ := json.Marshal(rawData)
+
+		// Determine status - use OPAL status if available, otherwise pending
+		status := models.DeliveryStatusPending
+		if order.Status == "OK" {
+			status = models.DeliveryStatusDelivered
+		} else if order.Status == "AKTIV" {
+			status = models.DeliveryStatusShipped
+		} else if order.Status == "STORNO" {
+			status = models.DeliveryStatusCancelled
+		}
+
+		// Search for existing delivery by OCU or HWB tracking number
+		var delivery models.StockPickingDelivery
 		query := s.db.Where("tracking_number = ?", order.TrackingNumber)
 		if order.HwbNumber != "" {
 			query = query.Or("tracking_number = ?", order.HwbNumber)
 		}
-
 		result := query.First(&delivery)
 
 		if result.Error == nil {
 			// Order found - update status if changed
-			if delivery.Status != order.Status {
+			if delivery.Status != status && status != models.DeliveryStatusPending {
 				oldStatus := delivery.Status
-				delivery.Status = order.Status
+				delivery.Status = status
+				delivery.RawResponse = string(rawJSON)
 
 				if err := s.db.Save(&delivery).Error; err != nil {
 					log("Error updating delivery %d: %v", delivery.ID, err)
 					continue
 				}
 
-				// Create tracking entry
 				s.createTrackingEntry(delivery.ID,
-					fmt.Sprintf("Status updated from OPAL import: %s -> %s", oldStatus, order.Status),
-					order.Status)
+					fmt.Sprintf("Status updated from OPAL: %s -> %s (%s)",
+						oldStatus, status, order.ActualReceiver),
+					status)
 
-				log("Updated delivery %d: %s -> %s", delivery.ID, oldStatus, order.Status)
+				log("Updated: #%d %s -> %s", delivery.ID, oldStatus, status)
+				updated++
+			} else {
+				skipped++
 			}
 		} else {
-			// Order not found - this could be a new incoming shipment
-			log("New unknown shipment from OPAL: OCU=%s, HWB=%s, Status=%s",
-				order.TrackingNumber, order.HwbNumber, order.Status)
-
-			// Create a pending delivery record for unknown shipments
-			// This allows manual assignment later
+			// Order not found - create new record
 			newDelivery := models.StockPickingDelivery{
-				TrackingNumber: order.TrackingNumber,
-				Status:         models.DeliveryStatusPending,
-				RawResponse:    order.RawText,
-			}
-
-			// If we have HWB, use it as tracking number if OCU is empty
-			if order.HwbNumber != "" && order.TrackingNumber == "" {
-				newDelivery.TrackingNumber = order.HwbNumber
+				TrackingNumber: trackingNum,
+				Status:         status,
+				RawResponse:    string(rawJSON),
 			}
 
 			if err := s.db.Create(&newDelivery).Error; err != nil {
-				log("Error creating delivery record: %v", err)
+				log("Error creating delivery: %v", err)
 				continue
 			}
 
 			s.createTrackingEntry(newDelivery.ID,
-				fmt.Sprintf("Created from OPAL import (unknown source)"),
-				models.DeliveryStatusPending)
+				fmt.Sprintf("Imported from OPAL: %s -> %s", order.PickupName, order.DeliveryName),
+				status)
 
-			log("Created new delivery record %d for unknown shipment", newDelivery.ID)
+			log("Created: #%d OCU=%s HWB=%s Status=%s",
+				newDelivery.ID, order.TrackingNumber, order.HwbNumber, status)
+			created++
 		}
 	}
 
-	log("OPAL import completed successfully")
+	log("OPAL import completed: %d created, %d updated, %d skipped", created, updated, skipped)
 	return nil
 }

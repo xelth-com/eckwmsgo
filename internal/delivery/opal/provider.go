@@ -121,10 +121,14 @@ func (p *Provider) CreateShipment(ctx context.Context, req *delivery.DeliveryReq
 		"OPAL_PASSWORD="+p.config.Password,
 	)
 
-	// Execute command and capture output
-	output, err := cmd.CombinedOutput()
+	// Execute command and capture output (STDOUT only)
+	output, err := cmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("script execution failed: %w\nOutput: %s", err, string(output))
+		// If the command failed, try to get stderr from the error
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return nil, fmt.Errorf("script execution failed: %w\nStderr: %s", err, string(exitErr.Stderr))
+		}
+		return nil, fmt.Errorf("script execution failed: %w", err)
 	}
 
 	// Parse JSON response from script
@@ -160,13 +164,35 @@ func (p *Provider) CreateShipment(ctx context.Context, req *delivery.DeliveryReq
 
 // ScrapedOrder represents the JSON structure returned by the Node.js scraper
 type ScrapedOrder struct {
-	TrackingNumber string `json:"tracking_number"` // OCU number
-	HwbNumber      string `json:"hwb_number"`      // GO Barcode
-	OrderNumber    string `json:"order_number"`    // Reference/Order number
-	Status         string `json:"status"`
-	Date           string `json:"date"`
-	Sender         string `json:"sender"`
-	RawText        string `json:"raw_text"`
+	TrackingNumber string `json:"tracking_number"` // OCU number (e.g., "OCU-998-511590")
+	HwbNumber      string `json:"hwb_number"`      // GO Barcode (e.g., "041940529157")
+
+	// Pickup info
+	PickupDate     string `json:"pickup_date"`
+	PickupTimeFrom string `json:"pickup_time_from"`
+	PickupTimeTo   string `json:"pickup_time_to"`
+	PickupName     string `json:"pickup_name"`
+	PickupCity     string `json:"pickup_city"`
+	PickupStreet   string `json:"pickup_street"`
+
+	// Product info
+	ProductType  string   `json:"product_type"`
+	PackageCount *int     `json:"package_count"`
+	Weight       *float64 `json:"weight"`
+
+	// Delivery info
+	DeliveryDate     string `json:"delivery_date"`
+	DeliveryTimeFrom string `json:"delivery_time_from"`
+	DeliveryTimeTo   string `json:"delivery_time_to"`
+	DeliveryName     string `json:"delivery_name"`
+	DeliveryCity     string `json:"delivery_city"`
+	DeliveryStreet   string `json:"delivery_street"`
+	RefNumber        string `json:"ref_number"`
+
+	// Status
+	Status               string `json:"status"`                 // OK, AKTIV, STORNO, etc.
+	ActualDeliveryDate   string `json:"actual_delivery_date"`   // When actually delivered
+	ActualReceiver       string `json:"actual_receiver"`        // Who received it
 }
 
 // FetchRecentOrders executes the Node.js scraper to get recent orders from OPAL
@@ -200,10 +226,14 @@ func (p *Provider) FetchRecentOrders(ctx context.Context) ([]ScrapedOrder, error
 		"OPAL_PASSWORD="+p.config.Password,
 	)
 
-	// Execute command and capture output
-	output, err := cmd.CombinedOutput()
+	// Execute command and capture output (STDOUT only)
+	output, err := cmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("scraper execution failed: %w\nOutput: %s", err, string(output))
+		// If the command failed, try to get stderr from the error
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return nil, fmt.Errorf("scraper execution failed: %w\nStderr: %s", err, string(exitErr.Stderr))
+		}
+		return nil, fmt.Errorf("scraper execution failed: %w", err)
 	}
 
 	// Parse JSON response from script

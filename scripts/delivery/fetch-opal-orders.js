@@ -6,6 +6,8 @@
  * This script uses Playwright to scrape the order list from
  * the OPAL Kurier web system and outputs JSON to stdout.
  *
+ * Based on the working implementation from inBody service-center-server.
+ *
  * Usage:
  *   node fetch-opal-orders.js [--json-output] [--verbose] [--headless]
  *
@@ -28,10 +30,9 @@ const HEADLESS = process.argv.includes('--headless');
 const JSON_OUTPUT = process.argv.includes('--json-output');
 
 /**
- * Logger utility
+ * Logger utility - logs to stderr to keep stdout clean for JSON
  */
 function log(message, level = 'info') {
-    // Only log to stderr so stdout stays clean for JSON output
     const timestamp = new Date().toISOString();
     const prefix = {
         'info': 'i',
@@ -85,6 +86,13 @@ async function performLogin(page) {
         throw new Error('OPAL_USERNAME and OPAL_PASSWORD must be set');
     }
 
+    // Wait for the login form to be ready
+    try {
+        await page.waitForSelector('#opal-login-form, input[name="username"], input[type="password"]', { timeout: 10000 });
+    } catch (e) {
+        log('Login form selector timeout, trying generic approach', 'debug');
+    }
+
     // Find and fill username field
     const usernameSelectors = [
         'input[name="username"]',
@@ -100,7 +108,7 @@ async function performLogin(page) {
             const field = await page.locator(selector).first();
             if (await field.count() > 0 && await field.isVisible()) {
                 await field.fill(OPAL_USERNAME);
-                log(`Username filled`, 'debug');
+                log(`Username filled using ${selector}`, 'debug');
                 usernameFilled = true;
                 break;
             }
@@ -256,7 +264,7 @@ async function navigateToAuftragsliste(page) {
         throw new Error('Could not find Auftragsliste link');
     }
 
-    // Wait for table to load
+    // Wait for order list to load
     await page.waitForTimeout(3000);
 
     log('Successfully navigated to Auftragsliste', 'info');
@@ -264,6 +272,7 @@ async function navigateToAuftragsliste(page) {
 
 /**
  * Parse order table from the main frame
+ * Based on the working implementation from inBody service-center-server
  */
 async function parseOrderTable(page) {
     log('Parsing order table...', 'info');
@@ -288,88 +297,168 @@ async function parseOrderTable(page) {
         throw new Error('Could not find main content frame (opmain)');
     }
 
-    // Wait for table to be present
+    // Wait for order list body to be present
     try {
-        await mainFrame.waitForSelector('table, #order-list-body, tr', { timeout: 30000 });
+        await mainFrame.waitForSelector('#order-list-body, table', { timeout: 30000 });
     } catch (e) {
-        log('No table found in main frame', 'warn');
+        log('Order list body not found', 'warn');
         return [];
     }
 
-    // Parse orders from the page
+    // Parse orders from the page using the correct OPAL HTML structure
     const orders = await mainFrame.evaluate(() => {
-        const results = [];
+        const orderRows = [];
 
-        // Try to find table rows - adjust selectors based on actual OPAL structure
-        const rows = Array.from(document.querySelectorAll('tr[onmouseover], tr[data-id], tr.order-row, table tr'));
-
-        for (const row of rows) {
-            const text = row.innerText || '';
-            const rowText = text.trim();
-
-            if (!rowText || rowText.length < 5) continue;
-
-            // Skip header rows
-            if (rowText.match(/^(Sendungsnummer|Auftrag|Datum|Status|Name|Empfänger)/i)) continue;
-
-            // Extract tracking numbers using regex patterns
-            // OCU pattern: OCU-XXX-XXXXXX
-            const ocuMatch = rowText.match(/OCU[-\s]?\d{3}[-\s]?\d{6}/i);
-            // HWB pattern: 0419XXXXXXXX (GO barcode)
-            const hwbMatch = rowText.match(/0419\d{8}/);
-
-            // Extract order/reference number
-            const refMatch = rowText.match(/(?:Auftrag|Ref)[:\s]*([A-Z0-9-]+)/i);
-            const orderMatch = refMatch ? refMatch[1] : '';
-
-            // Try to extract date
-            const dateMatch = rowText.match(/(\d{2}[\.\/]\d{2}[\.\/]\d{2,4})/);
-            const date = dateMatch ? dateMatch[1] : '';
-
-            // --- IMPROVED STATUS EXTRACTION ---
-            let status = 'Unknown';
-
-            // Strategy 1: Look for styled elements (classic OPAL)
-            const statusElement = row.querySelector('[style*="background"], [class*="status"]');
-            if (statusElement) {
-                const sText = statusElement.innerText.trim();
-                if (sText && sText.length > 2) status = sText;
-            }
-
-            // Strategy 2: Fallback to Regex on row text (e.g., "OK 15.01.26-07:56 BECKER")
-            if (status === 'Unknown') {
-                const statusRegex = /(OK|AKTIV|STORNIERT|OFFEN|ABGESCHLOSSEN|FEHLER)\s+\d{2}\.\d{2}\.\d{2}/i;
-                const match = rowText.match(statusRegex);
-                if (match) {
-                    status = match[1]; // e.g. "OK"
-                }
-            }
-
-            // Strategy 3: Heuristic keywords at start of line if no tracking number there
-            if (status === 'Unknown') {
-                if (rowText.includes('OK ')) status = 'OK';
-                else if (rowText.includes('AKTIV')) status = 'AKTIV';
-            }
-
-            // Extract sender/recipient name if present
-            let senderName = '';
-            // (Skipping complex name extraction for now to avoid false positives)
-
-            // Skip if no valid identifiers found
-            if (!ocuMatch && !hwbMatch && !orderMatch) continue;
-
-            results.push({
-                tracking_number: ocuMatch ? ocuMatch[0].replace(/[-\s]/g, '-') : '',
-                hwb_number: hwbMatch ? hwbMatch[0] : '',
-                order_number: orderMatch,
-                status: status,
-                date: date,
-                sender: senderName,
-                raw_text: rowText.substring(0, 200)
-            });
+        // Find the order list container
+        const orderListBody = document.querySelector('#order-list-body');
+        if (!orderListBody) {
+            // Fallback: try to find any table
+            const tables = document.querySelectorAll('table');
+            if (tables.length === 0) return orderRows;
         }
 
-        return results;
+        // Each order is a <tr> with onmouseover attribute containing a nested table
+        // The nested table has 2 rows: pickup info (row 1) and delivery info (row 2)
+        const rows = document.querySelectorAll('tr[onmouseover]');
+
+        rows.forEach(row => {
+            try {
+                // Find the nested table inside this row
+                const nestedTable = row.querySelector('table');
+                if (!nestedTable) return;
+
+                // Get the 2 data rows from nested table (pickup and delivery)
+                const dataRows = nestedTable.querySelectorAll('tr');
+                if (dataRows.length < 2) return;
+
+                const firstRow = dataRows[0];  // Pickup info
+                const secondRow = dataRows[1]; // Delivery info
+
+                // Extract cells from first row (pickup info)
+                const firstCells = firstRow.querySelectorAll('td');
+                // Extract cells from second row (delivery info)
+                const secondCells = secondRow.querySelectorAll('td');
+
+                if (firstCells.length < 8) return;
+
+                // Column mapping based on actual OPAL HTML structure:
+                // First row (pickup):
+                // [0] = checkbox (rowspan=2)
+                // [1] = OCU tracking number (e.g., "OCU-998-511590")
+                // [2] = pickup date
+                // [3] = pickup time from
+                // [4] = pickup time to
+                // [5] = pickup company name
+                // [6] = pickup city (e.g., "DE-65760 Eschborn")
+                // [7] = pickup street
+                // [8] = product type (e.g., "Overnight", "X-Change / Swap")
+                // [9] = NN field
+                // [10] = + Adr field
+                // [11] = package count and weight (e.g., "1 Pks. 43,50 kg")
+                //
+                // Second row (delivery):
+                // [0] = HWB number / GO barcode (e.g., "041940529157")
+                // [1] = delivery date
+                // [2] = delivery time from
+                // [3] = delivery time to
+                // [4] = delivery company name
+                // [5] = delivery city
+                // [6] = delivery street
+                // [7] = Ref field
+                // [8-10] = Status (e.g., "OK 15.01.26-07:56 BECKER")
+
+                const trackingNumber = firstCells[1]?.textContent?.trim() || '';
+                const hwbNumber = secondCells[0]?.textContent?.trim() || '';
+
+                // Skip if no valid tracking numbers
+                if (!trackingNumber && !hwbNumber) return;
+
+                // Parse package info (e.g., "1 Pks. 43,50 kg")
+                const packageInfo = firstCells[11]?.textContent?.trim() || '';
+                let packageCount = null;
+                let weight = null;
+
+                if (packageInfo) {
+                    const pkgMatch = packageInfo.match(/(\d+)\s*Pks/);
+                    const weightMatch = packageInfo.match(/(\d+[,.]?\d*)\s*kg/);
+                    if (pkgMatch) packageCount = parseInt(pkgMatch[1]);
+                    if (weightMatch) weight = parseFloat(weightMatch[1].replace(',', '.'));
+                }
+
+                // Parse actual delivery status from cells [8-10]
+                // Format: "OK 30.10.25-09:48 KAUFMANN" in a colored div
+                let status = '';
+                let actualDeliveryDate = '';
+                let actualDeliveryReceiver = '';
+
+                // Check cells 8, 9, 10 for status div
+                for (let i = 8; i <= 10 && i < secondCells.length; i++) {
+                    const statusDiv = secondCells[i]?.querySelector('div[style*="background-color"]');
+                    if (statusDiv) {
+                        const statusText = statusDiv.textContent.trim();
+                        status = statusText;
+
+                        // Parse status text: "OK 30.10.25-09:48 KAUFMANN"
+                        const statusMatch = statusText.match(/^([A-Z]+)\s+(\d{2}\.\d{2}\.\d{2})-(\d{2}:\d{2})\s+(.+)$/);
+                        if (statusMatch) {
+                            status = statusMatch[1]; // OK, STORNO, AKTIV, etc.
+                            actualDeliveryDate = `${statusMatch[2]} ${statusMatch[3]}`; // 30.10.25 09:48
+                            actualDeliveryReceiver = statusMatch[4]; // KAUFMANN
+                        }
+                        break;
+                    }
+                }
+
+                // If no status div found, check for text directly
+                if (!status) {
+                    for (let i = 8; i <= 10 && i < secondCells.length; i++) {
+                        const cellText = secondCells[i]?.textContent?.trim() || '';
+                        if (cellText && cellText.match(/^(OK|AKTIV|STORNO|OFFEN)/)) {
+                            const statusMatch = cellText.match(/^([A-Z]+)\s+(\d{2}\.\d{2}\.\d{2})-?(\d{2}:\d{2})?\s*(.*)$/);
+                            if (statusMatch) {
+                                status = statusMatch[1];
+                                if (statusMatch[2]) {
+                                    actualDeliveryDate = statusMatch[2];
+                                    if (statusMatch[3]) actualDeliveryDate += ' ' + statusMatch[3];
+                                }
+                                if (statusMatch[4]) actualDeliveryReceiver = statusMatch[4];
+                            } else {
+                                status = cellText;
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                orderRows.push({
+                    tracking_number: trackingNumber,
+                    hwb_number: hwbNumber,
+                    pickup_date: firstCells[2]?.textContent?.trim() || '',
+                    pickup_time_from: firstCells[3]?.textContent?.trim() || '',
+                    pickup_time_to: firstCells[4]?.textContent?.trim() || '',
+                    pickup_name: firstCells[5]?.textContent?.trim() || '',
+                    pickup_city: firstCells[6]?.textContent?.trim() || '',
+                    pickup_street: firstCells[7]?.textContent?.trim() || '',
+                    product_type: firstCells[8]?.textContent?.trim() || '',
+                    package_count: packageCount,
+                    weight: weight,
+                    delivery_date: secondCells[1]?.textContent?.trim() || '',
+                    delivery_time_from: secondCells[2]?.textContent?.trim() || '',
+                    delivery_time_to: secondCells[3]?.textContent?.trim() || '',
+                    delivery_name: secondCells[4]?.textContent?.trim() || '',
+                    delivery_city: secondCells[5]?.textContent?.trim() || '',
+                    delivery_street: secondCells[6]?.textContent?.trim() || '',
+                    ref_number: secondCells[7]?.textContent?.trim() || '',
+                    status: status,
+                    actual_delivery_date: actualDeliveryDate,
+                    actual_receiver: actualDeliveryReceiver
+                });
+            } catch (error) {
+                console.error('Error parsing order row:', error);
+            }
+        });
+
+        return orderRows;
     });
 
     log(`Found ${orders.length} orders`, 'info');

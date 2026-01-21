@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -123,9 +124,26 @@ func main() {
 	// --- DELIVERY SYSTEM INIT ---
 	log.Println("📦 Initializing Delivery System...")
 
+	// Get absolute path to scripts directory
+	// Try to find scripts relative to executable first, then fall back to working directory
+	opalScriptPath := "./scripts/delivery/create-opal-order.js"
+	if exePath, err := os.Executable(); err == nil {
+		exeDir := filepath.Dir(exePath)
+		candidatePath := filepath.Join(exeDir, "scripts", "delivery", "create-opal-order.js")
+		if _, statErr := os.Stat(candidatePath); statErr == nil {
+			opalScriptPath = candidatePath
+			log.Printf("📦 Using script path relative to executable: %s", opalScriptPath)
+		}
+	}
+	// Also check if .env specifies a custom path
+	if envPath := os.Getenv("OPAL_SCRIPT_PATH"); envPath != "" {
+		opalScriptPath = envPath
+		log.Printf("📦 Using script path from OPAL_SCRIPT_PATH: %s", opalScriptPath)
+	}
+
 	// Create OPAL provider
 	opalProvider, err := opal.NewProvider(opal.Config{
-		ScriptPath: "./scripts/delivery/create-opal-order.js",
+		ScriptPath: opalScriptPath,
 		NodePath:   "node",
 		Username:   os.Getenv("OPAL_USERNAME"),
 		Password:   os.Getenv("OPAL_PASSWORD"),
