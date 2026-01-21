@@ -1,6 +1,7 @@
 <script>
     import { authStore } from '$lib/stores/authStore';
     import { goto } from '$app/navigation';
+    import { base } from '$app/paths';
 
     let email = '';
     let password = '';
@@ -19,7 +20,7 @@
         const result = await authStore.login(email, password);
 
         if (result.success) {
-            goto('/dashboard');
+            goto(`${base}/dashboard`);
         } else {
             error = result.error || 'Login failed';
         }

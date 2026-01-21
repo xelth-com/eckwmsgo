@@ -62,3 +62,11 @@ function createAuthStore() {
 }
 
 export const authStore = createAuthStore();
+
+// Auto-initialize on module load (browser only)
+if (browser) {
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+        authStore.init();
+    }
+}

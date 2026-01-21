@@ -107,10 +107,10 @@ func NewRouter(db *database.DB) *Router {
 		api.HandleFunc("/scan", r.handleScan).Methods("POST")
 	}
 
-	// WebSocket endpoint
+	// WebSocket endpoint (needs GET method for upgrade handshake)
 	handle("/ws", func(w http.ResponseWriter, req *http.Request) {
 		websocket.ServeWs(hub, w, req)
-	})
+	}, "GET")
 
 	// --- Static Files (Svelte Frontend) ---
 	assets, err := web.GetFileSystem()
@@ -197,9 +197,19 @@ func NewRouter(db *database.DB) *Router {
 		originalPath := req.URL.Path
 		path := originalPath
 
-		// Strip prefix for static file lookup (case insensitive)
+		// If prefix is configured, redirect non-prefixed paths to prefixed version
 		if urlPrefix != "" {
 			urlPrefixUpper := strings.ToUpper(urlPrefix)
+			hasPrefix := strings.HasPrefix(originalPath, urlPrefix) || strings.HasPrefix(originalPath, urlPrefixUpper)
+
+			if !hasPrefix {
+				// Redirect to prefixed path (use uppercase for user-friendly URLs)
+				redirectPath := urlPrefixUpper + originalPath
+				http.Redirect(w, req, redirectPath, http.StatusFound)
+				return
+			}
+
+			// Strip prefix for static file lookup (case insensitive)
 			if strings.HasPrefix(originalPath, urlPrefix) {
 				path = strings.TrimPrefix(originalPath, urlPrefix)
 			} else if strings.HasPrefix(originalPath, urlPrefixUpper) {
