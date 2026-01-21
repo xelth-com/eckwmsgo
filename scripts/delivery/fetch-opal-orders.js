@@ -282,7 +282,8 @@ function parseDetailPage(text) {
             if (match) order.tracking_number = match[1];
         }
         if (line.includes('HWB') && !order.hwb_number) {
-            const match = line.match(/HWB\s+(\d{12})/);
+            // HWB can be 12 digits OR SendungsNr format (OCU-998-XXXXXX)
+            const match = line.match(/HWB\s+(\d{12}|OCU-[\d-]+)/);
             if (match) order.hwb_number = match[1];
         }
         if (line.includes('Auftragsart')) {
@@ -315,7 +316,8 @@ function parseDetailPage(text) {
             if (line.startsWith('Straße/Hs')) order.pickup_street = line.replace('Straße/Hs', '').trim();
             if (line.startsWith('LKZ-Land')) {
                 const addr = line.replace('LKZ-Land', '').trim();
-                const match = addr.match(/([A-Z]{2})-(\d{5})\s+(.+)/);
+                // Support 4-5 digit ZIP codes (AT/CH have 4, DE has 5)
+                const match = addr.match(/([A-Z]{2})-(\d{4,5})\s+(.+)/);
                 if (match) {
                     order.pickup_country = match[1];
                     order.pickup_zip = match[2];
@@ -340,7 +342,8 @@ function parseDetailPage(text) {
             if (line.startsWith('Straße/Hs')) order.delivery_street = line.replace('Straße/Hs', '').trim();
             if (line.startsWith('LKZ-Land')) {
                 const addr = line.replace('LKZ-Land', '').trim();
-                const match = addr.match(/([A-Z]{2})-(\d{5})\s+(.+)/);
+                // Support 4-5 digit ZIP codes (AT/CH have 4, DE has 5)
+                const match = addr.match(/([A-Z]{2})-(\d{4,5})\s+(.+)/);
                 if (match) {
                     order.delivery_country = match[1];
                     order.delivery_zip = match[2];
@@ -410,7 +413,9 @@ function parseDetailPage(text) {
     }
 
     // Parse status history
-    const statusMatch = text.match(/(\d{12})\s+(\d{2}\.\d{2}\.\d{2})\s+(\d{2}:\d{2})\s+(Zugestellt|Abgeholt|Storniert|AKTIV)\s*(\S*)/);
+    // Status can be: Zugestellt, Abgeholt, Storniert, AKTIV, geliefert (older orders)
+    // HWB can be 12 digits OR SendungsNr format (OCU-998-XXXXXX)
+    const statusMatch = text.match(/(\d{12}|OCU-[\d-]+)\s+(\d{2}\.\d{2}\.\d{2})\s+(\d{2}:\d{2})\s+(Zugestellt|Abgeholt|Storniert|AKTIV|geliefert)\s*(\S*)/i);
     if (statusMatch) {
         order.status = statusMatch[4];
         order.status_date = statusMatch[2];
@@ -491,14 +496,24 @@ async function parseOrdersFromDetailPages(page, mainFrame, limit) {
             continue;
         }
 
-        await page.waitForTimeout(1500);
+        // Wait for detail page to load - look for key indicators
+        try {
+            await mainFrame.waitForFunction(() => {
+                const text = document.body.innerText;
+                return text.includes('SendungsNr') && text.includes('zur Liste zurück');
+            }, { timeout: 10000 });
+        } catch (e) {
+            log(`Detail page load timeout for row ${currentRow}`, 'warn');
+            currentRow++;
+            continue;
+        }
 
         // Parse detail page
         const detailText = await mainFrame.evaluate(() => {
             return document.body.innerText;
         });
 
-        // Check if we're on detail page
+        // Check if we're on detail page (double-check after wait)
         if (!detailText.includes('zur Liste zurück')) {
             log('Not on detail page, retrying...', 'warn');
             currentRow++;
@@ -510,6 +525,17 @@ async function parseOrdersFromDetailPages(page, mainFrame, limit) {
         if (order.tracking_number || order.hwb_number) {
             orders.push(order);
             log(`Parsed: ${order.tracking_number || order.hwb_number} - ${order.delivery_name} - ${order.status}`, 'info');
+
+            // Log warning if key fields are missing
+            if (!order.delivery_name && !order.delivery_zip) {
+                log(`WARNING: Missing delivery address data for ${order.tracking_number}`, 'warn');
+                log(`Raw text preview: ${detailText.substring(0, 500)}...`, 'debug');
+            }
+            if (!order.pickup_name && !order.pickup_zip) {
+                log(`WARNING: Missing pickup address data for ${order.tracking_number}`, 'warn');
+            }
+        } else {
+            log(`Failed to parse order at row ${currentRow}. Raw text: ${detailText.substring(0, 300)}...`, 'warn');
         }
 
         // Go back to list
@@ -529,7 +555,16 @@ async function parseOrdersFromDetailPages(page, mainFrame, limit) {
             break;
         }
 
-        await page.waitForTimeout(1500);
+        // Wait for list to reload
+        try {
+            await mainFrame.waitForFunction(() => {
+                const text = document.body.innerText;
+                return text.includes('Datensätzen') && !text.includes('SendungsNr');
+            }, { timeout: 10000 });
+        } catch (e) {
+            log('List reload timeout, using fallback wait', 'warn');
+            await page.waitForTimeout(2000);
+        }
         currentRow++;
     }
 
