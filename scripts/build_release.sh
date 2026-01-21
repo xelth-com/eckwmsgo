@@ -1,18 +1,31 @@
 #!/bin/bash
-set -e # Exit on error
+# eckWMS Multi-Arch Build Script
+set -e
 
-echo "🚀 Starting eckWMS Release Build..."
+OS=${1:-$(go env GOOS)}
+ARCH=${2:-$(go env GOARCH)}
+OUTPUT="eckwms"
 
-# 1. Build Frontend
+if [ "$OS" == "windows" ]; then
+    OUTPUT="eckwms.exe"
+fi
+
+echo "🚀 Starting Build for $OS/$ARCH..."
+
+# 1. Build Frontend (Critical: must be done before Go build for embed)
 echo "📦 Building Frontend (SvelteKit)..."
 cd web
-npm install
-npm run build
+# Set BASE_PATH from .env if available, or default to /E
+PREFIX=$(grep HTTP_PATH_PREFIX ../.env | cut -d '=' -f2)
+BASE_PATH=${PREFIX:-/E} npm run build
 cd ..
 
 # 2. Build Backend
-echo "🔨 Building Backend (Go)..."
-go build -o eckwms.exe cmd/api/main.go
+echo "🔨 Compiling Go binary..."
+CGO_ENABLED=0 GOOS=$OS GOARCH=$ARCH go build -ldflags="-s -w" -o $OUTPUT ./cmd/api
 
-echo "✅ Build Complete: eckwms.exe"
-echo "   Run with: ./eckwms.exe"
+echo "✅ Build Complete: $OUTPUT ($OS/$ARCH)"
+if [ "$OS" == "linux" ] && [ "$ARCH" == "arm64" ]; then
+    mv $OUTPUT eckwms-linux-arm64
+    echo "📦 Saved as eckwms-linux-arm64"
+fi

@@ -97,7 +97,14 @@ func Load() (*Config, error) {
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
-		return nil, fmt.Errorf("JWT_SECRET is required")
+		jwtSecret = "dev_default_secret_please_change_in_production"
+		fmt.Println("⚠️  WARNING: JWT_SECRET not set, using default dev secret")
+	}
+
+	encKey := os.Getenv("ENC_KEY")
+	if encKey == "" {
+		encKey = "dev_default_enc_key_32_chars_long_exactly"
+		fmt.Println("⚠️  WARNING: ENC_KEY not set, using default dev key")
 	}
 
 	pathPrefix := os.Getenv("HTTP_PATH_PREFIX")
@@ -114,7 +121,7 @@ func Load() (*Config, error) {
 		Port:       getEnv("PORT", "3210"),
 		PathPrefix: pathPrefix,
 		JWTSecret:  jwtSecret,
-		EncKey:     os.Getenv("ENC_KEY"),
+		EncKey:     encKey,
 
 		// Mesh Configuration
 		InstanceID:     getEnv("INSTANCE_ID", "unknown_instance"),
