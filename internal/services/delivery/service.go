@@ -9,6 +9,7 @@ import (
 	"github.com/xelth-com/eckwmsgo/internal/config"
 	"github.com/xelth-com/eckwmsgo/internal/database"
 	"github.com/xelth-com/eckwmsgo/internal/delivery"
+	"github.com/xelth-com/eckwmsgo/internal/delivery/dhl"
 	"github.com/xelth-com/eckwmsgo/internal/delivery/opal"
 	"github.com/xelth-com/eckwmsgo/internal/models"
 )
@@ -310,7 +311,8 @@ func (s *Service) ListShipments(state string, limit int) ([]models.StockPickingD
 		query = query.Where("status = ?", state)
 	}
 
-	if err := query.Order("created_at DESC").Limit(limit).Find(&shipments).Error; err != nil {
+	// Sort by last_activity_at (most recent first), fall back to created_at
+	if err := query.Order("COALESCE(last_activity_at, created_at) DESC").Limit(limit).Find(&shipments).Error; err != nil {
 		return nil, err
 	}
 
@@ -472,6 +474,32 @@ func (s *Service) ImportOpalOrders(ctx context.Context) error {
 		}
 		rawJSON, _ := json.Marshal(rawData)
 
+		// Parse status date for LastActivityAt (format: "04.11.25 09:03" or "04.11.2025")
+		var lastActivity *time.Time
+		if order.StatusDate != "" {
+			dateStr := order.StatusDate
+			if order.StatusTime != "" {
+				dateStr += " " + order.StatusTime
+			}
+			// Try various formats
+			formats := []string{
+				"02.01.06 15:04",   // 04.11.25 09:03
+				"02.01.2006 15:04", // 04.11.2025 09:03
+				"02.01.06",         // 04.11.25
+				"02.01.2006",       // 04.11.2025
+			}
+			for _, format := range formats {
+				if t, err := time.Parse(format, dateStr); err == nil {
+					// Fix year if 2-digit (06 -> 2006)
+					if t.Year() < 100 {
+						t = t.AddDate(2000, 0, 0)
+					}
+					lastActivity = &t
+					break
+				}
+			}
+		}
+
 		// Determine status - use OPAL status if available, otherwise pending
 		status := models.DeliveryStatusPending
 		if order.Status == "Zugestellt" || order.Status == "ausgeliefert" || order.Status == "geliefert" {
@@ -498,33 +526,36 @@ func (s *Service) ImportOpalOrders(ctx context.Context) error {
 		result := query.First(&delivery)
 
 		if result.Error == nil {
-			// Order found - update status if changed
-			if delivery.Status != status && status != models.DeliveryStatusPending {
-				oldStatus := delivery.Status
+			// Order found - always update with latest data
+			oldStatus := delivery.Status
+			if status != models.DeliveryStatusPending {
 				delivery.Status = status
-				delivery.RawResponse = string(rawJSON)
+			}
+			delivery.RawResponse = string(rawJSON)
+			if lastActivity != nil {
+				delivery.LastActivityAt = lastActivity
+			}
 
-				if err := s.db.Save(&delivery).Error; err != nil {
-					log("Error updating delivery %d: %v", delivery.ID, err)
-					continue
-				}
+			if err := s.db.Save(&delivery).Error; err != nil {
+				log("Error updating delivery %d: %v", delivery.ID, err)
+				continue
+			}
 
+			if oldStatus != delivery.Status {
 				s.createTrackingEntry(delivery.ID,
 					fmt.Sprintf("Status updated from OPAL: %s -> %s (%s)",
 						oldStatus, status, order.Receiver),
 					status)
-
 				log("Updated: #%d %s -> %s", delivery.ID, oldStatus, status)
-				updated++
-			} else {
-				skipped++
 			}
+			updated++
 		} else {
 			// Order not found - create new record
 			newDelivery := models.StockPickingDelivery{
 				TrackingNumber: trackingNum,
 				Status:         status,
 				RawResponse:    string(rawJSON),
+				LastActivityAt: lastActivity,
 			}
 
 			if err := s.db.Create(&newDelivery).Error; err != nil {
@@ -543,5 +574,138 @@ func (s *Service) ImportOpalOrders(ctx context.Context) error {
 	}
 
 	log("OPAL import completed: %d created, %d updated, %d skipped", created, updated, skipped)
+	return nil
+}
+
+// ImportDhlOrders fetches orders from DHL and updates the database
+func (s *Service) ImportDhlOrders(ctx context.Context) error {
+	log := func(format string, args ...interface{}) {
+		fmt.Printf("[DHL Import] "+format+"\n", args...)
+	}
+
+	log("Starting DHL order import...")
+
+	// Get the DHL provider from registry
+	providerInt, err := s.registry.Get("dhl")
+	if err != nil {
+		return fmt.Errorf("DHL provider not registered: %w", err)
+	}
+
+	// Type assert to get access to FetchRecentShipments
+	dhlProvider, ok := providerInt.(*dhl.Provider)
+	if !ok {
+		return fmt.Errorf("provider is not DHL")
+	}
+
+	// Fetch shipments from DHL (last 14 days)
+	shipments, err := dhlProvider.FetchRecentShipments(ctx, 14)
+	if err != nil {
+		return fmt.Errorf("failed to fetch DHL shipments: %w", err)
+	}
+
+	log("Fetched %d shipments from DHL", len(shipments))
+
+	// Process each shipment
+	created := 0
+	updated := 0
+	skipped := 0
+
+	for _, shipment := range shipments {
+		// Skip orders without valid tracking number
+		if shipment.TrackingNumber == "" {
+			skipped++
+			continue
+		}
+
+		// Build raw response JSON with all the scraped data
+		rawData := map[string]interface{}{
+			"tracking_number":      shipment.TrackingNumber,
+			"reference":            shipment.Reference,
+			"international_number": shipment.InternationalNum,
+			"billing_number":       shipment.BillingNumber,
+			"recipient_name":       shipment.RecipientName,
+			"recipient_street":     shipment.RecipientStreet,
+			"recipient_zip":        shipment.RecipientZip,
+			"recipient_city":       shipment.RecipientCity,
+			"recipient_country":    shipment.RecipientCountry,
+			"status":               shipment.Status,
+			"status_date":          shipment.StatusDate,
+			"note":                 shipment.Note,
+			"delivered_to_name":    shipment.DeliveredToName,
+			"delivered_to_street":  shipment.DeliveredToStreet,
+			"delivered_to_zip":     shipment.DeliveredToZip,
+			"delivered_to_city":    shipment.DeliveredToCity,
+			"delivered_to_country": shipment.DeliveredToCountry,
+			"product":              shipment.Product,
+			"services":             shipment.Services,
+			"provider":             "dhl",
+		}
+		rawJSON, _ := json.Marshal(rawData)
+
+		// Map DHL status to internal status
+		status := dhl.MapStatus(shipment.Status)
+
+		// Parse status_date for LastActivityAt
+		var lastActivity *time.Time
+		if shipment.StatusDate != "" {
+			// Try parsing ISO format (2026-01-22T11:31:19)
+			if t, err := time.Parse("2006-01-02T15:04:05", shipment.StatusDate); err == nil {
+				lastActivity = &t
+			} else if t, err := time.Parse("2006-01-02T15:04", shipment.StatusDate); err == nil {
+				lastActivity = &t
+			}
+		}
+
+		// Search for existing delivery by tracking number
+		var delivery models.StockPickingDelivery
+		result := s.db.Where("tracking_number = ?", shipment.TrackingNumber).First(&delivery)
+
+		if result.Error == nil {
+			// Order found - always update with latest data
+			oldStatus := delivery.Status
+			if status != models.DeliveryStatusPending {
+				delivery.Status = status
+			}
+			delivery.RawResponse = string(rawJSON)
+			if lastActivity != nil {
+				delivery.LastActivityAt = lastActivity
+			}
+
+			if err := s.db.Save(&delivery).Error; err != nil {
+				log("Error updating delivery %d: %v", delivery.ID, err)
+				continue
+			}
+
+			if oldStatus != delivery.Status {
+				s.createTrackingEntry(delivery.ID,
+					fmt.Sprintf("Status updated from DHL: %s -> %s", oldStatus, status),
+					status)
+				log("Updated: #%d %s -> %s", delivery.ID, oldStatus, status)
+			}
+			updated++
+		} else {
+			// Order not found - create new record
+			newDelivery := models.StockPickingDelivery{
+				TrackingNumber: shipment.TrackingNumber,
+				Status:         status,
+				RawResponse:    string(rawJSON),
+				LastActivityAt: lastActivity,
+			}
+
+			if err := s.db.Create(&newDelivery).Error; err != nil {
+				log("Error creating delivery: %v", err)
+				continue
+			}
+
+			s.createTrackingEntry(newDelivery.ID,
+				fmt.Sprintf("Imported from DHL: %s (%s)", shipment.RecipientName, shipment.Product),
+				status)
+
+			log("Created: #%d Tracking=%s Status=%s", newDelivery.ID, shipment.TrackingNumber, status)
+			created++
+		}
+	}
+
+	log("DHL import completed: %d created, %d updated, %d skipped", created, updated, skipped)
 	return nil
 }

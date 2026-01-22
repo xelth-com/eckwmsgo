@@ -594,6 +594,9 @@ func (r *Router) registerDeliveryRoutes(prefix string, svc *deliveryService.Serv
 		// Import from OPAL
 		delivery.HandleFunc("/import/opal", r.triggerOpalImport).Methods("POST")
 
+		// Import from DHL
+		delivery.HandleFunc("/import/dhl", r.triggerDhlImport).Methods("POST")
+
 		// Carrier management
 		delivery.HandleFunc("/carriers", r.listCarriers).Methods("GET")
 		delivery.HandleFunc("/carriers", r.createCarrier).Methods("POST")
@@ -636,7 +639,7 @@ func (r *Router) createShipment(w http.ResponseWriter, req *http.Request) {
 
 func (r *Router) listShipments(w http.ResponseWriter, req *http.Request) {
 	state := req.URL.Query().Get("state")
-	limit := 100
+	limit := 50 // Show last 50 shipments (newest first)
 
 	shipments, err := r.deliveryService.ListShipments(state, limit)
 	if err != nil {
@@ -748,6 +751,26 @@ func (r *Router) triggerOpalImport(w http.ResponseWriter, req *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]string{
 		"status":  "started",
 		"message": "OPAL synchronization started in background. Refresh in a few seconds.",
+	})
+}
+
+func (r *Router) triggerDhlImport(w http.ResponseWriter, req *http.Request) {
+	if r.deliveryService == nil {
+		respondError(w, http.StatusServiceUnavailable, "Delivery service not configured")
+		return
+	}
+
+	// Run import in background to not block the HTTP request
+	go func() {
+		// Use a fresh context as the request context will be cancelled
+		if err := r.deliveryService.ImportDhlOrders(context.Background()); err != nil {
+			fmt.Printf("Manual DHL import failed: %v\n", err)
+		}
+	}()
+
+	respondJSON(w, http.StatusOK, map[string]string{
+		"status":  "started",
+		"message": "DHL synchronization started in background. Refresh in a few seconds.",
 	})
 }
 

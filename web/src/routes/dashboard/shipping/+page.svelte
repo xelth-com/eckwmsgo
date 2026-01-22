@@ -9,7 +9,8 @@ let loading = true;
 let error = null;
 let activeTab = 'pickings'; // 'pickings' or 'shipments'
 let processingPickings = new Set();
-let isSyncing = false; // New state for OPAL sync
+let isSyncingOpal = false; // State for OPAL sync
+let isSyncingDhl = false; // State for DHL sync
 let expandedShipments = new Set(); // Track which shipments are expanded
 
 onMount(async () => {
@@ -72,21 +73,47 @@ async function cancelShipment(pickingId) {
 }
 
 async function syncOpal() {
-    isSyncing = true;
+    isSyncingOpal = true;
     toastStore.add('Syncing with OPAL...', 'info');
     try {
         await api.post('/api/delivery/import/opal', {});
-        toastStore.add('Sync started. Refreshing data...', 'success');
+        toastStore.add('OPAL sync started. Refreshing data...', 'success');
 
         // Wait a bit before reloading to let the scraper start/finish
         setTimeout(async () => {
             await loadData();
-            isSyncing = false;
+            isSyncingOpal = false;
         }, 4000);
     } catch (e) {
-        toastStore.add('Sync failed: ' + e.message, 'error');
-        isSyncing = false;
+        toastStore.add('OPAL sync failed: ' + e.message, 'error');
+        isSyncingOpal = false;
     }
+}
+
+async function syncDhl() {
+    isSyncingDhl = true;
+    toastStore.add('Syncing with DHL...', 'info');
+    try {
+        await api.post('/api/delivery/import/dhl', {});
+        toastStore.add('DHL sync started. Refreshing data...', 'success');
+
+        // Wait a bit before reloading to let the scraper start/finish
+        setTimeout(async () => {
+            await loadData();
+            isSyncingDhl = false;
+        }, 4000);
+    } catch (e) {
+        toastStore.add('DHL sync failed: ' + e.message, 'error');
+        isSyncingDhl = false;
+    }
+}
+
+function getProvider(details) {
+    if (!details) return 'unknown';
+    if (details.provider === 'dhl') return 'dhl';
+    if (details.ocu_number || details.hwb_number) return 'opal';
+    if (details.product?.includes('DHL')) return 'dhl';
+    return 'opal';
 }
 
 function formatDate(dateStr) {
@@ -156,8 +183,11 @@ function formatAddress(data, prefix) {
     <header>
         <h1>📦 Shipping & Delivery</h1>
         <div class="header-actions">
-            <button class="action-btn secondary" on:click={syncOpal} disabled={isSyncing || loading}>
-                {isSyncing ? '⏳ Syncing...' : '🔄 Sync OPAL'}
+            <button class="action-btn opal-btn" on:click={syncOpal} disabled={isSyncingOpal || loading}>
+                {isSyncingOpal ? '⏳ Syncing...' : '🟢 Sync OPAL'}
+            </button>
+            <button class="action-btn dhl-btn" on:click={syncDhl} disabled={isSyncingDhl || loading}>
+                {isSyncingDhl ? '⏳ Syncing...' : '🟡 Sync DHL'}
             </button>
             <button class="refresh-btn" on:click={loadData} disabled={loading}>
                 {loading ? '↻ Loading...' : '↻ Refresh'}
@@ -275,11 +305,15 @@ function formatAddress(data, prefix) {
                             <tbody>
                                 {#each shipments as shipment}
                                     {@const details = parseRawResponse(shipment.raw_response)}
+                                    {@const provider = getProvider(details)}
                                     <tr class="shipment-row" class:expanded={expandedShipments.has(shipment.id)} on:click={() => toggleShipmentDetails(shipment.id)}>
                                         <td class="expand-cell">
                                             <span class="expand-icon">{expandedShipments.has(shipment.id) ? '▼' : '▶'}</span>
                                         </td>
                                         <td class="tracking-cell">
+                                            <span class="provider-badge" class:opal={provider === 'opal'} class:dhl={provider === 'dhl'}>
+                                                {provider.toUpperCase()}
+                                            </span>
                                             {#if shipment.tracking_number}
                                                 <span class="tracking-number">{shipment.tracking_number}</span>
                                                 {#if details?.hwb_number}
@@ -292,17 +326,19 @@ function formatAddress(data, prefix) {
                                         <td class="route-cell">
                                             {#if details}
                                                 <div class="route">
-                                                    <span class="from">{details.pickup_name || details.pickup_city || '-'}</span>
+                                                    <!-- OPAL format: pickup_name -> delivery_name -->
+                                                    <!-- DHL format: InBody -> recipient_name -->
+                                                    <span class="from">{details.pickup_name || details.pickup_city || 'InBody'}</span>
                                                     <span class="arrow">→</span>
-                                                    <span class="to">{details.delivery_name || details.delivery_city || '-'}</span>
+                                                    <span class="to">{details.delivery_name || details.recipient_name || details.delivery_city || details.recipient_city || '-'}</span>
                                                 </div>
                                             {:else}
                                                 <span class="muted">-</span>
                                             {/if}
                                         </td>
                                         <td>
-                                            {#if details?.product_type}
-                                                <span class="product-badge">{details.product_type}</span>
+                                            {#if details?.product_type || details?.product}
+                                                <span class="product-badge">{details.product_type || details.product}</span>
                                             {:else}
                                                 <span class="muted">-</span>
                                             {/if}
@@ -537,6 +573,46 @@ h1 {
 .action-btn.secondary:hover:not(:disabled) {
     background: #444;
     color: #fff;
+}
+
+.action-btn.opal-btn {
+    background: #1a472a;
+    color: #4ade80;
+    border: 1px solid #22c55e;
+}
+
+.action-btn.opal-btn:hover:not(:disabled) {
+    background: #166534;
+}
+
+.action-btn.dhl-btn {
+    background: #422006;
+    color: #fbbf24;
+    border: 1px solid #f59e0b;
+}
+
+.action-btn.dhl-btn:hover:not(:disabled) {
+    background: #713f12;
+}
+
+.provider-badge {
+    display: inline-block;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-right: 0.5rem;
+}
+
+.provider-badge.opal {
+    background: #166534;
+    color: #4ade80;
+}
+
+.provider-badge.dhl {
+    background: #713f12;
+    color: #fbbf24;
 }
 
 .tabs {

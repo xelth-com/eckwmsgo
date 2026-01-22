@@ -13,6 +13,7 @@ import (
 	"github.com/xelth-com/eckwmsgo/internal/config"
 	"github.com/xelth-com/eckwmsgo/internal/database"
 	"github.com/xelth-com/eckwmsgo/internal/delivery"
+	"github.com/xelth-com/eckwmsgo/internal/delivery/dhl"
 	"github.com/xelth-com/eckwmsgo/internal/delivery/opal"
 	"github.com/xelth-com/eckwmsgo/internal/handlers"
 	"github.com/xelth-com/eckwmsgo/internal/mesh"
@@ -158,6 +159,27 @@ func main() {
 			log.Printf("⚠️ Delivery: Failed to register OPAL: %v", err)
 		} else {
 			log.Println("✅ Delivery: OPAL provider registered")
+		}
+	}
+
+	// Create DHL provider
+	dhlScriptPath := filepath.Join(filepath.Dir(opalScriptPath), "fetch-dhl-orders.js")
+	dhlProvider, err := dhl.NewProvider(dhl.Config{
+		ScriptPath: dhlScriptPath,
+		NodePath:   "node",
+		Username:   os.Getenv("DHL_USERNAME"),
+		Password:   os.Getenv("DHL_PASSWORD"),
+		URL:        os.Getenv("DHL_URL"),
+		Headless:   true,
+		Timeout:    300,
+	})
+	if err != nil {
+		log.Printf("⚠️ Delivery: Failed to init DHL provider: %v", err)
+	} else {
+		if err := delivery.GetGlobalRegistry().Register(dhlProvider); err != nil {
+			log.Printf("⚠️ Delivery: Failed to register DHL: %v", err)
+		} else {
+			log.Println("✅ Delivery: DHL provider registered")
 		}
 	}
 

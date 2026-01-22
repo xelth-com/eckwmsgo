@@ -34,8 +34,9 @@ type StockPickingDelivery struct {
 	RawResponse    string     `gorm:"type:text" json:"raw_response"`     // JSON response from provider
 	CreatedAt      time.Time  `json:"created_at"`
 	UpdatedAt      time.Time  `json:"updated_at"`
-	ShippedAt      *time.Time `json:"shipped_at"`  // When shipment was created
-	DeliveredAt    *time.Time `json:"delivered_at"` // When shipment was delivered
+	ShippedAt      *time.Time `json:"shipped_at"`      // When shipment was created
+	DeliveredAt    *time.Time `json:"delivered_at"`    // When shipment was delivered
+	LastActivityAt *time.Time `gorm:"index" json:"last_activity_at"` // Latest known activity date for sorting
 
 	// Relations
 	Picking *StockPicking    `gorm:"foreignKey:PickingID" json:"picking,omitempty"`
