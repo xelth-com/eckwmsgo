@@ -474,12 +474,19 @@ func (s *Service) ImportOpalOrders(ctx context.Context) error {
 
 		// Determine status - use OPAL status if available, otherwise pending
 		status := models.DeliveryStatusPending
-		if order.Status == "Zugestellt" {
-			status = models.DeliveryStatusDelivered
+		if order.Status == "Zugestellt" || order.Status == "ausgeliefert" || order.Status == "geliefert" {
+			// Check if receiver is "Fehlanfahrt" - that means failed delivery, not successful
+			if order.Receiver == "Fehlanfahrt" {
+				status = models.DeliveryStatusError
+			} else {
+				status = models.DeliveryStatusDelivered
+			}
 		} else if order.Status == "Abgeholt" || order.Status == "AKTIV" {
 			status = models.DeliveryStatusShipped
 		} else if order.Status == "Storniert" || order.Status == "STORNO" {
 			status = models.DeliveryStatusCancelled
+		} else if order.Status == "Fehlanfahrt" {
+			status = models.DeliveryStatusError
 		}
 
 		// Search for existing delivery by OCU or HWB tracking number

@@ -413,9 +413,9 @@ function parseDetailPage(text) {
     }
 
     // Parse status history
-    // Status can be: Zugestellt, Abgeholt, Storniert, AKTIV, geliefert (older orders)
+    // Status can be: Zugestellt, Abgeholt, Storniert, AKTIV, geliefert, ausgeliefert, Fehlanfahrt
     // HWB can be 12 digits OR SendungsNr format (OCU-998-XXXXXX)
-    const statusMatch = text.match(/(\d{12}|OCU-[\d-]+)\s+(\d{2}\.\d{2}\.\d{2})\s+(\d{2}:\d{2})\s+(Zugestellt|Abgeholt|Storniert|AKTIV|geliefert)\s*(\S*)/i);
+    const statusMatch = text.match(/(\d{12}|OCU-[\d-]+)\s+(\d{2}\.\d{2}\.\d{2})\s+(\d{2}:\d{2})\s+(Zugestellt|Abgeholt|Storniert|AKTIV|geliefert|ausgeliefert|Fehlanfahrt)\s*(\S*)/i);
     if (statusMatch) {
         order.status = statusMatch[4];
         order.status_date = statusMatch[2];

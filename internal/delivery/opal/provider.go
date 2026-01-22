@@ -210,7 +210,7 @@ type ScrapedOrder struct {
 	Dimensions   string   `json:"dimensions"`
 
 	// Status
-	Status     string `json:"status"`      // Zugestellt, Abgeholt, Storniert, AKTIV
+	Status     string `json:"status"`      // Zugestellt, Abgeholt, Storniert, AKTIV, ausgeliefert, geliefert, Fehlanfahrt
 	StatusDate string `json:"status_date"` // When status changed
 	StatusTime string `json:"status_time"` // Time of status change
 	Receiver   string `json:"receiver"`    // Who received it
