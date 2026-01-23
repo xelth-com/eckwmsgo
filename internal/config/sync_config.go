@@ -236,6 +236,22 @@ func getDefaultEntityConfigs() map[string]EntitySyncConfig {
 			SyncInterval: 300,
 			Priority:     6,
 		},
+		"shipments": {
+			Enabled:      true,
+			Strategy:     "time_window",
+			HistoryDepth: 30,
+			MaxRecords:   0,
+			SyncInterval: 60,
+			Priority:     9,
+		},
+		"tracking": {
+			Enabled:      true,
+			Strategy:     "time_window",
+			HistoryDepth: 30,
+			MaxRecords:   0,
+			SyncInterval: 60,
+			Priority:     8,
+		},
 	}
 }
 

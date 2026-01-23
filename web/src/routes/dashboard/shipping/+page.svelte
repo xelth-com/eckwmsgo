@@ -12,6 +12,7 @@ let processingPickings = new Set();
 let isSyncingOpal = false; // State for OPAL sync
 let isSyncingDhl = false; // State for DHL sync
 let expandedShipments = new Set(); // Track which shipments are expanded
+let providersConfig = { opal: false, dhl: false }; // Provider availability
 
 onMount(async () => {
     await loadData();
@@ -21,13 +22,15 @@ async function loadData() {
     loading = true;
     error = null;
     try {
-        // Load both pickings and shipments in parallel
-        const [pickingsData, shipmentsData] = await Promise.all([
+        // Load pickings, shipments, and provider config in parallel
+        const [pickingsData, shipmentsData, configData] = await Promise.all([
             api.get('/api/odoo/pickings?state=assigned'),
-            api.get('/api/delivery/shipments')
+            api.get('/api/delivery/shipments'),
+            api.get('/api/delivery/config')
         ]);
         pickings = pickingsData || [];
         shipments = shipmentsData || [];
+        if (configData) providersConfig = configData;
     } catch (e) {
         console.error(e);
         error = e.message;
@@ -183,10 +186,10 @@ function formatAddress(data, prefix) {
     <header>
         <h1>📦 Shipping & Delivery</h1>
         <div class="header-actions">
-            <button class="action-btn opal-btn" on:click={syncOpal} disabled={isSyncingOpal || loading}>
+            <button class="action-btn opal-btn" on:click={syncOpal} disabled={!providersConfig.opal || isSyncingOpal || loading}>
                 {isSyncingOpal ? '⏳ Syncing...' : '🟢 Sync OPAL'}
             </button>
-            <button class="action-btn dhl-btn" on:click={syncDhl} disabled={isSyncingDhl || loading}>
+            <button class="action-btn dhl-btn" on:click={syncDhl} disabled={!providersConfig.dhl || isSyncingDhl || loading}>
                 {isSyncingDhl ? '⏳ Syncing...' : '🟡 Sync DHL'}
             </button>
             <button class="refresh-btn" on:click={loadData} disabled={loading}>

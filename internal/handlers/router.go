@@ -585,6 +585,9 @@ func (r *Router) registerDeliveryRoutes(prefix string, svc *deliveryService.Serv
 		delivery := r.PathPrefix(p).Subrouter()
 		delivery.Use(middleware.AuthMiddleware)
 
+		// Provider configuration check
+		delivery.HandleFunc("/config", r.getDeliveryConfig).Methods("GET")
+
 		// Shipment management
 		delivery.HandleFunc("/shipments", r.createShipment).Methods("POST")
 		delivery.HandleFunc("/shipments", r.listShipments).Methods("GET")
@@ -606,6 +609,16 @@ func (r *Router) registerDeliveryRoutes(prefix string, svc *deliveryService.Serv
 }
 
 // Delivery handlers
+
+func (r *Router) getDeliveryConfig(w http.ResponseWriter, req *http.Request) {
+	// Check for credentials in env to determine which providers are configured
+	config := map[string]bool{
+		"opal": os.Getenv("OPAL_USERNAME") != "" && os.Getenv("OPAL_PASSWORD") != "",
+		"dhl":  os.Getenv("DHL_USERNAME") != "" && os.Getenv("DHL_PASSWORD") != "",
+	}
+
+	respondJSON(w, http.StatusOK, config)
+}
 
 func (r *Router) createShipment(w http.ResponseWriter, req *http.Request) {
 	if r.deliveryService == nil {

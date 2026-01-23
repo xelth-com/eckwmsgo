@@ -22,15 +22,17 @@ type MeshSyncRequest struct {
 
 // MeshSyncResponse represents the response from a mesh sync request
 type MeshSyncResponse struct {
-	Products  []models.ProductProduct   `json:"products,omitempty"`
-	Locations []models.StockLocation    `json:"locations,omitempty"`
-	Quants    []models.StockQuant       `json:"quants,omitempty"`
-	Lots      []models.StockLot         `json:"lots,omitempty"`
-	Packages  []models.StockQuantPackage `json:"packages,omitempty"`
-	Pickings  []models.StockPicking     `json:"pickings,omitempty"`
-	Partners  []models.ResPartner       `json:"partners,omitempty"`
-	SyncTime  time.Time                 `json:"sync_time"`
-	NodeID    string                    `json:"node_id"`
+	Products  []models.ProductProduct      `json:"products,omitempty"`
+	Locations []models.StockLocation       `json:"locations,omitempty"`
+	Quants    []models.StockQuant          `json:"quants,omitempty"`
+	Lots      []models.StockLot            `json:"lots,omitempty"`
+	Packages  []models.StockQuantPackage   `json:"packages,omitempty"`
+	Pickings  []models.StockPicking        `json:"pickings,omitempty"`
+	Partners  []models.ResPartner          `json:"partners,omitempty"`
+	Shipments []models.StockPickingDelivery `json:"shipments,omitempty"`
+	Tracking  []models.DeliveryTracking    `json:"tracking,omitempty"`
+	SyncTime  time.Time                    `json:"sync_time"`
+	NodeID    string                       `json:"node_id"`
 }
 
 // SyncWithRelay synchronizes data with mesh nodes
@@ -82,7 +84,7 @@ func (se *SyncEngine) pullFromNode(node *mesh.NodeInfo) error {
 
 	// Build request
 	req := MeshSyncRequest{
-		EntityTypes: []string{"products", "locations", "quants", "lots", "packages", "partners"},
+		EntityTypes: []string{"products", "locations", "quants", "lots", "packages", "partners", "shipments", "tracking"},
 		Limit:       1000,
 	}
 	if syncMeta.LastSyncAt != nil && !syncMeta.LastSyncAt.IsZero() {
@@ -135,8 +137,8 @@ func (se *SyncEngine) pullFromNode(node *mesh.NodeInfo) error {
 		LastSyncStatus: "success",
 	}).FirstOrCreate(&models.SyncMetadata{})
 
-	log.Printf("Mesh Sync: Successfully pulled from %s (products: %d, locations: %d, quants: %d)",
-		node.InstanceID, len(syncResp.Products), len(syncResp.Locations), len(syncResp.Quants))
+	log.Printf("Mesh Sync: Successfully pulled from %s (products: %d, locations: %d, quants: %d, shipments: %d, tracking: %d)",
+		node.InstanceID, len(syncResp.Products), len(syncResp.Locations), len(syncResp.Quants), len(syncResp.Shipments), len(syncResp.Tracking))
 
 	return nil
 }
@@ -210,6 +212,26 @@ func (se *SyncEngine) applyMeshUpdates(resp *MeshSyncResponse) error {
 		}
 	}
 
+	// Upsert shipments
+	for _, s := range resp.Shipments {
+		if s.ID == 0 {
+			continue
+		}
+		if err := tx.Where("id = ?", s.ID).Assign(s).FirstOrCreate(&models.StockPickingDelivery{}).Error; err != nil {
+			log.Printf("Mesh Sync: Failed to upsert shipment %d: %v", s.ID, err)
+		}
+	}
+
+	// Upsert tracking
+	for _, t := range resp.Tracking {
+		if t.ID == 0 {
+			continue
+		}
+		if err := tx.Where("id = ?", t.ID).Assign(t).FirstOrCreate(&models.DeliveryTracking{}).Error; err != nil {
+			log.Printf("Mesh Sync: Failed to upsert tracking %d: %v", t.ID, err)
+		}
+	}
+
 	return tx.Commit().Error
 }
 
@@ -269,6 +291,16 @@ func (se *SyncEngine) GetDataForPull(req *MeshSyncRequest) (*MeshSyncResponse, e
 			var partners []models.ResPartner
 			if err := query.Find(&partners).Error; err == nil {
 				resp.Partners = partners
+			}
+		case "shipments":
+			var shipments []models.StockPickingDelivery
+			if err := query.Find(&shipments).Error; err == nil {
+				resp.Shipments = shipments
+			}
+		case "tracking":
+			var tracking []models.DeliveryTracking
+			if err := query.Find(&tracking).Error; err == nil {
+				resp.Tracking = tracking
 			}
 		}
 	}

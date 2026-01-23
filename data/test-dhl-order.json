@@ -1,0 +1,9 @@
+{
+  "delivery_name": "Test Customer GmbH",
+  "delivery_street": "Teststraße",
+  "delivery_house_number": "42",
+  "delivery_zip": "10115",
+  "delivery_city": "Berlin",
+  "weight": 2.5,
+  "reference": "TEST-DHL-001"
+}
