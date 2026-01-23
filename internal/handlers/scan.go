@@ -14,7 +14,9 @@ import (
 
 // ScanRequest represents the payload from a scanner
 type ScanRequest struct {
-	Barcode string `json:"barcode"`
+	Barcode  string `json:"barcode"`
+	MsgID    string `json:"msgId"`
+	DeviceID string `json:"deviceId"`
 }
 
 // ScanResponse standardizes the scan result
@@ -32,6 +34,16 @@ func (r *Router) handleScan(w http.ResponseWriter, req *http.Request) {
 	var body ScanRequest
 	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
 		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	// Deduplication check - ignore duplicate messages
+	if utils.IsDuplicate(body.MsgID) {
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"success":   true,
+			"duplicate": true,
+			"msgId":     body.MsgID,
+		})
 		return
 	}
 
