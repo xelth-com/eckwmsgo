@@ -21,6 +21,7 @@ import (
 	deliveryService "github.com/xelth-com/eckwmsgo/internal/services/delivery"
 	"github.com/xelth-com/eckwmsgo/internal/services/odoo"
 	"github.com/xelth-com/eckwmsgo/internal/sync"
+	"github.com/xelth-com/eckwmsgo/internal/utils"
 )
 
 func main() {
@@ -82,6 +83,9 @@ func main() {
 
 	// Start Mesh Discovery
 	mesh.StartDiscovery(cfg)
+
+	// Report to global server for discovery (non-blocking)
+	go utils.ReportToGlobalServer()
 
 	// --- MESH SYNC ENGINE INIT ---
 	log.Println("🔄 Initializing Mesh Sync Engine...")

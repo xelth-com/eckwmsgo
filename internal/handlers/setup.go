@@ -28,7 +28,7 @@ func (r *Router) generatePairingQR(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if serverURL == "" {
-		serverURL = "http://localhost:3001"
+		serverURL = "http://localhost:3210"
 	}
 
 	// Compact UUID: Remove dashes and uppercase
@@ -43,7 +43,7 @@ func (r *Router) generatePairingQR(w http.ResponseWriter, req *http.Request) {
 	pubKeyHex := fmt.Sprintf("%x", pubKeyBytes)
 
 	// Protocol: ECK$1$COMPACTUUID$PUBKEY_HEX$URL
-	qrString := "ECK$1$" + compactUUID + "$" + pubKeyHex + "$" + strings.ToUpper(serverURL)
+	qrString := "ECK$1$" + compactUUID + "$" + strings.ToUpper(pubKeyHex) + "$" + strings.ToUpper(serverURL)
 
 	png, err := qrcode.Encode(qrString, qrcode.Low, 256)
 	if err != nil {
@@ -113,11 +113,12 @@ func (r *Router) registerDevice(w http.ResponseWriter, req *http.Request) {
 	var device models.RegisteredDevice
 	result := r.db.Where("device_id = ?", body.DeviceID).First(&device)
 
+	status := "pending"
 	if result.Error == nil {
-		// Update existing
+		// Update existing - preserve status
+		status = device.Status
 		device.PublicKey = body.DevicePublicKey
 		device.IsActive = true
-		device.Status = "active"
 		if body.DeviceName != "" {
 			device.DeviceName = body.DeviceName
 		}
@@ -129,7 +130,7 @@ func (r *Router) registerDevice(w http.ResponseWriter, req *http.Request) {
 			PublicKey:  body.DevicePublicKey,
 			DeviceName: body.DeviceName,
 			IsActive:   true,
-			Status:     "active",
+			Status:     "pending",
 			CreatedAt:  time.Now(),
 			UpdatedAt:  time.Now(),
 		}
@@ -139,23 +140,26 @@ func (r *Router) registerDevice(w http.ResponseWriter, req *http.Request) {
 	// 3. Generate Token for the device (Android requires this for subsequent calls)
 	cfg, _ := config.Load()
 
-	// Create a dummy user struct for token generation
+	// Create a mock user struct for token generation
 	// The device acts as a user "device_[id]"
 	mockUser := &models.UserAuth{
-		ID:    "device_" + body.DeviceID,
-		Role:  "device",
-		Email: "device@" + body.DeviceID,
+		ID:       "device_" + body.DeviceID,
+		Username: "device_" + body.DeviceID,
+		Role:     "device",
+		UserType: "individual",
+		Email:    "device@" + body.DeviceID + ".local",
 	}
 
-	accessToken, _, err := utils.GenerateTokens(mockUser, cfg)
+	accessToken, refreshToken, err := utils.GenerateTokens(mockUser, cfg)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to generate device token")
 		return
 	}
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"status":  "active",
-		"token":   accessToken,
-		"message": "Device registered and authorized",
+		"status":       status,
+		"token":        accessToken,
+		"refreshToken": refreshToken,
+		"message":      "Device registered. Access token provided.",
 	})
 }
