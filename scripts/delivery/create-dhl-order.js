@@ -23,6 +23,7 @@ const CONFIG = {
     headless: process.argv.includes('--headless'),
     verbose: process.argv.includes('--verbose'),
     jsonOutput: process.argv.includes('--json-output'),
+    dryRun: process.argv.includes('--dry-run'),
     timeout: 300000 // 5 minutes
 };
 
@@ -68,18 +69,23 @@ async function run() {
 
         const page = await context.newPage();
 
-        // 1. Navigate and Login
-        log('Navigating to login...');
-        await page.goto(CONFIG.url, { waitUntil: 'domcontentloaded' });
+        // 1. Navigate to DHL portal
+        log('Navigating to DHL portal...');
+        await page.goto(CONFIG.url, { waitUntil: 'load', timeout: 60000 });
         await page.waitForTimeout(3000);
 
-        // Handle Cookies
+        // Handle cookie consent banner (OneTrust)
+        log('Checking for cookie consent banner...');
         try {
             const cookieSelectors = [
                 '#onetrust-accept-btn-handler',
                 'button:has-text("Alle akzeptieren")',
                 'button:has-text("Zustimmen")',
-                'button:has-text("Akzeptieren")'
+                'button:has-text("Accept all")',
+                'button:has-text("Akzeptieren")',
+                '.onetrust-accept-btn',
+                'button[id*="accept"]',
+                '#cookie-consent-accept'
             ];
 
             for (const selector of cookieSelectors) {
@@ -87,53 +93,88 @@ async function run() {
                     const btn = page.locator(selector).first();
                     if (await btn.count() > 0 && await btn.isVisible({ timeout: 2000 })) {
                         await btn.click();
-                        log('Cookies accepted using: ' + selector);
+                        log('Cookie banner accepted using: ' + selector);
                         await page.waitForTimeout(1500);
                         break;
                     }
-                } catch (e) {}
+                } catch (e) {
+                    // Try next selector
+                }
             }
         } catch (e) {
-            log('No cookie banner found');
+            log('No cookie banner found or already accepted');
         }
 
+        // Wait for page to settle after cookie banner
         await page.waitForTimeout(2000);
 
-        // Click login button to open login form
-        log('Opening login form...');
+        // Debug: take screenshot if verbose mode
+        if (CONFIG.verbose) {
+            const debugPath = path.join(__dirname, '../../data/dhl-debug-1.png');
+            await page.screenshot({ path: debugPath, fullPage: true });
+            log('Debug screenshot saved: ' + debugPath);
+        }
+
+        // Click login button to open login form/popup
+        log('Clicking login button to open login form...');
+
+        // Wait for the Anmelden button to appear
+        try {
+            await page.waitForSelector('button:has-text("Anmelden")', { timeout: 10000 });
+        } catch (e) {
+            log('Waiting for Anmelden button timed out, trying anyway...');
+        }
+
         const loginBtnSelectors = [
             'button:has-text("Im Post & DHL Geschäftskundenportal anmelden")',
             'button:has-text("Anmelden")',
-            'a:has-text("Anmelden")'
+            'a:has-text("Anmelden")',
+            'button[data-testid="noName"]',
+            '.dhlBtn:has-text("Anmelden")',
+            '.login-module-container button'
         ];
 
         let clicked = false;
         for (const selector of loginBtnSelectors) {
             try {
                 const btn = page.locator(selector).first();
-                if (await btn.count() > 0) {
+                const count = await btn.count();
+                log('Trying selector "' + selector + '": count=' + count);
+                if (count > 0) {
                     await btn.click({ timeout: 5000 });
                     log('Clicked login button: ' + selector);
                     clicked = true;
                     break;
                 }
             } catch (e) {
+                log('Selector "' + selector + '" failed: ' + e.message);
                 continue;
             }
         }
 
         if (!clicked) {
+            // Debug: list all buttons
+            const buttons = await page.evaluate(() => {
+                return Array.from(document.querySelectorAll('button')).map(b => ({
+                    text: b.textContent?.trim().substring(0, 50),
+                    id: b.id,
+                    class: b.className
+                }));
+            });
+            log('Available buttons: ' + JSON.stringify(buttons));
             throw new Error('No login button found on page');
         }
 
-        // Wait for login form
+        // Wait for login form to appear
+        log('Waiting for login form...');
         await page.waitForTimeout(3000);
 
-        // Fill login credentials
+        // Check if we need to login (look for email/password fields)
         const emailField = page.locator('input[type="email"], input[name="email"], input[name="username"]').first();
         const passField = page.locator('input[type="password"]').first();
 
         if (await emailField.count() > 0 && await emailField.isVisible({ timeout: 5000 })) {
+            // Fill login form
             log('Filling login credentials...');
             await emailField.fill(CONFIG.username);
             await page.waitForTimeout(500);
@@ -142,11 +183,14 @@ async function run() {
                 await passField.fill(CONFIG.password);
             }
 
-            // Submit login
+            // Submit login - look for submit button in the form
+            log('Submitting login form...');
             const submitBtnSelectors = [
                 'button[type="submit"]',
                 'button:has-text("Anmelden"):visible',
-                'input[type="submit"]'
+                'input[type="submit"]',
+                '.login-button',
+                'button.dhlBtn-primary'
             ];
 
             for (const selector of submitBtnSelectors) {
@@ -154,7 +198,7 @@ async function run() {
                     const btn = page.locator(selector).first();
                     if (await btn.count() > 0 && await btn.isVisible({ timeout: 2000 })) {
                         await btn.click();
-                        log('Login submitted');
+                        log('Clicked submit: ' + selector);
                         break;
                     }
                 } catch (e) {
@@ -162,9 +206,15 @@ async function run() {
                 }
             }
 
+            // Wait for login to complete
+            log('Waiting for login to complete...');
             await page.waitForTimeout(5000);
+
+            // Verify login success - check if we're redirected or see dashboard elements
+            const currentUrl = page.url();
+            log('Current URL after login: ' + currentUrl);
         } else {
-            log('Already logged in or login form not found');
+            log('Login form not found - assuming already logged in');
         }
 
         // 2. Navigate to Shipment Entry Form
@@ -191,80 +241,88 @@ async function run() {
 
         await page.waitForTimeout(2000);
 
+        // DEBUG: List all input fields on the page
+        if (CONFIG.verbose) {
+            log('=== DEBUG: Listing all input fields ===');
+            const inputs = await contentFrame.evaluate(() => {
+                return Array.from(document.querySelectorAll('input, textarea, select')).map(el => ({
+                    tag: el.tagName,
+                    type: el.type,
+                    id: el.id,
+                    name: el.name,
+                    placeholder: el.placeholder,
+                    value: el.value,
+                    className: el.className
+                }));
+            });
+            inputs.forEach((inp, idx) => {
+                log(`Input ${idx}: ${inp.tag} type="${inp.type}" id="${inp.id}" name="${inp.name}" placeholder="${inp.placeholder}" class="${inp.className}"`);
+            });
+            log('=== END DEBUG ===');
+        }
+
         // 3. Fill Receiver Address
         log('Filling receiver address...');
 
         // Helper to find and fill input
-        const fillField = async (locatorStrings, value) => {
+        const fillField = async (locatorStrings, value, fieldName) => {
             for (const loc of locatorStrings) {
                 try {
                     const input = contentFrame.locator(loc).first();
                     if (await input.count() > 0 && await input.isVisible({ timeout: 2000 })) {
                         await input.fill(value);
-                        log(`Filled field: ${loc}`);
+                        log(`✓ Filled ${fieldName}: ${loc}`);
                         return true;
                     }
                 } catch (e) {}
             }
+            log(`✗ Could not fill ${fieldName}`);
             return false;
         };
 
-        // Name (Receiver Name 1)
+        // Name (Receiver Name 1) - ID with dot needs escaping
         await fillField([
-            'input[id*="receiver-name"]',
-            'input[name*="ReceiverName1"]',
-            'input[name*="receiverName1"]',
-            'input[placeholder*="Name"]'
-        ], orderData.delivery_name);
+            '#receiver\\.name1',
+            'input[id="receiver.name1"]'
+        ], orderData.delivery_name, 'Name');
 
         // Street
         await fillField([
-            'input[id*="street"]',
-            'input[name*="Street"]',
-            'input[name*="street"]',
-            'input[placeholder*="Straße"]'
-        ], orderData.delivery_street);
+            '#receiver\\.street',
+            'input[id="receiver.street"]'
+        ], orderData.delivery_street, 'Street');
 
-        // House Number (if exists and provided)
+        // House Number (Street Number)
         if (orderData.delivery_house_number) {
             await fillField([
-                'input[id*="house-number"]',
-                'input[id*="houseNumber"]',
-                'input[name*="HouseNumber"]',
-                'input[name*="houseNumber"]',
-                'input[placeholder*="Hausnummer"]'
-            ], orderData.delivery_house_number);
+                '#receiver\\.streetNumber',
+                'input[id="receiver.streetNumber"]'
+            ], orderData.delivery_house_number, 'House Number');
         }
 
-        // Zip Code
+        // Zip Code (PLZ)
         await fillField([
-            'input[id*="zip"]',
-            'input[id*="postal"]',
-            'input[name*="Zip"]',
-            'input[name*="PostalCode"]',
-            'input[placeholder*="PLZ"]'
-        ], orderData.delivery_zip);
+            '#receiver\\.plz',
+            'input[id="receiver.plz"]'
+        ], orderData.delivery_zip, 'Zip Code');
 
         // City
         await fillField([
-            'input[id*="city"]',
-            'input[name*="City"]',
-            'input[placeholder*="Ort"]'
-        ], orderData.delivery_city);
+            '#receiver\\.city',
+            'input[id="receiver.city"]'
+        ], orderData.delivery_city, 'City');
 
         // 4. Fill Shipment Data
         log('Filling shipment details...');
 
         // Weight
         await fillField([
-            'input[id*="weight"]',
-            'input[name*="Weight"]',
-            'input[name*="weight"]',
-            'input[placeholder*="Gewicht"]'
-        ], orderData.weight.toString());
+            '#shipment-weight',
+            'input[id="shipment-weight"]'
+        ], orderData.weight.toString(), 'Weight');
 
         // 5. Submit Form
-        log('Submitting shipment...');
+        log('Ready to submit shipment...');
 
         // Look for submit button
         const submitSelectors = [
@@ -275,22 +333,50 @@ async function run() {
             'input[type="submit"]'
         ];
 
-        let submitted = false;
+        // Find the submit button
+        let submitBtn = null;
         for (const selector of submitSelectors) {
             try {
                 const btn = contentFrame.locator(selector).first();
                 if (await btn.count() > 0 && await btn.isVisible({ timeout: 2000 })) {
-                    await btn.click();
-                    log('Clicked submit: ' + selector);
-                    submitted = true;
+                    submitBtn = btn;
+                    log('Found submit button: ' + selector);
                     break;
                 }
             } catch (e) {}
         }
 
-        if (!submitted) {
+        if (!submitBtn) {
             throw new Error('Submit button not found');
         }
+
+        // DRY RUN MODE: Stop here and keep browser open
+        if (CONFIG.dryRun) {
+            log('🟡 DRY RUN MODE ACTIVE 🟡', 'warn');
+            log('Form has been filled but NOT submitted.', 'warn');
+            log('The browser will stay open for manual inspection.', 'warn');
+            log('You can:', 'info');
+            log('  1. Verify the filled data is correct', 'info');
+            log('  2. Manually click submit to complete the order', 'info');
+            log('  3. Press Ctrl+C in terminal to cancel', 'info');
+            log('Pausing execution... (Use Playwright Inspector or just inspect the page)', 'info');
+
+            // Keep browser open indefinitely for manual inspection
+            await page.waitForTimeout(300000); // Wait 5 minutes or until manually closed
+
+            output({
+                success: true,
+                dryRun: true,
+                message: 'Dry run completed - form filled but not submitted'
+            });
+
+            return;
+        }
+
+        // Normal mode: submit the form
+        log('Submitting shipment...');
+        await submitBtn.click();
+        log('Form submitted');
 
         // 6. Wait for Result and Extract Tracking Number
         log('Waiting for confirmation...');
