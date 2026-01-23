@@ -610,6 +610,12 @@ func (s *Service) ImportDhlOrders(ctx context.Context) error {
 	updated := 0
 	skipped := 0
 
+	// Default warehouse/sender info for DHL (since CSV only has recipient)
+	defaultSender := s.config.Warehouse.Name
+	if defaultSender == "" {
+		defaultSender = "InBody Europe B.V."
+	}
+
 	for _, shipment := range shipments {
 		// Skip orders without valid tracking number
 		if shipment.TrackingNumber == "" {
@@ -618,9 +624,13 @@ func (s *Service) ImportDhlOrders(ctx context.Context) error {
 		}
 
 		// Build raw response JSON with all the scraped data
+		// Includes both native DHL fields and standardized delivery_* keys for frontend
 		rawData := map[string]interface{}{
-			"tracking_number":      shipment.TrackingNumber,
-			"reference":            shipment.Reference,
+			// Standard Identifiers
+			"tracking_number": shipment.TrackingNumber,
+			"reference":       shipment.Reference,
+
+			// Native DHL Fields (keep for reference)
 			"international_number": shipment.InternationalNum,
 			"billing_number":       shipment.BillingNumber,
 			"recipient_name":       shipment.RecipientName,
@@ -639,6 +649,20 @@ func (s *Service) ImportDhlOrders(ctx context.Context) error {
 			"product":              shipment.Product,
 			"services":             shipment.Services,
 			"provider":             "dhl",
+
+			// Standardized Delivery Address (Mapped for Frontend)
+			"delivery_name":    shipment.RecipientName,
+			"delivery_street":  shipment.RecipientStreet,
+			"delivery_zip":     shipment.RecipientZip,
+			"delivery_city":    shipment.RecipientCity,
+			"delivery_country": shipment.RecipientCountry,
+
+			// Standardized Pickup/Sender Address (Defaulted from warehouse config)
+			"pickup_name": defaultSender,
+			"pickup_city": s.config.Warehouse.City,
+
+			// Description from note field
+			"description": shipment.Note,
 		}
 		rawJSON, _ := json.Marshal(rawData)
 

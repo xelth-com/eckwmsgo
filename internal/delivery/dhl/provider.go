@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/xelth-com/eckwmsgo/internal/delivery"
@@ -125,9 +126,11 @@ func (p *Provider) ValidateAddress(ctx context.Context, addr *delivery.Address) 
 }
 
 // FetchRecentShipments fetches recent shipments from DHL portal
+// Falls back to cached CSV if scraper fails
 func (p *Provider) FetchRecentShipments(ctx context.Context, days int) ([]ScrapedShipment, error) {
 	// Build path to fetch script
 	scriptDir := filepath.Dir(p.config.ScriptPath)
+	cachedCSV := filepath.Join(scriptDir, "..", "..", "data", "dhl-shipments.csv")
 	fetchScriptPath := filepath.Join(scriptDir, "fetch-dhl-orders.js")
 
 	// Check if script exists
@@ -168,10 +171,9 @@ func (p *Provider) FetchRecentShipments(ctx context.Context, days int) ([]Scrape
 
 	output, err := cmd.Output()
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			return nil, fmt.Errorf("script failed: %s, stderr: %s", err, string(exitErr.Stderr))
-		}
-		return nil, fmt.Errorf("failed to run script: %w", err)
+		// Scraper failed - try to use cached CSV as fallback
+		fmt.Printf("[DHL] Scraper failed, trying cached CSV at %s\n", cachedCSV)
+		return p.readCachedCSV(cachedCSV)
 	}
 
 	// Parse JSON output
@@ -180,6 +182,92 @@ func (p *Provider) FetchRecentShipments(ctx context.Context, days int) ([]Scrape
 		return nil, fmt.Errorf("failed to parse script output: %w, output: %s", err, string(output))
 	}
 
+	return shipments, nil
+}
+
+// readCachedCSV reads shipments from a cached CSV file
+func (p *Provider) readCachedCSV(csvPath string) ([]ScrapedShipment, error) {
+	content, err := os.ReadFile(csvPath)
+	if err != nil {
+		return nil, fmt.Errorf("no cached CSV available: %w", err)
+	}
+
+	// Parse CSV (semicolon-separated, German headers)
+	lines := strings.Split(strings.ReplaceAll(string(content), "\r", ""), "\n")
+	if len(lines) < 2 {
+		return nil, fmt.Errorf("cached CSV is empty")
+	}
+
+	headers := strings.Split(lines[0], ";")
+	headerMap := map[string]string{
+		"Sendungsnummer":                       "tracking_number",
+		"Sendungsreferenz":                     "reference",
+		"internationale Sendungsnummer":       "international_number",
+		"Abrechnungsnummer":                   "billing_number",
+		"Empfängername":                        "recipient_name",
+		"Empfängerstraße (inkl. Hausnummer)": "recipient_street",
+		"Empfänger-PLZ":                        "recipient_zip",
+		"Empfänger-Ort":                        "recipient_city",
+		"Empfänger-Land":                       "recipient_country",
+		"Status":                               "status",
+		"Datum Status":                         "status_date",
+		"Hinweis":                              "note",
+		"Zugestellt an - Name":                 "delivered_to_name",
+		"Zugestellt an - Straße (inkl. Hausnummer)": "delivered_to_street",
+		"Zugestellt an - PLZ":                  "delivered_to_zip",
+		"Zugestellt an - Ort":                  "delivered_to_city",
+		"Zugestellt an - Land":                 "delivered_to_country",
+		"Produkt":                              "product",
+		"Services":                             "services",
+	}
+
+	var shipments []ScrapedShipment
+	for i := 1; i < len(lines); i++ {
+		if strings.TrimSpace(lines[i]) == "" {
+			continue
+		}
+		values := strings.Split(lines[i], ";")
+		if len(values) < len(headers) {
+			continue
+		}
+
+		data := make(map[string]string)
+		for j, header := range headers {
+			key := headerMap[header]
+			if key == "" {
+				key = header
+			}
+			data[key] = strings.TrimSpace(values[j])
+		}
+
+		if data["tracking_number"] == "" {
+			continue
+		}
+
+		shipments = append(shipments, ScrapedShipment{
+			TrackingNumber:     data["tracking_number"],
+			Reference:          data["reference"],
+			InternationalNum:   data["international_number"],
+			BillingNumber:      data["billing_number"],
+			RecipientName:      data["recipient_name"],
+			RecipientStreet:    data["recipient_street"],
+			RecipientZip:       data["recipient_zip"],
+			RecipientCity:      data["recipient_city"],
+			RecipientCountry:   data["recipient_country"],
+			Status:             data["status"],
+			StatusDate:         data["status_date"],
+			Note:               data["note"],
+			DeliveredToName:    data["delivered_to_name"],
+			DeliveredToStreet:  data["delivered_to_street"],
+			DeliveredToZip:     data["delivered_to_zip"],
+			DeliveredToCity:    data["delivered_to_city"],
+			DeliveredToCountry: data["delivered_to_country"],
+			Product:            data["product"],
+			Services:           data["services"],
+		})
+	}
+
+	fmt.Printf("[DHL] Loaded %d shipments from cached CSV\n", len(shipments))
 	return shipments, nil
 }
 
