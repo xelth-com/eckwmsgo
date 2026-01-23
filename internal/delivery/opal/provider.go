@@ -25,10 +25,12 @@ type Config struct {
 
 // Provider implements the delivery.ProviderInterface for OPAL Kurier
 type Provider struct {
-	config Config
+	config  Config
+	enabled bool // Whether provider is enabled (has valid credentials)
 }
 
 // NewProvider creates a new OPAL delivery provider
+// If credentials are missing, provider is created but disabled
 func NewProvider(config Config) (*Provider, error) {
 	// Set defaults
 	if config.NodePath == "" {
@@ -41,25 +43,33 @@ func NewProvider(config Config) (*Provider, error) {
 		config.Timeout = 300 // 5 minutes default
 	}
 
-	// Validate required fields
+	// Check if provider should be enabled
+	enabled := true
+	if config.Username == "" || config.Password == "" {
+		enabled = false
+		fmt.Println("[OPAL] Provider disabled: credentials not configured")
+	}
 	if config.ScriptPath == "" {
-		return nil, fmt.Errorf("script path is required")
+		enabled = false
+		fmt.Println("[OPAL] Provider disabled: script path not configured")
 	}
-	if config.Username == "" {
-		return nil, fmt.Errorf("username is required")
-	}
-	if config.Password == "" {
-		return nil, fmt.Errorf("password is required")
-	}
-
-	// Check if script exists
-	if _, err := os.Stat(config.ScriptPath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("script not found at %s", config.ScriptPath)
+	if enabled {
+		// Only check script existence if we're trying to enable
+		if _, err := os.Stat(config.ScriptPath); os.IsNotExist(err) {
+			enabled = false
+			fmt.Printf("[OPAL] Provider disabled: script not found at %s\n", config.ScriptPath)
+		}
 	}
 
 	return &Provider{
-		config: config,
+		config:  config,
+		enabled: enabled,
 	}, nil
+}
+
+// IsEnabled returns whether this provider is enabled and ready to use
+func (p *Provider) IsEnabled() bool {
+	return p.enabled
 }
 
 // Code returns the provider code
@@ -74,6 +84,10 @@ func (p *Provider) Name() string {
 
 // CreateShipment creates a new shipment via OPAL
 func (p *Provider) CreateShipment(ctx context.Context, req *delivery.DeliveryRequest) (*delivery.DeliveryResponse, error) {
+	if !p.enabled {
+		return nil, fmt.Errorf("OPAL provider is disabled - check credentials in .env (OPAL_USERNAME, OPAL_PASSWORD)")
+	}
+
 	// Convert delivery request to OPAL format
 	opalData := p.convertToOpalFormat(req)
 
@@ -218,6 +232,10 @@ type ScrapedOrder struct {
 
 // FetchRecentOrders executes the Node.js scraper to get recent orders from OPAL
 func (p *Provider) FetchRecentOrders(ctx context.Context) ([]ScrapedOrder, error) {
+	if !p.enabled {
+		return nil, fmt.Errorf("OPAL provider is disabled - check credentials in .env")
+	}
+
 	// Build path to fetch script (same directory as create script)
 	scriptDir := filepath.Dir(p.config.ScriptPath)
 	fetchScriptPath := filepath.Join(scriptDir, "fetch-opal-orders.js")
@@ -278,6 +296,9 @@ func (p *Provider) FetchRecentOrders(ctx context.Context) ([]ScrapedOrder, error
 
 // CancelShipment cancels an OPAL shipment
 func (p *Provider) CancelShipment(ctx context.Context, trackingNumber string) error {
+	if !p.enabled {
+		return fmt.Errorf("OPAL provider is disabled - check credentials in .env")
+	}
 	// OPAL cancellation would require another script or API call
 	// For now, return not implemented
 	return fmt.Errorf("cancel shipment not implemented for OPAL provider")
@@ -285,6 +306,9 @@ func (p *Provider) CancelShipment(ctx context.Context, trackingNumber string) er
 
 // GetStatus retrieves the status of an OPAL shipment
 func (p *Provider) GetStatus(ctx context.Context, trackingNumber string) (*delivery.TrackingStatus, error) {
+	if !p.enabled {
+		return nil, fmt.Errorf("OPAL provider is disabled - check credentials in .env")
+	}
 	// OPAL status tracking would require web scraping or API
 	// For now, return not implemented
 	return nil, fmt.Errorf("get status not implemented for OPAL provider")

@@ -26,7 +26,8 @@ type Config struct {
 
 // Provider implements the delivery.ProviderInterface for DHL
 type Provider struct {
-	config Config
+	config  Config
+	enabled bool // Whether provider is enabled (has valid credentials)
 }
 
 // ScrapedShipment represents a shipment scraped from DHL portal
@@ -53,6 +54,7 @@ type ScrapedShipment struct {
 }
 
 // NewProvider creates a new DHL delivery provider
+// If credentials are missing, provider is created but disabled
 func NewProvider(config Config) (*Provider, error) {
 	// Set defaults
 	if config.NodePath == "" {
@@ -65,20 +67,26 @@ func NewProvider(config Config) (*Provider, error) {
 		config.Timeout = 300 // 5 minutes default
 	}
 
-	// Validate required fields
+	// Check if provider should be enabled
+	enabled := true
+	if config.Username == "" || config.Password == "" {
+		enabled = false
+		fmt.Println("[DHL] Provider disabled: credentials not configured")
+	}
 	if config.ScriptPath == "" {
-		return nil, fmt.Errorf("script path is required")
-	}
-	if config.Username == "" {
-		return nil, fmt.Errorf("username is required")
-	}
-	if config.Password == "" {
-		return nil, fmt.Errorf("password is required")
+		enabled = false
+		fmt.Println("[DHL] Provider disabled: script path not configured")
 	}
 
 	return &Provider{
-		config: config,
+		config:  config,
+		enabled: enabled,
 	}, nil
+}
+
+// IsEnabled returns whether this provider is enabled and ready to use
+func (p *Provider) IsEnabled() bool {
+	return p.enabled
 }
 
 // Code returns the provider code
@@ -93,6 +101,10 @@ func (p *Provider) Name() string {
 
 // CreateShipment creates a new shipment via DHL
 func (p *Provider) CreateShipment(ctx context.Context, req *delivery.DeliveryRequest) (*delivery.DeliveryResponse, error) {
+	if !p.enabled {
+		return nil, fmt.Errorf("DHL provider is disabled - check credentials in .env (DHL_USERNAME, DHL_PASSWORD)")
+	}
+
 	// 1. Prepare data for the script
 	data := map[string]interface{}{
 		"delivery_name":   req.ReceiverAddress.Name1,
@@ -198,12 +210,18 @@ func (p *Provider) CreateShipment(ctx context.Context, req *delivery.DeliveryReq
 
 // CancelShipment cancels an existing DHL shipment
 func (p *Provider) CancelShipment(ctx context.Context, trackingNumber string) error {
+	if !p.enabled {
+		return fmt.Errorf("DHL provider is disabled - check credentials in .env")
+	}
 	// TODO: Implement DHL shipment cancellation
 	return fmt.Errorf("DHL CancelShipment not yet implemented")
 }
 
 // GetStatus retrieves the current status of a DHL shipment
 func (p *Provider) GetStatus(ctx context.Context, trackingNumber string) (*delivery.TrackingStatus, error) {
+	if !p.enabled {
+		return nil, fmt.Errorf("DHL provider is disabled - check credentials in .env")
+	}
 	// TODO: Implement individual tracking lookup
 	return nil, fmt.Errorf("DHL GetStatus not yet implemented")
 }
@@ -226,6 +244,9 @@ func (p *Provider) ValidateAddress(ctx context.Context, addr *delivery.Address) 
 // FetchRecentShipments fetches recent shipments from DHL portal
 // Falls back to cached CSV if scraper fails
 func (p *Provider) FetchRecentShipments(ctx context.Context, days int) ([]ScrapedShipment, error) {
+	if !p.enabled {
+		return nil, fmt.Errorf("DHL provider is disabled - check credentials in .env")
+	}
 	// Build path to fetch script
 	scriptDir := filepath.Dir(p.config.ScriptPath)
 	cachedCSV := filepath.Join(scriptDir, "..", "..", "data", "dhl-shipments.csv")
