@@ -1,5 +1,5 @@
 Sendungsnummer;Sendungsreferenz;internationale Sendungsnummer;Abrechnungsnummer;Empfängername;Empfängerstraße (inkl. Hausnummer);Empfänger-PLZ;Empfänger-Ort;Empfänger-Land;Status;Datum Status;Hinweis;Zugestellt an - Name;Zugestellt an - Straße (inkl. Hausnummer);Zugestellt an - PLZ;Zugestellt an - Ort;Zugestellt an - Land;Produkt;Services
-00340434326960037574;;;63319722780101;;;;;;Abholung erfolgreich;2026-01-22T14:02:44;;;;;;;;
+00340434326960037574;;;63319722780101;Aktiv-Sportpark Duisburg Buchholz;klagenfurterstrasse 15;47249;Duisburg;DE;Transport;2026-01-22T19:22:00.673;;;;;;;DHL Paket;GoGreen Plus, Empfängerunterschrift
 00340434326960037550;;;63319722780101;Wittkowski;Sonnenstraße 11A;58239;Schwerte;DE;Transport;2026-01-22T13:43:37;Gewicht 10-20 kg;;;;;;DHL Paket;GoGreen Plus, Sperrgut, Empfängerunterschrift
 00340434326960037543;;;63319722780101;Joachim Vogl;Gewerbering Ost 24 A;93155;Hemau;DE;Zugestellt;2026-01-22T11:31:19;Gewicht 10-20 kg;Joachim Vogl (Empfänger:in);;93155;;DE;DHL Paket;GoGreen Plus, Empfängerunterschrift
 00340434326960037529;;;63319722780101;Dirk Pruchnewski;Am Stock 12;61118;Bad Vilbel;DE;Zugestellt;2026-01-22T11:29:24;;Dirk Pruchnewski (Empfänger:in);;61118;;DE;DHL Paket;GoGreen Plus, Empfängerunterschrift
@@ -15,4 +15,3 @@ Sendungsnummer;Sendungsreferenz;internationale Sendungsnummer;Abrechnungsnummer;
 00340434326960037482;;;63319722780101;MRS. Sporty Kamen;Bahnhofstr. 57;59174;Kamen;DE;Zugestellt;2026-01-09T13:26:20;;Amplifon (Nachbar);Bahnhofstr. 57;59174;;DE;DHL Paket;GoGreen Plus, Empfängerunterschrift
 00340434326960037475;;;63319722780101;The Factory;Turmstrasse 125;36093;Künzell;DE;Zugestellt;2026-01-09T10:26:10;;The Factory (Empfänger:in);;36093;;DE;DHL Paket;GoGreen Plus, Empfängerunterschrift
 00340434326960037468;;;63319722780101;Bodyfit Rheinau;Hauptstrasse 6;77866;Rheinau;DE;Zugestellt;2026-01-09T10:13:06;;Schäfer (Andere anwesende Person);;77866;;DE;DHL Paket;GoGreen Plus, Sperrgut, Empfängerunterschrift
-00340434326960037420;;;63319722780101;Polizei Köln;Walter Pauli Ring 2-6;51103;Köln;DE;Storniert;2026-01-08T21:48:20;;;;;;;DHL Paket;GoGreen Plus, Empfängerunterschrift
