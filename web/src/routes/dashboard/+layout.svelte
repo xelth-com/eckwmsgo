@@ -3,6 +3,7 @@
     import { wsStore } from "$lib/stores/wsStore";
     import { toastStore } from "$lib/stores/toastStore";
     import ToastContainer from "$lib/components/ToastContainer.svelte";
+    import MeshStatus from "$lib/components/MeshStatus.svelte";
     import { goto } from "$app/navigation";
     import { onMount, onDestroy } from "svelte";
     import { page } from "$app/stores";
@@ -120,9 +121,12 @@
     <aside class="sidebar">
         <div class="brand">
             <span class="brand-text">eckWMS</span>
-            <div class="connection-status" class:connected={$wsStore.connected}>
-                {$wsStore.connected ? "ONLINE" : "OFFLINE"}
-            </div>
+        </div>
+
+        <!-- Mesh Network Status -->
+        <div class="mesh-section">
+            <div class="section-label">Connected Servers:</div>
+            <MeshStatus />
         </div>
 
         <nav>
@@ -217,18 +221,19 @@
         letter-spacing: 1px;
     }
 
-    .connection-status {
-        font-size: 0.7rem;
-        font-weight: 700;
-        padding: 2px 6px;
-        border-radius: 4px;
-        background: #333;
-        color: #666;
+    .mesh-section {
+        padding: 0 1rem 1rem 1rem;
+        border-bottom: 1px solid #2a2a2a;
+        margin-bottom: 1rem;
     }
 
-    .connection-status.connected {
-        background: rgba(40, 167, 69, 0.2);
-        color: #28a745;
+    .section-label {
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #666;
+        margin-bottom: 6px;
+        letter-spacing: 0.5px;
     }
 
     nav {
