@@ -57,11 +57,15 @@ async function run() {
 
         browser = await chromium.launch({
             headless: CONFIG.headless,
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--start-maximized' // Open browser maximized
+            ]
         });
 
         const context = await browser.newContext({
-            viewport: { width: 1920, height: 1080 },
+            viewport: null, // Use full window size (no fixed viewport)
             locale: 'de-DE',
             userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
             timezoneId: 'Europe/Berlin'
@@ -315,11 +319,39 @@ async function run() {
         // 4. Fill Shipment Data
         log('Filling shipment details...');
 
-        // Weight
+        // Weight (German format: comma instead of dot)
+        const weightStr = orderData.weight.toString().replace('.', ',');
         await fillField([
             '#shipment-weight',
             'input[id="shipment-weight"]'
-        ], orderData.weight.toString(), 'Weight');
+        ], weightStr, 'Weight');
+
+        // Length (if provided)
+        if (orderData.length) {
+            const lengthStr = orderData.length.toString().replace('.', ',');
+            await fillField([
+                '#shipment-length',
+                'input[id="shipment-length"]'
+            ], lengthStr, 'Length');
+        }
+
+        // Width (if provided)
+        if (orderData.width) {
+            const widthStr = orderData.width.toString().replace('.', ',');
+            await fillField([
+                '#shipment-width',
+                'input[id="shipment-width"]'
+            ], widthStr, 'Width');
+        }
+
+        // Height (if provided)
+        if (orderData.height) {
+            const heightStr = orderData.height.toString().replace('.', ',');
+            await fillField([
+                '#shipment-height',
+                'input[id="shipment-height"]'
+            ], heightStr, 'Height');
+        }
 
         // 5. Submit Form
         log('Ready to submit shipment...');

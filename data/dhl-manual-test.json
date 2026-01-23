@@ -1,0 +1,13 @@
+{
+  "delivery_name": "TEST COMPANY GMBH (DO NOT SHIP)",
+  "delivery_street": "Musterstraße",
+  "delivery_house_number": "1",
+  "delivery_zip": "10115",
+  "delivery_city": "Berlin",
+  "delivery_country": "DE",
+  "weight": 1.5,
+  "length": 30,
+  "width": 20,
+  "height": 15,
+  "reference": "TEST-DRY-RUN-001"
+}
