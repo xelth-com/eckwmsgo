@@ -92,10 +92,108 @@ func (p *Provider) Name() string {
 }
 
 // CreateShipment creates a new shipment via DHL
-// Note: For DHL, we might use CSV upload instead of individual order creation
 func (p *Provider) CreateShipment(ctx context.Context, req *delivery.DeliveryRequest) (*delivery.DeliveryResponse, error) {
-	// TODO: Implement DHL shipment creation via Paket & Waren
-	return nil, fmt.Errorf("DHL CreateShipment not yet implemented")
+	// 1. Prepare data for the script
+	data := map[string]interface{}{
+		"delivery_name":   req.ReceiverAddress.Name1,
+		"delivery_street": req.ReceiverAddress.Street,
+		"delivery_zip":    req.ReceiverAddress.Zip,
+		"delivery_city":   req.ReceiverAddress.City,
+		"weight":          1.0, // Default weight
+		"reference":       req.RefNumber,
+	}
+
+	// Add house number if available
+	if req.ReceiverAddress.HouseNumber != "" {
+		data["delivery_house_number"] = req.ReceiverAddress.HouseNumber
+	}
+
+	// Use actual weight if provided
+	if len(req.Parcels) > 0 && req.Parcels[0].Weight > 0 {
+		data["weight"] = req.Parcels[0].Weight
+	}
+
+	// 2. Create temp file with order data
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	tmpFile, err := os.CreateTemp("", "dhl-order-*.json")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create temp file: %w", err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	if _, err := tmpFile.Write(jsonData); err != nil {
+		tmpFile.Close()
+		return nil, fmt.Errorf("failed to write temp file: %w", err)
+	}
+	tmpFile.Close()
+
+	// 3. Execute script
+	scriptDir := filepath.Dir(p.config.ScriptPath)
+	createScript := filepath.Join(scriptDir, "create-dhl-order.js")
+
+	// Check if script exists
+	if _, err := os.Stat(createScript); os.IsNotExist(err) {
+		return nil, fmt.Errorf("create script not found at %s", createScript)
+	}
+
+	args := []string{
+		createScript,
+		"--data=" + tmpFile.Name(),
+		"--json-output",
+	}
+
+	if p.config.Headless {
+		args = append(args, "--headless")
+	}
+
+	// Create context with timeout
+	execCtx, cancel := context.WithTimeout(ctx, time.Duration(p.config.Timeout)*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(execCtx, p.config.NodePath, args...)
+	cmd.Dir = scriptDir
+
+	// Pass environment variables for login
+	cmd.Env = append(os.Environ(),
+		fmt.Sprintf("DHL_USERNAME=%s", p.config.Username),
+		fmt.Sprintf("DHL_PASSWORD=%s", p.config.Password),
+		fmt.Sprintf("DHL_URL=%s", p.config.URL),
+	)
+
+	output, err := cmd.Output()
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return nil, fmt.Errorf("script failed: %s, stderr: %s", err, string(exitErr.Stderr))
+		}
+		return nil, fmt.Errorf("script execution failed: %w", err)
+	}
+
+	// 4. Parse response
+	var result struct {
+		Success        bool   `json:"success"`
+		TrackingNumber string `json:"trackingNumber"`
+		OrderNumber    string `json:"orderNumber"`
+		Error          string `json:"error"`
+		Message        string `json:"message"`
+	}
+
+	if err := json.Unmarshal(output, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse script response: %w, output: %s", err, string(output))
+	}
+
+	if !result.Success {
+		return nil, fmt.Errorf("DHL creation failed: %s", result.Error)
+	}
+
+	return &delivery.DeliveryResponse{
+		TrackingNumber: result.TrackingNumber,
+		CreatedAt:      time.Now(),
+		RawResponse:    map[string]interface{}{"provider": "dhl", "message": result.Message},
+	}, nil
 }
 
 // CancelShipment cancels an existing DHL shipment
