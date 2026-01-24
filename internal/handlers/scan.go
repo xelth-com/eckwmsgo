@@ -125,8 +125,9 @@ func (r *Router) handleScan(w http.ResponseWriter, req *http.Request) {
 
 			aiResponseStr, err := r.aiClient.GenerateContent(req.Context(), fullPrompt)
 			if err == nil {
+				cleanJson := utils.SanitizeJSON(aiResponseStr)
 				var interaction map[string]interface{}
-				if json.Unmarshal([]byte(aiResponseStr), &interaction) == nil {
+				if json.Unmarshal([]byte(cleanJson), &interaction) == nil {
 					resp = ScanResponse{
 						Type:          "ai_analysis",
 						Message:       "AI Analysis",
@@ -136,9 +137,12 @@ func (r *Router) handleScan(w http.ResponseWriter, req *http.Request) {
 					resp.MsgID = body.MsgID
 					respondJSON(w, http.StatusOK, resp)
 					return
+				} else {
+					fmt.Printf("AI JSON Parse Error. Raw: %s\nClean: %s\n", aiResponseStr, cleanJson)
 				}
+			} else {
+				fmt.Printf("AI Gen Error: %v\n", err)
 			}
-			fmt.Printf("AI Error or Invalid JSON: %v\n", err)
 		}
 
 		resp, err = r.processLegacyScan(barcode)
