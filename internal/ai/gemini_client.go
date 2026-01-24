@@ -1,129 +1,83 @@
 package ai
 
 import (
-	"bytes"
-	"encoding/json"
-	"errors"
+	"context"
 	"fmt"
-	"io"
-	"net/http"
+	"log"
+
+	"github.com/google/generative-ai-go/genai"
+	"google.golang.org/api/option"
 )
 
-// GeminiClient interacts with Google Gemini API
+// GeminiClient interacts with Google Gemini API using the official SDK
 type GeminiClient struct {
-	APIKey string
-	Model  string // e.g., "gemini-3-flash-preview"
+	client *genai.Client
+	model  *genai.GenerativeModel
 }
 
 // NewGeminiClient creates a new Gemini API client
-func NewGeminiClient(apiKey, model string) *GeminiClient {
-	if model == "" {
-		model = "gemini-3-flash-preview"
+func NewGeminiClient(ctx context.Context, apiKey, modelName string) (*GeminiClient, error) {
+	if apiKey == "" {
+		return nil, fmt.Errorf("GEMINI_API_KEY is empty")
 	}
+
+	client, err := genai.NewClient(ctx, option.WithAPIKey(apiKey))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create genai client: %w", err)
+	}
+
+	if modelName == "" {
+		modelName = "gemini-3-flash-preview"
+	}
+
+	model := client.GenerativeModel(modelName)
+
+	// Optional: Configure safety settings if needed
+	// model.SafetySettings = []*genai.SafetySetting{...}
+
 	return &GeminiClient{
-		APIKey: apiKey,
-		Model:  model,
+		client: client,
+		model:  model,
+	}, nil
+}
+
+// Close closes the client connection
+func (c *GeminiClient) Close() {
+	if c.client != nil {
+		c.client.Close()
 	}
 }
 
-// GeminiRequest represents a request to Gemini API
-type GeminiRequest struct {
-	Contents []Content `json:"contents"`
-}
-
-// Content represents message content
-type Content struct {
-	Role  string `json:"role"`  // "user" or "model"
-	Parts []Part `json:"parts"`
-}
-
-// Part represents a message part
-type Part struct {
-	Text string `json:"text"`
-}
-
-// GeminiResponse represents a response from Gemini API
-type GeminiResponse struct {
-	Candidates []Candidate `json:"candidates"`
-}
-
-// Candidate represents a response candidate
-type Candidate struct {
-	Content       Content `json:"content"`
-	FinishReason  string  `json:"finishReason"`
-	SafetyRatings []struct {
-		Category    string `json:"category"`
-		Probability string `json:"probability"`
-	} `json:"safetyRatings"`
-}
-
-// GenerateContent sends a prompt to Gemini and returns the response
-func (c *GeminiClient) GenerateContent(prompt string) (string, error) {
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s",
-		c.Model, c.APIKey)
-
-	req := GeminiRequest{
-		Contents: []Content{
-			{
-				Role: "user",
-				Parts: []Part{
-					{Text: prompt},
-				},
-			},
-		},
-	}
-
-	jsonData, err := json.Marshal(req)
+// GenerateContent sends a prompt to Gemini and returns the response text
+func (c *GeminiClient) GenerateContent(ctx context.Context, prompt string) (string, error) {
+	resp, err := c.model.GenerateContent(ctx, genai.Text(prompt))
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal request: %w", err)
+		return "", fmt.Errorf("gemini generation error: %w", err)
 	}
 
-	httpReq, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return "", fmt.Errorf("failed to create request: %w", err)
+	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
+		return "", fmt.Errorf("empty response from gemini")
 	}
 
-	httpReq.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(httpReq)
-	if err != nil {
-		return "", fmt.Errorf("failed to send request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("failed to read response: %w", err)
+	// Extract text from the first part
+	// Note: In a real app, you might want to handle multiple parts/candidates
+	var fullText string
+	for _, part := range resp.Candidates[0].Content.Parts {
+		if txt, ok := part.(genai.Text); ok {
+			fullText += string(txt)
+		}
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(body))
-	}
-
-	var geminiResp GeminiResponse
-	if err := json.Unmarshal(body, &geminiResp); err != nil {
-		return "", fmt.Errorf("failed to unmarshal response: %w", err)
-	}
-
-	if len(geminiResp.Candidates) == 0 {
-		return "", errors.New("no response candidates")
-	}
-
-	if len(geminiResp.Candidates[0].Content.Parts) == 0 {
-		return "", errors.New("no response parts")
-	}
-
-	return geminiResp.Candidates[0].Content.Parts[0].Text, nil
+	return fullText, nil
 }
 
 // ChatWithFunctionCalling sends a prompt with function calling capability
 // This allows Gemini to decide which system functions to call
-func (c *GeminiClient) ChatWithFunctionCalling(prompt string, availableFunctions []FunctionSpec) (string, []FunctionCall, error) {
-	// TODO: Implement function calling with Gemini
-	// Gemini supports function calling through the "tools" parameter
-	// This would allow the AI to autonomously decide which functions to call
-	return "", nil, errors.New("function calling not yet implemented")
+func (c *GeminiClient) ChatWithFunctionCalling(ctx context.Context, prompt string, availableFunctions []FunctionSpec) (string, []FunctionCall, error) {
+	// TODO: Implement function calling with Gemini official SDK
+	// The SDK supports function calling through model.Tools
+	log.Println("⚠️ Function calling not yet implemented with official SDK")
+	return "", nil, fmt.Errorf("function calling not yet implemented")
 }
 
 // FunctionSpec represents a function specification for AI

@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -27,6 +28,8 @@ type ScanResponse struct {
 	Checksum      string      `json:"checksum"`                 // For Android
 	AiInteraction interface{} `json:"ai_interaction,omitempty"` // For Android
 	Data          interface{} `json:"data,omitempty"`           // The resulting object
+	MsgID         string      `json:"msgId,omitempty"`          // Echo back msgId
+	Duplicate     bool        `json:"duplicate,omitempty"`      // Flag for duplicates
 }
 
 // handleScan is the universal entry point for all barcode scans
@@ -39,10 +42,12 @@ func (r *Router) handleScan(w http.ResponseWriter, req *http.Request) {
 
 	// Deduplication check - ignore duplicate messages
 	if utils.IsDuplicate(body.MsgID) {
-		respondJSON(w, http.StatusOK, map[string]interface{}{
-			"success":   true,
-			"duplicate": true,
-			"msgId":     body.MsgID,
+		respondJSON(w, http.StatusOK, ScanResponse{
+			Type:      "duplicate",
+			Message:   "Message already processed",
+			Action:    "ignore",
+			MsgID:     body.MsgID,
+			Duplicate: true,
 		})
 		return
 	}
@@ -101,7 +106,37 @@ func (r *Router) handleScan(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// Echo back MsgID for client correlation
+	resp.MsgID = body.MsgID
 	respondJSON(w, http.StatusOK, resp)
+}
+
+// AIResponseRequest represents the user feedback
+type AIResponseRequest struct {
+	InteractionID string `json:"interactionId"`
+	Response      string `json:"response"`
+	Barcode       string `json:"barcode"`
+	DeviceID      string `json:"deviceId"`
+}
+
+// handleAiRespond processes user feedback from the Android app
+func (r *Router) handleAiRespond(w http.ResponseWriter, req *http.Request) {
+	var body AIResponseRequest
+	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	log.Printf("🤖 AI Response received: %s for %s (Interaction: %s)", body.Response, body.Barcode, body.InteractionID)
+
+	// TODO: Implement actual AI logic (linking codes, creating aliases)
+	// For now, we acknowledge the response to close the loop
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+		"message": "AI response processed",
+		"action":  "processed",
+	})
 }
 
 // processBoxScan handles 'b' codes (dimensions + weight + type)

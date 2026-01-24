@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/xelth-com/eckwmsgo/internal/ai"
 	"github.com/xelth-com/eckwmsgo/internal/database"
 	"github.com/xelth-com/eckwmsgo/internal/middleware"
 	"github.com/xelth-com/eckwmsgo/internal/models"
@@ -27,6 +28,7 @@ type Router struct {
 	odooService      interface{} // Set via SetOdooService for Odoo sync routes
 	deliveryService  *deliveryService.Service // Set via SetDeliveryService for delivery routes
 	syncEngine       *sync.SyncEngine // Set via SetSyncEngine for mesh sync routes
+	aiClient         *ai.GeminiClient // Set via SetAIClient for AI features
 }
 
 // NewRouter creates a new HTTP router with all routes
@@ -105,6 +107,9 @@ func NewRouter(db *database.DB) *Router {
 
 		// Universal Scan Endpoint
 		api.HandleFunc("/scan", r.handleScan).Methods("POST")
+
+		// AI Feedback Endpoint
+		api.HandleFunc("/ai/respond", r.handleAiRespond).Methods("POST")
 	}
 
 	// WebSocket endpoint (needs GET method for upgrade handshake)
@@ -851,4 +856,9 @@ func (r *Router) registerSyncRoutes(prefix string, engine *sync.SyncEngine) {
 		syncApi.HandleFunc("/start", syncHandler.StartSync).Methods("POST")
 		syncApi.HandleFunc("/full", syncHandler.TriggerFullSync).Methods("POST")
 	}
+}
+
+// SetAIClient sets the AI client for AI-powered features
+func (r *Router) SetAIClient(client *ai.GeminiClient) {
+	r.aiClient = client
 }

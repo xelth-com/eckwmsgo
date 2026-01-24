@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/xelth-com/eckwmsgo/internal/ai"
 	"github.com/xelth-com/eckwmsgo/internal/config"
 	"github.com/xelth-com/eckwmsgo/internal/database"
 	"github.com/xelth-com/eckwmsgo/internal/delivery"
@@ -201,6 +202,25 @@ func main() {
 		}
 	}()
 	log.Println("✅ Delivery: Background worker started")
+
+	// --- AI INITIALIZATION ---
+	var aiClient *ai.GeminiClient
+	if cfg.AI.GeminiKey != "" {
+		log.Println("🧠 Initializing Gemini AI Client (Official SDK)...")
+		// We use a background context that persists for the app lifetime
+		ctx := context.Background()
+		c, err := ai.NewGeminiClient(ctx, cfg.AI.GeminiKey, cfg.AI.Model)
+		if err != nil {
+			log.Printf("⚠️ Failed to init AI: %v", err)
+		} else {
+			aiClient = c
+			defer aiClient.Close()
+			router.SetAIClient(aiClient)
+			log.Printf("✅ AI Client initialized (model: %s)", cfg.AI.Model)
+		}
+	} else {
+		log.Println("⚠️ GEMINI_API_KEY not found. AI features will be disabled.")
+	}
 
 	// Start OPAL import scheduler (every hour)
 	go func() {

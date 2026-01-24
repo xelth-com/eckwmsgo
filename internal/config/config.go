@@ -39,6 +39,7 @@ type Config struct {
 	Server      ServerConfig
 	Odoo        OdooConfig
 	Warehouse   WarehouseConfig
+	AI          AIConfig
 }
 
 // DatabaseConfig holds database configuration
@@ -88,6 +89,13 @@ type WarehouseConfig struct {
 	Zip     string
 	City    string
 	Country string
+}
+
+// AIConfig holds AI service configuration
+type AIConfig struct {
+	GeminiKey     string
+	Model         string
+	ModelFallback string
 }
 
 // Load loads configuration from environment variables
@@ -181,6 +189,11 @@ func Load() (*Config, error) {
 			Zip:     getEnv("WAREHOUSE_ZIP", ""),
 			City:    getEnv("WAREHOUSE_CITY", ""),
 			Country: getEnv("WAREHOUSE_COUNTRY", "DE"),
+		},
+		AI: AIConfig{
+			GeminiKey:     os.Getenv("GEMINI_API_KEY"),
+			Model:         getEnv("GEMINI_MODEL", "gemini-3-flash-preview"),
+			ModelFallback: getEnv("GEMINI_MODEL_FALLBACK", "gemini-2.5-flash"),
 		},
 	}, nil
 }
