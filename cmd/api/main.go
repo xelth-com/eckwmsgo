@@ -75,6 +75,7 @@ func main() {
 		&models.AIPermission{},
 		&models.AIAuditLog{},
 		&models.AIRateLimit{},
+		&models.ProductAlias{},
 	)
 	if err != nil {
 		log.Printf("⚠️ Migration warning: %v\n", err)

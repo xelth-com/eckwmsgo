@@ -97,6 +97,28 @@ func (r *Router) handleScan(w http.ResponseWriter, req *http.Request) {
 	case "l":
 		resp, err = r.processLabelScan(barcode)
 	default:
+		toolSvc := ai.NewToolService(r.db)
+		if alias, found := toolSvc.SearchInventory(barcode); found {
+			log.Printf("🧠 Memory Hit: %s is alias for %s", barcode, alias.InternalID)
+			if strings.HasPrefix(alias.InternalID, "i") {
+				resp, err = r.processItemScan(alias.InternalID)
+			} else if strings.HasPrefix(alias.InternalID, "b") {
+				resp, err = r.processBoxScan(alias.InternalID)
+			} else {
+				resp = ScanResponse{
+					Type:    "alias",
+					Action:  "found",
+					Message: fmt.Sprintf("Alias for %s", alias.InternalID),
+					Data:    alias,
+				}
+			}
+			if err == nil {
+				resp.MsgID = body.MsgID
+				respondJSON(w, http.StatusOK, resp)
+				return
+			}
+		}
+
 		if r.aiClient != nil {
 			prompt := fmt.Sprintf("Worker scanned unknown code: '%s'. Analyze it.", barcode)
 			fullPrompt := ai.AgentSystemPrompt + "\n\n" + prompt
@@ -151,13 +173,26 @@ func (r *Router) handleAiRespond(w http.ResponseWriter, req *http.Request) {
 
 	log.Printf("🤖 AI Response received: %s for %s (Interaction: %s)", body.Response, body.Barcode, body.InteractionID)
 
-	// TODO: Implement actual AI logic (linking codes, creating aliases)
-	// For now, we acknowledge the response to close the loop
+	actionTaken := "logged_only"
+
+	if strings.ToLower(body.Response) == "yes" {
+		toolSvc := ai.NewToolService(r.db)
+		internalID := "b_receiving_dock"
+
+		err := toolSvc.LinkCode(internalID, body.Barcode, "manual_confirmation", "android_feedback")
+		if err != nil {
+			log.Printf("❌ Failed to link code: %v", err)
+			actionTaken = "error_linking"
+		} else {
+			actionTaken = "linked_to_db"
+			log.Printf("✅ Successfully linked %s -> %s", body.Barcode, internalID)
+		}
+	}
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"message": "AI response processed",
-		"action":  "processed",
+		"action":  actionTaken,
 	})
 }
 
