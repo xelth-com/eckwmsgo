@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/xelth-com/eckwmsgo/internal/ai"
 	"github.com/xelth-com/eckwmsgo/internal/models"
 	"github.com/xelth-com/eckwmsgo/internal/utils"
 	"gorm.io/gorm"
@@ -96,7 +97,28 @@ func (r *Router) handleScan(w http.ResponseWriter, req *http.Request) {
 	case "l":
 		resp, err = r.processLabelScan(barcode)
 	default:
-		// Fallback: Try to find a product by EAN directly (legacy/retail barcode)
+		if r.aiClient != nil {
+			prompt := fmt.Sprintf("Worker scanned unknown code: '%s'. Analyze it.", barcode)
+			fullPrompt := ai.AgentSystemPrompt + "\n\n" + prompt
+
+			aiResponseStr, err := r.aiClient.GenerateContent(req.Context(), fullPrompt)
+			if err == nil {
+				var interaction map[string]interface{}
+				if json.Unmarshal([]byte(aiResponseStr), &interaction) == nil {
+					resp = ScanResponse{
+						Type:          "ai_analysis",
+						Message:       "AI Analysis",
+						Action:        "interaction",
+						AiInteraction: interaction,
+					}
+					resp.MsgID = body.MsgID
+					respondJSON(w, http.StatusOK, resp)
+					return
+				}
+			}
+			fmt.Printf("AI Error or Invalid JSON: %v\n", err)
+		}
+
 		resp, err = r.processLegacyScan(barcode)
 	}
 
