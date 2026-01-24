@@ -11,12 +11,13 @@ import (
 
 // GeminiClient interacts with Google Gemini API using the official SDK
 type GeminiClient struct {
-	client *genai.Client
-	model  *genai.GenerativeModel
+	client        *genai.Client
+	primaryModel  string
+	fallbackModel string
 }
 
-// NewGeminiClient creates a new Gemini API client
-func NewGeminiClient(ctx context.Context, apiKey, modelName string) (*GeminiClient, error) {
+// NewGeminiClient creates a new Gemini API client with fallback support
+func NewGeminiClient(ctx context.Context, apiKey, primaryModel, fallbackModel string) (*GeminiClient, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("GEMINI_API_KEY is empty")
 	}
@@ -26,18 +27,17 @@ func NewGeminiClient(ctx context.Context, apiKey, modelName string) (*GeminiClie
 		return nil, fmt.Errorf("failed to create genai client: %w", err)
 	}
 
-	if modelName == "" {
-		modelName = "gemini-3-flash-preview"
+	if primaryModel == "" {
+		primaryModel = "gemini-3-flash-preview"
+	}
+	if fallbackModel == "" {
+		fallbackModel = "gemini-2.5-flash"
 	}
 
-	model := client.GenerativeModel(modelName)
-
-	// Optional: Configure safety settings if needed
-	// model.SafetySettings = []*genai.SafetySetting{...}
-
 	return &GeminiClient{
-		client: client,
-		model:  model,
+		client:        client,
+		primaryModel:  primaryModel,
+		fallbackModel: fallbackModel,
 	}, nil
 }
 
@@ -48,19 +48,36 @@ func (c *GeminiClient) Close() {
 	}
 }
 
-// GenerateContent sends a prompt to Gemini and returns the response text
+// GenerateContent sends a prompt to Gemini (Primary -> Fallback)
 func (c *GeminiClient) GenerateContent(ctx context.Context, prompt string) (string, error) {
-	resp, err := c.model.GenerateContent(ctx, genai.Text(prompt))
+	result, err := c.generateWithModel(ctx, c.primaryModel, prompt)
+	if err == nil {
+		return result, nil
+	}
+
+	log.Printf("⚠️ Primary model (%s) failed: %v. Switching to fallback (%s)...", c.primaryModel, err, c.fallbackModel)
+
+	result, err = c.generateWithModel(ctx, c.fallbackModel, prompt)
 	if err != nil {
-		return "", fmt.Errorf("gemini generation error: %w", err)
+		return "", fmt.Errorf("both primary and fallback models failed: %w", err)
+	}
+
+	return result, nil
+}
+
+// Helper to generate content with a specific model
+func (c *GeminiClient) generateWithModel(ctx context.Context, modelName string, prompt string) (string, error) {
+	model := c.client.GenerativeModel(modelName)
+
+	resp, err := model.GenerateContent(ctx, genai.Text(prompt))
+	if err != nil {
+		return "", err
 	}
 
 	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
-		return "", fmt.Errorf("empty response from gemini")
+		return "", fmt.Errorf("empty response from model")
 	}
 
-	// Extract text from the first part
-	// Note: In a real app, you might want to handle multiple parts/candidates
 	var fullText string
 	for _, part := range resp.Candidates[0].Content.Parts {
 		if txt, ok := part.(genai.Text); ok {

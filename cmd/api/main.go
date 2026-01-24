@@ -206,17 +206,15 @@ func main() {
 	// --- AI INITIALIZATION ---
 	var aiClient *ai.GeminiClient
 	if cfg.AI.GeminiKey != "" {
-		log.Println("🧠 Initializing Gemini AI Client (Official SDK)...")
-		// We use a background context that persists for the app lifetime
-		ctx := context.Background()
-		c, err := ai.NewGeminiClient(ctx, cfg.AI.GeminiKey, cfg.AI.Model)
+		log.Printf("🧠 Initializing Gemini AI (Primary: %s, Fallback: %s)...", cfg.AI.Model, cfg.AI.ModelFallback)
+		c, err := ai.NewGeminiClient(context.Background(), cfg.AI.GeminiKey, cfg.AI.Model, cfg.AI.ModelFallback)
 		if err != nil {
 			log.Printf("⚠️ Failed to init AI: %v", err)
 		} else {
 			aiClient = c
 			defer aiClient.Close()
 			router.SetAIClient(aiClient)
-			log.Printf("✅ AI Client initialized (model: %s)", cfg.AI.Model)
+			log.Println("✅ AI Client initialized")
 		}
 	} else {
 		log.Println("⚠️ GEMINI_API_KEY not found. AI features will be disabled.")
