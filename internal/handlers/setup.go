@@ -44,8 +44,15 @@ func (r *Router) generatePairingQR(w http.ResponseWriter, req *http.Request) {
 
 	// A. Add Local IPs (Fastest/Preferred)
 	localIPs := utils.GetLocalIPs()
+	cfg, _ := config.Load()
+	prefix := cfg.PathPrefix
+	if prefix != "" && !strings.HasPrefix(prefix, "/") {
+		prefix = "/" + prefix
+	}
+	prefix = strings.TrimSuffix(prefix, "/")
+
 	for _, ip := range localIPs {
-		candidates = append(candidates, fmt.Sprintf("http://%s:%s", ip, port))
+		candidates = append(candidates, fmt.Sprintf("http://%s:%s%s", ip, port, prefix))
 	}
 
 	// B. Add Global URL (Fallback/Remote)
