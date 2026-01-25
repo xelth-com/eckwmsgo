@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/skip2/go-qrcode"
 	"github.com/xelth-com/eckwmsgo/internal/config"
 	"github.com/xelth-com/eckwmsgo/internal/models"
 	"github.com/xelth-com/eckwmsgo/internal/utils"
-	"github.com/skip2/go-qrcode"
 )
 
 // GeneratePairingQR generates a QR code for device pairing (ECK-P1-ALPHA protocol)
@@ -44,7 +44,11 @@ func (r *Router) generatePairingQR(w http.ResponseWriter, req *http.Request) {
 		}
 		serverURL = fmt.Sprintf("%s://%s", scheme, req.Host)
 	}
+	// Normalize URL: Uppercase and ensure trailing slash for Nginx routing
 	serverURL = strings.ToUpper(serverURL)
+	if !strings.HasSuffix(serverURL, "/") {
+		serverURL += "/"
+	}
 
 	// Construct Protocol String
 	qrString := fmt.Sprintf("ECK$1$%s$%s$%s", compactUUID, pubKeyHex, serverURL)
