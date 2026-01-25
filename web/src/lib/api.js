@@ -1,7 +1,8 @@
 import { get } from 'svelte/store';
 import { authStore } from '$lib/stores/authStore';
+import { base } from '$app/paths';
 
-const BASE_URL = ''; // Relative path for proxy/embedded serving
+const BASE_URL = base || '/E'; // Use SvelteKit base path or fallback to /E
 
 async function request(endpoint, options = {}) {
     const state = get(authStore);
