@@ -6,17 +6,24 @@ import (
 	"gorm.io/gorm"
 )
 
-// RegisteredDevice represents a paired mobile device
+// DeviceStatus defines the authorization state of a device
+type DeviceStatus string
+
+const (
+	DeviceStatusPending DeviceStatus = "pending" // Initial state, waiting for admin approval
+	DeviceStatusActive  DeviceStatus = "active"  // Authorized to work
+	DeviceStatusBlocked DeviceStatus = "blocked" // Explicitly banned
+)
+
+// RegisteredDevice represents a PDA/Scanner that has initiated a handshake
 type RegisteredDevice struct {
 	DeviceID   string         `gorm:"primaryKey" json:"deviceId"`
-	InstanceID *string        `json:"instance_id,omitempty"`
-	IsActive   bool           `gorm:"default:true" json:"is_active"`
-	Status     string         `gorm:"default:'pending'" json:"status"` // active, pending, blocked
-	PublicKey  string         `gorm:"not null" json:"publicKey"`       // Base64
-	DeviceName string         `json:"deviceName"`
-	RoleID     *uint          `json:"role_id,omitempty"`
-	CreatedAt  time.Time      `json:"created_at"`
-	UpdatedAt  time.Time      `json:"updated_at"`
+	Name       string         `json:"name"`
+	PublicKey  string         `gorm:"not null" json:"publicKey"` // Base64 encoded Ed25519 public key
+	Status     DeviceStatus   `gorm:"default:'pending'" json:"status"`
+	LastSeenAt time.Time      `json:"lastSeenAt"`
+	CreatedAt  time.Time      `json:"createdAt"`
+	UpdatedAt  time.Time      `json:"updatedAt"`
 	DeletedAt  gorm.DeletedAt `gorm:"index" json:"-"`
 }
 

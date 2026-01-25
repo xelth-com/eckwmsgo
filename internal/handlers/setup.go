@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"crypto/ed25519"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -10,42 +8,48 @@ import (
 	"strings"
 	"time"
 
-	"github.com/xelth-com/eckwmsgo/internal/config"
 	"github.com/xelth-com/eckwmsgo/internal/models"
 	"github.com/xelth-com/eckwmsgo/internal/utils"
 	"github.com/skip2/go-qrcode"
 )
 
-// generatePairingQR creates the QR code for device pairing
+// GeneratePairingQR generates a QR code for device pairing (ECK-P1-ALPHA protocol)
+// Protocol: ECK$1$COMPACTUUID$PUBKEY_HEX$URL
 func (r *Router) generatePairingQR(w http.ResponseWriter, req *http.Request) {
-	instanceID := os.Getenv("INSTANCE_ID")
-	pubKey := os.Getenv("SERVER_PUBLIC_KEY")
-	serverURL := os.Getenv("GLOBAL_SERVER_URL")
-
-	if instanceID == "" || pubKey == "" {
-		respondError(w, http.StatusInternalServerError, "Server not configured for pairing")
+	identity := utils.GetServerIdentity()
+	if identity == nil {
+		respondError(w, http.StatusInternalServerError, "Server identity not initialized")
 		return
 	}
 
-	if serverURL == "" {
-		serverURL = "http://localhost:3210"
-	}
+	// 1. Compact UUID (remove dashes, uppercase)
+	compactUUID := strings.ToUpper(strings.ReplaceAll(identity.InstanceID, "-", ""))
 
-	// Compact UUID: Remove dashes and uppercase
-	compactUUID := strings.ToUpper(strings.ReplaceAll(instanceID, "-", ""))
-
-	// Decode public key from base64 and convert to hex uppercase
-	pubKeyBytes, err := base64.StdEncoding.DecodeString(pubKey)
+	// 2. Public Key (Hex, uppercase)
+	pubKeyHex, err := identity.GetPublicKeyHex()
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "Invalid public key format")
+		respondError(w, http.StatusInternalServerError, "Invalid server key")
 		return
 	}
-	pubKeyHex := fmt.Sprintf("%x", pubKeyBytes)
+	pubKeyHex = strings.ToUpper(pubKeyHex)
 
-	// Protocol: ECK$1$COMPACTUUID$PUBKEY_HEX$URL
-	qrString := "ECK$1$" + compactUUID + "$" + strings.ToUpper(pubKeyHex) + "$" + strings.ToUpper(serverURL)
+	// 3. URL (from Config or Host header)
+	// Prefer environment variable, fallback to request host
+	serverURL := os.Getenv("GLOBAL_SERVER_URL")
+	if serverURL == "" {
+		scheme := "http"
+		if req.TLS != nil {
+			scheme = "https"
+		}
+		serverURL = fmt.Sprintf("%s://%s", scheme, req.Host)
+	}
+	serverURL = strings.ToUpper(serverURL)
 
-	png, err := qrcode.Encode(qrString, qrcode.Low, 256)
+	// Construct Protocol String
+	qrString := fmt.Sprintf("ECK$1$%s$%s$%s", compactUUID, pubKeyHex, serverURL)
+
+	// Generate QR
+	png, err := qrcode.Encode(qrString, qrcode.Medium, 512)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "Failed to generate QR")
 		return
@@ -55,7 +59,7 @@ func (r *Router) generatePairingQR(w http.ResponseWriter, req *http.Request) {
 	w.Write(png)
 }
 
-// DeviceRegisterRequest represents a device registration request
+// DeviceRegisterRequest payload from Android client
 type DeviceRegisterRequest struct {
 	DeviceID        string `json:"deviceId"`
 	DeviceName      string `json:"deviceName"`
@@ -63,103 +67,69 @@ type DeviceRegisterRequest struct {
 	Signature       string `json:"signature"`       // Base64
 }
 
-// registerDevice handles the cryptographic pairing handshake
+// RegisterDevice handles the handshake from a mobile device
 func (r *Router) registerDevice(w http.ResponseWriter, req *http.Request) {
 	var body DeviceRegisterRequest
 	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid request")
+		respondError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 
-	// Validate required fields
+	// 1. Verify Payload
 	if body.DeviceID == "" || body.DevicePublicKey == "" || body.Signature == "" {
 		respondError(w, http.StatusBadRequest, "Missing required fields")
 		return
 	}
 
-	// 1. Verify Signature
-	// Message format: {"deviceId":"...","devicePublicKey":"..."}
-	msgStr := fmt.Sprintf("{\"deviceId\":\"%s\",\"devicePublicKey\":\"%s\"}", body.DeviceID, body.DevicePublicKey)
-	msgBytes := []byte(msgStr)
+	// 2. Verify Signature
+	// The client signs the JSON string: {"deviceId":"...","devicePublicKey":"..."}
+	// We must recreate this string EXACTLY as the client does.
+	message := fmt.Sprintf("{\"deviceId\":\"%s\",\"devicePublicKey\":\"%s\"}", body.DeviceID, body.DevicePublicKey)
 
-	sigBytes, err := base64.StdEncoding.DecodeString(body.Signature)
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid signature format")
-		return
-	}
-
-	pubKeyBytes, err := base64.StdEncoding.DecodeString(body.DevicePublicKey)
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid public key format")
-		return
-	}
-
-	if len(pubKeyBytes) != ed25519.PublicKeySize {
-		respondError(w, http.StatusBadRequest, "Invalid public key length")
-		return
-	}
-
-	if len(sigBytes) != ed25519.SignatureSize {
-		respondError(w, http.StatusBadRequest, "Invalid signature length")
-		return
-	}
-
-	if !ed25519.Verify(pubKeyBytes, msgBytes, sigBytes) {
+	valid, err := utils.VerifySignature(body.DevicePublicKey, message, body.Signature)
+	if err != nil || !valid {
 		respondError(w, http.StatusForbidden, "Invalid signature")
 		return
 	}
 
-	// 2. Register or Update Device
+	// 3. Update/Create Device in DB
 	var device models.RegisteredDevice
-	result := r.db.Where("device_id = ?", body.DeviceID).First(&device)
+	result := r.db.First(&device, "device_id = ?", body.DeviceID)
 
-	status := "pending"
-	if result.Error == nil {
-		// Update existing - preserve status
-		status = device.Status
-		device.PublicKey = body.DevicePublicKey
-		device.IsActive = true
-		if body.DeviceName != "" {
-			device.DeviceName = body.DeviceName
-		}
-		r.db.Save(&device)
-	} else {
-		// Create new
-		device = models.RegisteredDevice{
+	if result.Error != nil {
+		// Create new device (Pending by default)
+		newDevice := models.RegisteredDevice{
 			DeviceID:   body.DeviceID,
+			Name:       body.DeviceName,
 			PublicKey:  body.DevicePublicKey,
-			DeviceName: body.DeviceName,
-			IsActive:   true,
-			Status:     "pending",
-			CreatedAt:  time.Now(),
-			UpdatedAt:  time.Now(),
+			Status:     models.DeviceStatusPending,
+			LastSeenAt: time.Now(),
 		}
-		r.db.Create(&device)
+		if err := r.db.Create(&newDevice).Error; err != nil {
+			respondError(w, http.StatusInternalServerError, "Database error")
+			return
+		}
+
+		// Respond
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"success": true,
+			"status":  newDevice.Status,
+			"message": "Device registered, waiting for approval.",
+		})
+	} else {
+		// Update existing device
+		// We DO NOT change the status here. If it was blocked, it stays blocked.
+		// We update keys and name in case they changed (re-install app).
+		device.PublicKey = body.DevicePublicKey
+		device.Name = body.DeviceName
+		device.LastSeenAt = time.Now()
+
+		r.db.Save(&device)
+
+		respondJSON(w, http.StatusOK, map[string]interface{}{
+			"success": true,
+			"status":  device.Status,
+			"message": "Device updated.",
+		})
 	}
-
-	// 3. Generate Token for the device (Android requires this for subsequent calls)
-	cfg, _ := config.Load()
-
-	// Create a mock user struct for token generation
-	// The device acts as a user "device_[id]"
-	mockUser := &models.UserAuth{
-		ID:       "device_" + body.DeviceID,
-		Username: "device_" + body.DeviceID,
-		Role:     "device",
-		UserType: "individual",
-		Email:    "device@" + body.DeviceID + ".local",
-	}
-
-	accessToken, refreshToken, err := utils.GenerateTokens(mockUser, cfg)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, "Failed to generate device token")
-		return
-	}
-
-	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"status":       status,
-		"token":        accessToken,
-		"refreshToken": refreshToken,
-		"message":      "Device registered. Access token provided.",
-	})
 }

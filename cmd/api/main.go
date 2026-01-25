@@ -32,14 +32,20 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
-	// 2. Initialize database (Detects Embedded vs External automatically)
+	// 2. Initialize Server Identity (Keys)
+	if err := utils.LoadOrGenerateServerIdentity(); err != nil {
+		log.Fatalf("Failed to initialize server identity: %v", err)
+	}
+	log.Printf("🆔 Server Instance ID: %s", utils.GetServerIdentity().InstanceID)
+
+	// 3. Initialize database (Detects Embedded vs External automatically)
 	db, err := database.Connect(cfg.Database)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	// Note: db.Close() is called manually in shutdown handler below
 
-	// 3. Auto-Migrate Schema (Critical for Zero-Config)
+	// 4. Auto-Migrate Schema (Critical for Zero-Config)
 	log.Println("🚀 Synchronizing database schema...")
 	err = db.AutoMigrate(
 		&models.UserAuth{},
@@ -109,10 +115,10 @@ func main() {
 		}
 	}
 
-	// 4. Set up HTTP router
+	// 5. Set up HTTP router
 	router := handlers.NewRouter(db)
 
-	// 5. Start Odoo Sync Service (Background)
+	// 6. Start Odoo Sync Service (Background)
 	odooService := odoo.NewSyncService(db, odoo.Config{
 		URL:          cfg.Odoo.URL,
 		Database:     cfg.Odoo.Database,
@@ -249,7 +255,7 @@ func main() {
 	}()
 	log.Println("✅ Delivery: OPAL import scheduler started (hourly)")
 
-	// 6. Start server with graceful shutdown
+	// 7. Start server with graceful shutdown
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3210" // Standard eckWMS port
