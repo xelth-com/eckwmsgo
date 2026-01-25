@@ -8,27 +8,27 @@ import (
 	"os"
 	"strings"
 
+	"github.com/gorilla/mux"
 	"github.com/xelth-com/eckwmsgo/internal/ai"
 	"github.com/xelth-com/eckwmsgo/internal/database"
 	"github.com/xelth-com/eckwmsgo/internal/middleware"
 	"github.com/xelth-com/eckwmsgo/internal/models"
-	odooService "github.com/xelth-com/eckwmsgo/internal/services/odoo"
 	deliveryService "github.com/xelth-com/eckwmsgo/internal/services/delivery"
+	odooService "github.com/xelth-com/eckwmsgo/internal/services/odoo"
 	"github.com/xelth-com/eckwmsgo/internal/sync"
 	"github.com/xelth-com/eckwmsgo/internal/websocket"
 	"github.com/xelth-com/eckwmsgo/web"
-	"github.com/gorilla/mux"
 )
 
 // Router wraps the mux router and database
 type Router struct {
 	*mux.Router
-	db               *database.DB
-	hub              *websocket.Hub
-	odooService      interface{} // Set via SetOdooService for Odoo sync routes
-	deliveryService  *deliveryService.Service // Set via SetDeliveryService for delivery routes
-	syncEngine       *sync.SyncEngine // Set via SetSyncEngine for mesh sync routes
-	aiClient         *ai.GeminiClient // Set via SetAIClient for AI features
+	db              *database.DB
+	hub             *websocket.Hub
+	odooService     interface{}              // Set via SetOdooService for Odoo sync routes
+	deliveryService *deliveryService.Service // Set via SetDeliveryService for delivery routes
+	syncEngine      *sync.SyncEngine         // Set via SetSyncEngine for mesh sync routes
+	aiClient        *ai.GeminiClient         // Set via SetAIClient for AI features
 }
 
 // NewRouter creates a new HTTP router with all routes
@@ -254,7 +254,7 @@ func (r *Router) healthCheck(w http.ResponseWriter, req *http.Request) {
 // getStatus returns the current status
 func (r *Router) getStatus(w http.ResponseWriter, req *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]string{
-		"status": "running",
+		"status":  "running",
 		"version": "1.0.0",
 	})
 }
@@ -633,8 +633,8 @@ func (r *Router) createShipment(w http.ResponseWriter, req *http.Request) {
 	}
 
 	var reqBody struct {
-		PickingID     int64  `json:"picking_id"`
-		ProviderCode  string `json:"provider_code"` // e.g., "opal", "dhl"
+		PickingID    int64  `json:"picking_id"`
+		ProviderCode string `json:"provider_code"` // e.g., "opal", "dhl"
 	}
 
 	if err := json.NewDecoder(req.Body).Decode(&reqBody); err != nil {
