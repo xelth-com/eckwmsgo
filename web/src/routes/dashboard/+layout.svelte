@@ -167,6 +167,12 @@
             >
                 Printing
             </a>
+            <a
+                href="{base}/dashboard/devices"
+                class:active={$page.url.pathname.includes("/devices")}
+            >
+                Devices
+            </a>
         </nav>
 
         <div class="user-panel">

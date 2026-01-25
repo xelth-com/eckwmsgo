@@ -91,6 +91,7 @@ func NewRouter(db *database.DB) *Router {
 	r.registerSetupRoutes(urlPrefix) // Protected parts of setup
 	r.registerPrintRoutes(urlPrefix)
 	r.registerAIRoutes(urlPrefix, db)
+	r.registerAdminRoutes(urlPrefix) // Admin endpoints for device management
 
 	// 6. Generic API endpoints (Protected)
 	// This captures remaining /api/* requests like /api/status or /api/scan
@@ -855,6 +856,22 @@ func (r *Router) registerSyncRoutes(prefix string, engine *sync.SyncEngine) {
 		syncApi.HandleFunc("/status", syncHandler.GetSyncStatus).Methods("GET")
 		syncApi.HandleFunc("/start", syncHandler.StartSync).Methods("POST")
 		syncApi.HandleFunc("/full", syncHandler.TriggerFullSync).Methods("POST")
+	}
+}
+
+// registerAdminRoutes registers device management routes with optional prefix
+func (r *Router) registerAdminRoutes(prefix string) {
+	paths := []string{"/api/admin"}
+	if prefix != "" {
+		paths = append(paths, prefix+"/api/admin")
+	}
+
+	for _, p := range paths {
+		admin := r.PathPrefix(p).Subrouter()
+		admin.Use(middleware.AuthMiddleware) // Protect these routes!
+
+		admin.HandleFunc("/devices", r.listDevices).Methods("GET")
+		admin.HandleFunc("/devices/{id}/status", r.updateDeviceStatus).Methods("PUT")
 	}
 }
 
