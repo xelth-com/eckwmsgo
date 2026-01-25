@@ -21,11 +21,9 @@ function createWsStore() {
         // Determine protocol (ws or wss) and construct URL
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const host = window.location.host;
-        // In dev, the Go server might be on a different port if not proxied,
-        // but typically in the final build it's served from the same origin.
-        // For dev with separate frontend server, we might need configuration,
-        // but assuming proxy setup or single binary for now.
-        const url = `${protocol}//${host}/ws`;
+        // Use /E/ws path (HTTP_PATH_PREFIX=/E from backend config)
+        // CaseInsensitiveMiddleware on backend handles both /E/ws and /e/ws
+        const url = `${protocol}//${host}/E/ws`;
 
         console.log(`[WS] Connecting to ${url}...`);
         socket = new WebSocket(url);
