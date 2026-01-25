@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 )
 
@@ -261,6 +262,7 @@ func getDefaultRoutes() []SyncRouteConfig {
 
 	// Primary local server
 	if localURL := os.Getenv("LOCAL_SERVER_INTERNAL_URL"); localURL != "" {
+		log.Printf("🔗 Adding primary sync route: %s", localURL)
 		routes = append(routes, SyncRouteConfig{
 			URL:      localURL,
 			Type:     "primary",
@@ -271,12 +273,17 @@ func getDefaultRoutes() []SyncRouteConfig {
 
 	// Fallback web server
 	if globalURL := os.Getenv("GLOBAL_SERVER_URL"); globalURL != "" {
+		log.Printf("🔗 Adding web sync route: %s", globalURL)
 		routes = append(routes, SyncRouteConfig{
 			URL:      globalURL,
 			Type:     "web",
 			Timeout:  15,
 			Priority: 2,
 		})
+	}
+
+	if len(routes) == 0 {
+		log.Println("⚠️ No sync routes configured (LOCAL_SERVER_INTERNAL_URL and GLOBAL_SERVER_URL not set)")
 	}
 
 	return routes

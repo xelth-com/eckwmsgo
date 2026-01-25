@@ -3,8 +3,10 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 )
 
@@ -132,7 +134,7 @@ func Load() (*Config, error) {
 		EncKey:     encKey,
 
 		// Mesh Configuration
-		InstanceID:     getEnv("INSTANCE_ID", "unknown_instance"),
+		InstanceID:     GetOrCreateInstanceID(os.Getenv("INSTANCE_ID")),
 		NodeRole:       NodeRole(getEnv("NODE_ROLE", "edge")),
 		NodeWeight:     getIntEnv("NODE_WEIGHT", 10),
 		BaseURL:        strings.TrimRight(getEnv("BASE_URL", "http://localhost:3210"), "/"),
@@ -220,4 +222,56 @@ func parseBootstrapNodes(s string) []string {
 		}
 	}
 	return result
+}
+
+// GetOrCreateInstanceID returns existing instance ID or generates a new one
+func GetOrCreateInstanceID(envValue string) string {
+	// If environment variable is set and not a placeholder, use it
+	if envValue != "" && !isPlaceholder(envValue) {
+		return envValue
+	}
+
+	// Try to load from persistent file
+	instanceIDPath := filepath.Join(".eck", "instance_id")
+	if data, err := os.ReadFile(instanceIDPath); err == nil {
+		savedID := strings.TrimSpace(string(data))
+		if savedID != "" && !isPlaceholder(savedID) {
+			return savedID
+		}
+	}
+
+	// Generate new random instance ID
+	newID := "instance_" + uuid.New().String()
+
+	// Try to save to file for persistence
+	os.MkdirAll(".eck", 0755)
+	if err := os.WriteFile(instanceIDPath, []byte(newID), 0644); err == nil {
+		// Also print to stderr so user knows
+		fmt.Fprintf(os.Stderr, "📋 Generated new INSTANCE_ID: %s\n", newID)
+		fmt.Fprintf(os.Stderr, "💾 Saved to .eck/instance_id (excluded from git)\n")
+	}
+
+	return newID
+}
+
+// isPlaceholder checks if value is a placeholder that should be replaced
+func isPlaceholder(value string) bool {
+	placeholders := []string{
+		"YOUR_INSTANCE_ID",
+		"local_dev_node",
+		"local_windows_dev",
+		"unknown_instance",
+		"change_me",
+		"placeholder",
+		"example",
+	}
+
+	lowerValue := strings.ToLower(value)
+	for _, ph := range placeholders {
+		if strings.Contains(lowerValue, strings.ToLower(ph)) {
+			return true
+		}
+	}
+
+	return false
 }

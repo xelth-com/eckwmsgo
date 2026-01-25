@@ -58,8 +58,15 @@ func StartDiscovery(cfg *config.Config) {
 				if err == nil && resp.StatusCode == 200 {
 					var peerInfo NodeInfo
 					if err := json.NewDecoder(resp.Body).Decode(&peerInfo); err == nil {
+						// Check if this is ourselves (same INSTANCE_ID)
+						if peerInfo.InstanceID == cfg.InstanceID {
+							log.Printf("Mesh: Skipping self-connection (same INSTANCE_ID: %s)", peerInfo.InstanceID)
+							resp.Body.Close()
+							continue
+						}
+
 						GlobalRegistry.RegisterNode(peerInfo)
-						log.Printf("Mesh: Handshake success with %s (%s)", peerInfo.BaseURL, peerInfo.Role)
+						log.Printf("Mesh: Handshake success with %s (%s, ID: %s)", peerInfo.BaseURL, peerInfo.Role, peerInfo.InstanceID)
 					}
 					resp.Body.Close()
 				} else if err != nil {
