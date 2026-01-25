@@ -34,24 +34,45 @@ func (r *Router) generatePairingQR(w http.ResponseWriter, req *http.Request) {
 	}
 	pubKeyHex = strings.ToUpper(pubKeyHex)
 
-	// 3. URL (from Config or Host header)
-	// Prefer environment variable, fallback to request host
-	serverURL := os.Getenv("GLOBAL_SERVER_URL")
-	if serverURL == "" {
+	// 3. Construct Connection Candidates List (Protocol v2)
+	// We want to give the client ALL options: Local IPs and Global URL.
+	var candidates []string
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "3210"
+	}
+
+	// A. Add Local IPs (Fastest/Preferred)
+	localIPs := utils.GetLocalIPs()
+	for _, ip := range localIPs {
+		candidates = append(candidates, fmt.Sprintf("http://%s:%s", ip, port))
+	}
+
+	// B. Add Global URL (Fallback/Remote)
+	globalURL := os.Getenv("GLOBAL_SERVER_URL")
+	if globalURL != "" {
+		// Ensure trailing slash for Nginx compatibility
+		if !strings.HasSuffix(globalURL, "/") {
+			globalURL += "/"
+		}
+		candidates = append(candidates, globalURL)
+	}
+
+	// If list is empty (edge case), try to use Host header
+	if len(candidates) == 0 {
 		scheme := "http"
 		if req.TLS != nil {
 			scheme = "https"
 		}
-		serverURL = fmt.Sprintf("%s://%s", scheme, req.Host)
-	}
-	// Normalize URL: Uppercase and ensure trailing slash for Nginx routing
-	serverURL = strings.ToUpper(serverURL)
-	if !strings.HasSuffix(serverURL, "/") {
-		serverURL += "/"
+		candidates = append(candidates, fmt.Sprintf("%s://%s", scheme, req.Host))
 	}
 
-	// Construct Protocol String
-	qrString := fmt.Sprintf("ECK$1$%s$%s$%s", compactUUID, pubKeyHex, serverURL)
+	// Join with commas and uppercase
+	connectionString := strings.ToUpper(strings.Join(candidates, ","))
+
+	// Construct Protocol String (Version 2)
+	// Format: ECK$2$UUID$KEY$URL1,URL2,URL3
+	qrString := fmt.Sprintf("ECK$2$%s$%s$%s", compactUUID, pubKeyHex, connectionString)
 
 	// Generate QR
 	png, err := qrcode.Encode(qrString, qrcode.Medium, 512)
