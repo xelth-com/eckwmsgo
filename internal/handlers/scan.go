@@ -53,6 +53,20 @@ func (r *Router) handleScan(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// SECURITY CHECK: Validate Device Status
+	// Ensures that even if JWT is valid, blocked devices cannot scan
+	if body.DeviceID != "" {
+		var device models.RegisteredDevice
+		if err := r.db.First(&device, "device_id = ?", body.DeviceID).Error; err != nil {
+			respondError(w, http.StatusForbidden, "Device not registered")
+			return
+		}
+		if device.Status != models.DeviceStatusActive {
+			respondError(w, http.StatusForbidden, fmt.Sprintf("Device is %s", device.Status))
+			return
+		}
+	}
+
 	barcode := strings.TrimSpace(body.Barcode)
 	if len(barcode) < 1 {
 		respondError(w, http.StatusBadRequest, "Empty barcode")

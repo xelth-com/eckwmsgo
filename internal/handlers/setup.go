@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/xelth-com/eckwmsgo/internal/config"
 	"github.com/xelth-com/eckwmsgo/internal/models"
 	"github.com/xelth-com/eckwmsgo/internal/utils"
 	"github.com/skip2/go-qrcode"
@@ -96,40 +97,58 @@ func (r *Router) registerDevice(w http.ResponseWriter, req *http.Request) {
 	var device models.RegisteredDevice
 	result := r.db.First(&device, "device_id = ?", body.DeviceID)
 
+	var finalStatus models.DeviceStatus
+
 	if result.Error != nil {
 		// Create new device (Pending by default)
+		finalStatus = models.DeviceStatusPending
 		newDevice := models.RegisteredDevice{
 			DeviceID:   body.DeviceID,
 			Name:       body.DeviceName,
 			PublicKey:  body.DevicePublicKey,
-			Status:     models.DeviceStatusPending,
+			Status:     finalStatus,
 			LastSeenAt: time.Now(),
 		}
 		if err := r.db.Create(&newDevice).Error; err != nil {
 			respondError(w, http.StatusInternalServerError, "Database error")
 			return
 		}
-
-		// Respond
-		respondJSON(w, http.StatusOK, map[string]interface{}{
-			"success": true,
-			"status":  newDevice.Status,
-			"message": "Device registered, waiting for approval.",
-		})
 	} else {
 		// Update existing device
 		// We DO NOT change the status here. If it was blocked, it stays blocked.
 		// We update keys and name in case they changed (re-install app).
+		finalStatus = device.Status
 		device.PublicKey = body.DevicePublicKey
 		device.Name = body.DeviceName
 		device.LastSeenAt = time.Now()
-
 		r.db.Save(&device)
-
-		respondJSON(w, http.StatusOK, map[string]interface{}{
-			"success": true,
-			"status":  device.Status,
-			"message": "Device updated.",
-		})
 	}
+
+	// 4. Generate JWT Token if ACTIVE
+	var accessToken string
+	if finalStatus == models.DeviceStatusActive {
+		cfg, _ := config.Load()
+
+		// Create a mock user context for the device
+		mockUser := &models.UserAuth{
+			ID:       "device_" + body.DeviceID,
+			Username: "device_" + body.DeviceID,
+			Role:     "device",
+			UserType: "individual",
+			Email:    "device@" + body.DeviceID + ".local",
+		}
+
+		token, _, err := utils.GenerateTokens(mockUser, cfg)
+		if err == nil {
+			accessToken = token
+		}
+	}
+
+	// 5. Respond
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+		"status":  finalStatus,
+		"token":   accessToken, // Will be empty if not active
+		"message": "Device handshake complete",
+	})
 }
