@@ -8,6 +8,7 @@
 	let loading = true;
 	let qrUrl = '';
 	let showQr = false;
+	let qrType = 'standard';
 
 	async function loadDevices() {
 		try {
@@ -29,11 +30,21 @@
 		}
 	}
 
-	async function loadQr() {
-		// Fetch the blob and create a local URL for security/auth handling
+	async function loadQr(type = 'standard') {
+		if (showQr && qrType === type) {
+			showQr = false;
+			return;
+		}
+
+		qrType = type;
+
 		try {
 			const token = localStorage.getItem('auth_token');
-			const res = await fetch(`${base}/api/internal/pairing-qr`, {
+			const url = type === 'vip' 
+				? `${base}/api/internal/pairing-qr?type=vip`
+				: `${base}/api/internal/pairing-qr`;
+
+			const res = await fetch(url, {
 				headers: { Authorization: `Bearer ${token}` }
 			});
 			const blob = await res.blob();
@@ -52,16 +63,28 @@
 <div class="page">
 	<header>
 		<h1>Device Management</h1>
-		<button class="btn primary" on:click={() => (showQr ? (showQr = false) : loadQr())}>
-			{showQr ? 'Hide Pairing QR' : 'Show Pairing QR'}
-		</button>
+		<div class="action-group">
+			<button class="btn secondary" class:active={showQr && qrType === 'standard'} on:click={() => loadQr('standard')}>
+				Show Standard QR
+			</button>
+			<button class="btn primary" class:active={showQr && qrType === 'vip'} on:click={() => loadQr('vip')}>
+				Show Auto-Approve QR
+			</button>
+		</div>
 	</header>
 
 	{#if showQr && qrUrl}
-		<div class="qr-panel">
-			<h3>Scan to Pair Device</h3>
+		<div class="qr-panel" class:vip={qrType === 'vip'}>
+			<h3>{qrType === 'vip' ? '⚡ Auto-Approve Pairing' : '🔒 Standard Pairing'}</h3>
 			<img src={qrUrl} alt="Pairing QR" />
-			<p class="hint">Use the ECK Scanner App to scan this code.</p>
+			<p class="hint">
+				{#if qrType === 'vip'}
+					<strong>Warning:</strong> Devices scanning this code will be <u>immediately authorized</u>. Valid for 24 hours.
+				{:else}
+					Devices scanning this code will appear as <strong>Pending</strong> below.
+				{/if}
+			</p>
+			<button class="btn-text" on:click={() => showQr = false}>Close</button>
 		</div>
 	{/if}
 
@@ -69,7 +92,7 @@
 		{#if loading}
 			<div class="loading">Loading devices...</div>
 		{:else if devices.length === 0}
-			<div class="empty">No devices registered. Scan the QR code to add one.</div>
+			<div class="empty">No devices registered. Scan a QR code to add one.</div>
 		{:else}
 			<table>
 				<thead>
@@ -120,10 +143,17 @@
 		justify-content: space-between;
 		align-items: center;
 		margin-bottom: 2rem;
+		flex-wrap: wrap;
+		gap: 1rem;
 	}
 	h1 {
 		color: #fff;
 		margin: 0;
+	}
+
+	.action-group {
+		display: flex;
+		gap: 10px;
 	}
 
 	.qr-panel {
@@ -136,12 +166,26 @@
 		max-width: 400px;
 		margin-left: auto;
 		margin-right: auto;
+		border: 4px solid transparent;
 	}
+
+	.qr-panel.vip {
+		border-color: #f39c12;
+		background: #fff9e6;
+	}
+
 	.qr-panel img {
 		max-width: 100%;
 		height: auto;
 		display: block;
 		margin: 0 auto;
+		border: 1px solid #eee;
+	}
+
+	.hint {
+		margin-top: 1rem;
+		font-size: 0.9rem;
+		color: #555;
 	}
 
 	table {
@@ -194,13 +238,35 @@
 	.btn {
 		padding: 0.6rem 1.2rem;
 		border-radius: 6px;
-		border: none;
+		border: 1px solid transparent;
 		font-weight: 600;
 		cursor: pointer;
+		transition: all 0.2s;
 	}
+
+	.btn.active {
+		transform: translateY(2px);
+		box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+	}
+
 	.btn.primary {
-		background: #4a69bd;
-		color: white;
+		background: #f39c12;
+		color: #000;
+	}
+
+	.btn.secondary {
+		background: #2a2a2a;
+		color: #fff;
+		border-color: #444;
+	}
+
+	.btn-text {
+		background: none;
+		border: none;
+		color: #666;
+		text-decoration: underline;
+		margin-top: 10px;
+		cursor: pointer;
 	}
 
 	.btn-icon {

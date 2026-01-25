@@ -4,9 +4,9 @@ import (
 	"errors"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/xelth-com/eckwmsgo/internal/config"
 	"github.com/xelth-com/eckwmsgo/internal/models"
-	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -51,6 +51,18 @@ func GenerateTokens(user *models.UserAuth, cfg *config.Config) (string, string, 
 	}
 
 	return accessToken, refreshToken, nil
+}
+
+// GenerateInviteToken creates a short-lived token for auto-approving devices
+func GenerateInviteToken(cfg *config.Config) (string, error) {
+	claims := jwt.MapClaims{
+		"type": "invite",
+		"iat":  time.Now().Unix(),
+		"exp":  time.Now().Add(time.Hour * 24).Unix(),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(cfg.JWTSecret))
 }
 
 // ValidateToken parses and validates a token
