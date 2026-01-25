@@ -7,24 +7,47 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
-// GetLocalIPs returns all non-loopback IPv4 addresses
+// GetLocalIPs returns all non-loopback IPv4 addresses with smart filtering
+// It filters out Link-Local (169.254.x.x) addresses ONLY IF a better alternative exists.
 func GetLocalIPs() []string {
-	var ips []string
+	var allIPs []string
+	var hasRoutableIP bool
+
+	// 1. Collect all IPs
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
-		return ips
+		return allIPs
 	}
 	for _, addr := range addrs {
 		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
 			if ipnet.IP.To4() != nil {
-				ips = append(ips, ipnet.IP.String())
+				ip := ipnet.IP.String()
+				allIPs = append(allIPs, ip)
+
+				// Check if this is a "good" IP (not APIPA)
+				if !strings.HasPrefix(ip, "169.254") {
+					hasRoutableIP = true
+				}
 			}
 		}
 	}
-	return ips
+
+	// 2. Filter based on availability
+	var finalIPs []string
+	for _, ip := range allIPs {
+		// If we have a good IP, skip garbage (169.254)
+		// If we DON'T have a good IP, keep everything (panic mode)
+		if hasRoutableIP && strings.HasPrefix(ip, "169.254") {
+			continue
+		}
+		finalIPs = append(finalIPs, ip)
+	}
+
+	return finalIPs
 }
 
 // ReportToGlobalServer reports this instance's local IPs to the global server for discovery
