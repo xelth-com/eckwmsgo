@@ -44,8 +44,9 @@ func (r *Router) generatePairingQR(w http.ResponseWriter, req *http.Request) {
 
 	// A. Add Local IPs (Fastest/Preferred)
 	localIPs := utils.GetLocalIPs()
-	cfg, _ := config.Load()
-	prefix := cfg.PathPrefix
+
+	// Load path prefix directly from environment
+	prefix := os.Getenv("HTTP_PATH_PREFIX")
 	if prefix != "" && !strings.HasPrefix(prefix, "/") {
 		prefix = "/" + prefix
 	}
