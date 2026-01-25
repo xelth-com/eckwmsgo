@@ -13,11 +13,9 @@
         // 1. Auth Guard
         const unsubscribeAuth = authStore.subscribe((state) => {
             if (!state.isLoading && !state.isAuthenticated) {
-                // Use base for explicit navigation if needed, though goto usually handles relative paths well.
-                // However, full reload or external links need base.
-                // For goto, it handles base automatically if we use relative paths correctly or root-relative with base.
-                // But let's be explicit and consistent.
-                goto(`${base}/login`);
+                // FIX: Robust base path handling
+                const pathBase = base || '/E';
+                goto(`${pathBase}/login`);
             }
         });
 

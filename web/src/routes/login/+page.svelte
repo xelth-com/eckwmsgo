@@ -20,7 +20,9 @@
         const result = await authStore.login(email, password);
 
         if (result.success) {
-            goto(`${base}/dashboard`);
+            // FIX: Robust base path handling. If base is empty, default to '/E' for production consistency.
+            const pathBase = base || '/E';
+            goto(`${pathBase}/dashboard`);
         } else {
             error = result.error || 'Login failed';
         }

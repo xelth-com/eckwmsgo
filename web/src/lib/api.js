@@ -24,9 +24,14 @@ async function request(endpoint, options = {}) {
     if (response.status === 401) {
         authStore.logout();
         if (typeof window !== 'undefined') {
-            // Use base path from current location to construct proper login URL
-            const basePath = window.location.pathname.split('/dashboard')[0] || '';
-            window.location.href = basePath + '/login';
+            // FIX: Robust base path handling
+            // 1. Try to get base from current URL (anything before /dashboard)
+            // 2. Fallback to /E if on root
+            let basePath = '/E';
+            if (window.location.pathname.includes('/dashboard')) {
+                basePath = window.location.pathname.split('/dashboard')[0] || '/E';
+            }
+            window.location.href = `${basePath}/login`;
         }
         throw new Error('Unauthorized');
     }
