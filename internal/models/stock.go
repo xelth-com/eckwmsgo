@@ -20,6 +20,9 @@ type StockLocation struct {
 
 	Parent   *StockLocation  `gorm:"foreignKey:LocationID" json:"parent,omitempty"`
 	Children []StockLocation `gorm:"foreignKey:LocationID" json:"children,omitempty"`
+
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 func (StockLocation) TableName() string { return "stock_location" }
