@@ -1,6 +1,7 @@
 package models
 
 import (
+	"strconv"
 	"time"
 
 	"gorm.io/datatypes"
@@ -27,3 +28,9 @@ type ProductProduct struct {
 }
 
 func (ProductProduct) TableName() string { return "product_product" }
+
+// GetEntityID implements SyncableEntity interface
+func (p ProductProduct) GetEntityID() string { return strconv.FormatInt(p.ID, 10) }
+
+// GetEntityType implements SyncableEntity interface
+func (p ProductProduct) GetEntityType() string { return "product" }

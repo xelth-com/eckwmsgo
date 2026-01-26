@@ -109,6 +109,11 @@ func main() {
 		NodeRole:   string(cfg.NodeRole),
 	})
 
+	// Register GORM hooks for automatic checksum updates
+	log.Println("🪝 Registering sync hooks...")
+	checksumCalc := sync.NewChecksumCalculator(cfg.InstanceID)
+	sync.RegisterHooks(db.DB, checksumCalc, cfg.InstanceID)
+
 	if syncCfg.Enabled {
 		if err := syncEngine.Start(); err != nil {
 			log.Printf("⚠️ Sync Engine: Failed to start: %v", err)

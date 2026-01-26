@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"strconv"
+	"time"
+)
 
 // StockLocation (p-code)
 type StockLocation struct {
@@ -20,6 +23,12 @@ type StockLocation struct {
 }
 
 func (StockLocation) TableName() string { return "stock_location" }
+
+// GetEntityID implements SyncableEntity interface
+func (l StockLocation) GetEntityID() string { return strconv.FormatInt(l.ID, 10) }
+
+// GetEntityType implements SyncableEntity interface
+func (l StockLocation) GetEntityType() string { return "location" }
 
 // StockLot (i-code serial part)
 type StockLot struct {
@@ -70,6 +79,12 @@ type StockQuant struct {
 }
 
 func (StockQuant) TableName() string { return "stock_quant" }
+
+// GetEntityID implements SyncableEntity interface
+func (q StockQuant) GetEntityID() string { return strconv.FormatInt(q.ID, 10) }
+
+// GetEntityType implements SyncableEntity interface
+func (q StockQuant) GetEntityType() string { return "quant" }
 
 // StockPicking (Move Order / Transfer Order)
 type StockPicking struct {
