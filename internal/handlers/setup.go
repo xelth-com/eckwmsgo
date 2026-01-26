@@ -12,6 +12,7 @@ import (
 	"github.com/xelth-com/eckwmsgo/internal/config"
 	"github.com/xelth-com/eckwmsgo/internal/models"
 	"github.com/xelth-com/eckwmsgo/internal/utils"
+	"gorm.io/gorm"
 )
 
 // GeneratePairingQR generates a QR code for device pairing (ECK-P1-ALPHA protocol)
@@ -153,7 +154,8 @@ func (r *Router) registerDevice(w http.ResponseWriter, req *http.Request) {
 
 	// 4. Update/Create Device in DB
 	var device models.RegisteredDevice
-	result := r.db.First(&device, "device_id = ?", body.DeviceID)
+	// Use Unscoped to find even soft-deleted devices (for restoration on re-registration)
+	result := r.db.Unscoped().Where("\"deviceId\" = ?", body.DeviceID).First(&device)
 
 	if result.Error != nil {
 		// Create new device
@@ -169,17 +171,24 @@ func (r *Router) registerDevice(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 	} else {
-		// Update existing device
-		// Only update status if it was pending and we have a valid token
-		// Do NOT unblock blocked devices automatically
-		if device.Status == models.DeviceStatusPending && finalStatus == models.DeviceStatusActive {
-			device.Status = models.DeviceStatusActive
+		// Update existing device (restore if deleted)
+		if device.DeletedAt.Valid {
+			// Device was deleted, restore it
+			device.DeletedAt = gorm.DeletedAt{}
+			device.Status = finalStatus // Reset to new status
+		} else {
+			// Only update status if it was pending and we have a valid token
+			// Do NOT unblock blocked devices automatically
+			if device.Status == models.DeviceStatusPending && finalStatus == models.DeviceStatusActive {
+				device.Status = models.DeviceStatusActive
+			}
 		}
 
 		device.PublicKey = body.DevicePublicKey
 		device.Name = body.DeviceName
 		device.LastSeenAt = time.Now()
-		r.db.Save(&device)
+		// Use Unscoped to save, allowing DeletedAt to be cleared
+		r.db.Unscoped().Save(&device)
 
 		finalStatus = device.Status
 	}

@@ -464,7 +464,8 @@ func (se *SyncEngine) pushShipmentsToNode(node *mesh.NodeInfo) error {
 
 	log.Printf("📱 Mesh Push: Querying devices since %v", deviceTime)
 
-	deviceQuery := se.db.DB.Model(&models.RegisteredDevice{}).Where("updated_at > ?", deviceTime)
+	// Use Unscoped() to include soft-deleted devices (they need to sync their deletion)
+	deviceQuery := se.db.DB.Model(&models.RegisteredDevice{}).Unscoped().Where("\"updatedAt\" > ?", deviceTime)
 	if err := deviceQuery.Find(&devices).Error; err != nil {
 		log.Printf("❌ Mesh Push: Error querying devices: %v", err)
 	} else if len(devices) > 0 {

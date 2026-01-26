@@ -436,12 +436,13 @@ func (sh *SyncHandler) MeshPush(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Upsert devices
+	// Upsert devices (including soft-deleted ones for sync)
 	for _, device := range data.Devices {
 		if device.DeviceID == "" {
 			continue
 		}
-		if err := tx.Where("\"deviceId\" = ?", device.DeviceID).Assign(device).FirstOrCreate(&models.RegisteredDevice{}).Error; err != nil {
+		// Use Unscoped to update DeletedAt field on soft-deleted devices
+		if err := tx.Unscoped().Where("\"deviceId\" = ?", device.DeviceID).Assign(device).FirstOrCreate(&models.RegisteredDevice{}).Error; err != nil {
 			log.Printf("❌ Mesh Push: Failed to upsert device %s: %v", device.DeviceID, err)
 		}
 	}

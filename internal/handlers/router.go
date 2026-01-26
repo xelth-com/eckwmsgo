@@ -880,6 +880,7 @@ func (r *Router) registerAdminRoutes(prefix string) {
 
 		admin.HandleFunc("/devices", r.listDevices).Methods("GET")
 		admin.HandleFunc("/devices/{id}/status", r.updateDeviceStatus).Methods("PUT")
+		admin.HandleFunc("/devices/{id}", r.deleteDevice).Methods("DELETE")
 	}
 }
 
