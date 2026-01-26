@@ -81,3 +81,255 @@
 [OPAL Import] Fetched 50 orders from OPAL
 [OPAL Import] OPAL import completed: 0 created, 50 updated, 0 skipped
 2026/01/26 23:44:13 ✅ OPAL Import (initial) completed
+2026/01/26 23:44:35 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:45:05 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:45:35 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:46:02 📴 Device disconnected: web_1fb19d8b-cf16-4f5d-a55f-fb56f3355639
+2026/01/26 23:46:02 📱 Device connected: web_449998dc-922b-4d7d-820d-706f4159dc03
+2026/01/26 23:46:05 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:46:11 📴 Device disconnected: web_449998dc-922b-4d7d-820d-706f4159dc03
+2026/01/26 23:46:35 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:47:02 Auto-sync triggered
+2026/01/26 23:47:02 📥 Full sync requested
+2026/01/26 23:47:02 🔄 Processing sync request: full_sync 
+2026/01/26 23:47:02 🔄 Syncing lots...
+2026/01/26 23:47:02 🔄 Syncing Lots via Checksum Engine...
+2026/01/26 23:47:02 🔄 Syncing packages...
+2026/01/26 23:47:02 🔄 Syncing Packages via Checksum Engine...
+2026/01/26 23:47:02 🔄 Syncing tracking...
+2026/01/26 23:47:02 🔄 Syncing quants...
+2026/01/26 23:47:02 🔄 Syncing Quants via Checksum Engine...
+2026/01/26 23:47:02    Found 0 local quant checksums
+2026/01/26 23:47:02 🔄 Syncing products...
+2026/01/26 23:47:02 🔄 Syncing Products via Checksum Engine...
+2026/01/26 23:47:02    Found 2 local product checksums
+2026/01/26 23:47:02 🔄 Syncing locations...
+2026/01/26 23:47:02 🔄 Syncing Locations via Checksum Engine...
+2026/01/26 23:47:02    Found 0 local location checksums
+2026/01/26 23:47:02 🔄 Syncing pickings...
+2026/01/26 23:47:02 🔄 Syncing Pickings via Checksum Engine...
+2026/01/26 23:47:02 🔄 Syncing shipments...
+2026/01/26 23:47:02 🔄 Syncing partners...
+2026/01/26 23:47:02 🔄 Syncing Partners via Checksum Engine...
+2026/01/26 23:47:02 ✅ Sync completed in 19.4542ms: 2 entities, 0 conflicts
+2026/01/26 23:47:02 🔄 Processing sync request: relay_sync 
+2026/01/26 23:47:02 Mesh Sync: Starting sync as peer with 1 known nodes
+2026/01/26 23:47:02 Mesh Sync: Pulling data from production_pda_repair (https://pda.repair/E)
+2026/01/26 23:47:02 Mesh Sync: Successfully pulled from production_pda_repair (products: 0, locations: 0, quants: 0, shipments: 0, tracking: 0)
+2026/01/26 23:47:02 Mesh Sync: Pushing shipments to production_pda_repair (https://pda.repair/E)
+2026/01/26 23:47:02 📦 Mesh Push: Querying shipments since 2026-01-26 23:37:02.172896 +0100 CET
+2026/01/26 23:47:02 📦 Mesh Push: Found 50 shipments (since 2026-01-26 23:37:02.172896 +0100 CET)
+2026/01/26 23:47:02   Shipment[0]: ID=160, Tracking=OCU-998-510703, Status=delivered, UpdatedAt=2026-01-26 23:44:13.422542 +0100 CET
+2026/01/26 23:47:02   Shipment[1]: ID=161, Tracking=OCU-998-510729, Status=delivered, UpdatedAt=2026-01-26 23:44:13.423848 +0100 CET
+2026/01/26 23:47:02   Shipment[2]: ID=162, Tracking=OCU-998-510727, Status=delivered, UpdatedAt=2026-01-26 23:44:13.425163 +0100 CET
+2026/01/26 23:47:02   Shipment[3]: ID=163, Tracking=OCU-998-510725, Status=delivered, UpdatedAt=2026-01-26 23:44:13.426228 +0100 CET
+2026/01/26 23:47:02   Shipment[4]: ID=159, Tracking=041940510175, Status=delivered, UpdatedAt=2026-01-26 23:44:13.421971 +0100 CET
+2026/01/26 23:47:02   Shipment[5]: ID=157, Tracking=OCU-998-511131, Status=delivered, UpdatedAt=2026-01-26 23:44:13.420004 +0100 CET
+2026/01/26 23:47:02   Shipment[6]: ID=191, Tracking=OCU-998-508519, Status=delivered, UpdatedAt=2026-01-26 23:44:13.457446 +0100 CET
+2026/01/26 23:47:02   Shipment[7]: ID=217, Tracking=OCU-998-512037, Status=delivered, UpdatedAt=2026-01-26 23:44:13.409364 +0100 CET
+2026/01/26 23:47:02   Shipment[8]: ID=172, Tracking=OCU-998-509996, Status=delivered, UpdatedAt=2026-01-26 23:44:13.437484 +0100 CET
+2026/01/26 23:47:02   Shipment[9]: ID=174, Tracking=OCU-998-509866, Status=delivered, UpdatedAt=2026-01-26 23:44:13.440066 +0100 CET
+2026/01/26 23:47:02   Shipment[10]: ID=175, Tracking=OCU-998-509621, Status=delivered, UpdatedAt=2026-01-26 23:44:13.440699 +0100 CET
+2026/01/26 23:47:02   Shipment[11]: ID=180, Tracking=OCU-998-509241, Status=delivered, UpdatedAt=2026-01-26 23:44:13.446527 +0100 CET
+2026/01/26 23:47:02   Shipment[12]: ID=153, Tracking=OCU-998-511413, Status=delivered, UpdatedAt=2026-01-26 23:44:13.415484 +0100 CET
+2026/01/26 23:47:02   Shipment[13]: ID=155, Tracking=OCU-998-511217, Status=delivered, UpdatedAt=2026-01-26 23:44:13.418021 +0100 CET
+2026/01/26 23:47:02   Shipment[14]: ID=181, Tracking=OCU-998-509182, Status=delivered, UpdatedAt=2026-01-26 23:44:13.447119 +0100 CET
+2026/01/26 23:47:02   Shipment[15]: ID=179, Tracking=OCU-998-509242, Status=delivered, UpdatedAt=2026-01-26 23:44:13.445461 +0100 CET
+2026/01/26 23:47:02   Shipment[16]: ID=186, Tracking=OCU-998-508823, Status=delivered, UpdatedAt=2026-01-26 23:44:13.452144 +0100 CET
+2026/01/26 23:47:02   Shipment[17]: ID=187, Tracking=OCU-998-508817, Status=delivered, UpdatedAt=2026-01-26 23:44:13.452697 +0100 CET
+2026/01/26 23:47:02   Shipment[18]: ID=188, Tracking=OCU-998-508740, Status=delivered, UpdatedAt=2026-01-26 23:44:13.453999 +0100 CET
+2026/01/26 23:47:02   Shipment[19]: ID=158, Tracking=OCU-998-511089, Status=delivered, UpdatedAt=2026-01-26 23:44:13.42057 +0100 CET
+2026/01/26 23:47:02   Shipment[20]: ID=184, Tracking=OCU-998-509063, Status=delivered, UpdatedAt=2026-01-26 23:44:13.450236 +0100 CET
+2026/01/26 23:47:02   Shipment[21]: ID=185, Tracking=OCU-998-508827, Status=delivered, UpdatedAt=2026-01-26 23:44:13.450796 +0100 CET
+2026/01/26 23:47:02   Shipment[22]: ID=193, Tracking=OCU-998-508489, Status=delivered, UpdatedAt=2026-01-26 23:44:13.459873 +0100 CET
+2026/01/26 23:47:02   Shipment[23]: ID=196, Tracking=OCU-998-508476, Status=delivered, UpdatedAt=2026-01-26 23:44:13.463036 +0100 CET
+2026/01/26 23:47:02   Shipment[24]: ID=167, Tracking=OCU-998-510397, Status=delivered, UpdatedAt=2026-01-26 23:44:13.430962 +0100 CET
+2026/01/26 23:47:02   Shipment[25]: ID=166, Tracking=OCU-998-510368, Status=delivered, UpdatedAt=2026-01-26 23:44:13.429764 +0100 CET
+2026/01/26 23:47:02   Shipment[26]: ID=198, Tracking=OCU-998-508356, Status=delivered, UpdatedAt=2026-01-26 23:44:13.465634 +0100 CET
+2026/01/26 23:47:02   Shipment[27]: ID=197, Tracking=OCU-998-508391, Status=delivered, UpdatedAt=2026-01-26 23:44:13.464208 +0100 CET
+2026/01/26 23:47:02   Shipment[28]: ID=156, Tracking=OCU-998-511138, Status=delivered, UpdatedAt=2026-01-26 23:44:13.418649 +0100 CET
+2026/01/26 23:47:02   Shipment[29]: ID=154, Tracking=OCU-998-511439, Status=delivered, UpdatedAt=2026-01-26 23:44:13.416635 +0100 CET
+2026/01/26 23:47:02   Shipment[30]: ID=182, Tracking=OCU-998-509164, Status=delivered, UpdatedAt=2026-01-26 23:44:13.448346 +0100 CET
+2026/01/26 23:47:02   Shipment[31]: ID=150, Tracking=OCU-998-511590, Status=delivered, UpdatedAt=2026-01-26 23:44:13.411466 +0100 CET
+2026/01/26 23:47:02   Shipment[32]: ID=169, Tracking=OCU-998-510207, Status=error, UpdatedAt=2026-01-26 23:44:13.434327 +0100 CET
+2026/01/26 23:47:02   Shipment[33]: ID=170, Tracking=OCU-998-510113, Status=delivered, UpdatedAt=2026-01-26 23:44:13.435608 +0100 CET
+2026/01/26 23:47:02   Shipment[34]: ID=177, Tracking=OCU-998-509479, Status=delivered, UpdatedAt=2026-01-26 23:44:13.443092 +0100 CET
+2026/01/26 23:47:02   Shipment[35]: ID=152, Tracking=OCU-998-511436, Status=delivered, UpdatedAt=2026-01-26 23:44:13.413498 +0100 CET
+2026/01/26 23:47:02   Shipment[36]: ID=176, Tracking=OCU-998-509569, Status=delivered, UpdatedAt=2026-01-26 23:44:13.441968 +0100 CET
+2026/01/26 23:47:02   Shipment[37]: ID=168, Tracking=OCU-998-510376, Status=delivered, UpdatedAt=2026-01-26 23:44:13.43319 +0100 CET
+2026/01/26 23:47:02   Shipment[38]: ID=189, Tracking=OCU-998-508584, Status=delivered, UpdatedAt=2026-01-26 23:44:13.455641 +0100 CET
+2026/01/26 23:47:02   Shipment[39]: ID=178, Tracking=OCU-998-509426, Status=delivered, UpdatedAt=2026-01-26 23:44:13.443656 +0100 CET
+2026/01/26 23:47:02   Shipment[40]: ID=183, Tracking=OCU-998-509136, Status=delivered, UpdatedAt=2026-01-26 23:44:13.448892 +0100 CET
+2026/01/26 23:47:02   Shipment[41]: ID=151, Tracking=OCU-998-511484, Status=delivered, UpdatedAt=2026-01-26 23:44:13.412154 +0100 CET
+2026/01/26 23:47:02   Shipment[42]: ID=164, Tracking=OCU-998-510722, Status=delivered, UpdatedAt=2026-01-26 23:44:13.426747 +0100 CET
+2026/01/26 23:47:02   Shipment[43]: ID=190, Tracking=OCU-998-508541, Status=delivered, UpdatedAt=2026-01-26 23:44:13.456191 +0100 CET
+2026/01/26 23:47:02   Shipment[44]: ID=195, Tracking=OCU-998-508446, Status=delivered, UpdatedAt=2026-01-26 23:44:13.46169 +0100 CET
+2026/01/26 23:47:02   Shipment[45]: ID=165, Tracking=OCU-998-510581, Status=delivered, UpdatedAt=2026-01-26 23:44:13.427835 +0100 CET
+2026/01/26 23:47:02   Shipment[46]: ID=171, Tracking=OCU-998-509999, Status=delivered, UpdatedAt=2026-01-26 23:44:13.436849 +0100 CET
+2026/01/26 23:47:02   Shipment[47]: ID=173, Tracking=OCU-998-509865, Status=delivered, UpdatedAt=2026-01-26 23:44:13.438732 +0100 CET
+2026/01/26 23:47:02   Shipment[48]: ID=194, Tracking=OCU-998-508450, Status=delivered, UpdatedAt=2026-01-26 23:44:13.461051 +0100 CET
+2026/01/26 23:47:02   Shipment[49]: ID=192, Tracking=OCU-998-508513, Status=delivered, UpdatedAt=2026-01-26 23:44:13.458692 +0100 CET
+2026/01/26 23:47:02 📦 Mesh Push: Querying tracking since 2026-01-26 23:37:02.172896 +0100 CET
+2026/01/26 23:47:02 📦 Mesh Push: No new tracking found for production_pda_repair (checked since 2026-01-26 23:37:02.172896 +0100 CET)
+2026/01/26 23:47:02 📱 Mesh Push: Querying devices since 2026-01-26 23:37:02.172896 +0100 CET
+2026/01/26 23:47:02 📱 Mesh Push: No new devices found for production_pda_repair (checked since 2026-01-26 23:37:02.172896 +0100 CET)
+2026/01/26 23:47:02 Mesh Sync: Pushing data to production_pda_repair (https://pda.repair/E)
+2026/01/26 23:47:03 Mesh Sync: Successfully pushed to production_pda_repair
+2026/01/26 23:47:03 ✅ Sync completed in 417.1133ms: 0 entities, 0 conflicts
+2026/01/26 23:47:05 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:47:35 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:48:05 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:48:35 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:49:05 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:49:35 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:50:05 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:50:35 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:51:05 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:51:35 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:52:02 Auto-sync triggered
+2026/01/26 23:52:02 📥 Full sync requested
+2026/01/26 23:52:02 🔄 Processing sync request: full_sync 
+2026/01/26 23:52:02 🔄 Syncing quants...
+2026/01/26 23:52:02 🔄 Syncing Quants via Checksum Engine...
+2026/01/26 23:52:02    Found 0 local quant checksums
+2026/01/26 23:52:02 🔄 Syncing products...
+2026/01/26 23:52:02 🔄 Syncing Products via Checksum Engine...
+2026/01/26 23:52:02    Found 2 local product checksums
+2026/01/26 23:52:02 🔄 Syncing locations...
+2026/01/26 23:52:02 🔄 Syncing Locations via Checksum Engine...
+2026/01/26 23:52:02    Found 0 local location checksums
+2026/01/26 23:52:02 🔄 Syncing pickings...
+2026/01/26 23:52:02 🔄 Syncing Pickings via Checksum Engine...
+2026/01/26 23:52:02 🔄 Syncing shipments...
+2026/01/26 23:52:02 🔄 Syncing partners...
+2026/01/26 23:52:02 🔄 Syncing Partners via Checksum Engine...
+2026/01/26 23:52:02 🔄 Syncing lots...
+2026/01/26 23:52:02 🔄 Syncing Lots via Checksum Engine...
+2026/01/26 23:52:02 🔄 Syncing packages...
+2026/01/26 23:52:02 🔄 Syncing Packages via Checksum Engine...
+2026/01/26 23:52:02 🔄 Syncing tracking...
+2026/01/26 23:52:02 ✅ Sync completed in 89.4204ms: 2 entities, 0 conflicts
+2026/01/26 23:52:02 🔄 Processing sync request: relay_sync 
+2026/01/26 23:52:02 Mesh Sync: Starting sync as peer with 1 known nodes
+2026/01/26 23:52:02 Mesh Sync: Pulling data from production_pda_repair (https://pda.repair/E)
+2026/01/26 23:52:02 Mesh Sync: Successfully pulled from production_pda_repair (products: 0, locations: 0, quants: 0, shipments: 0, tracking: 0)
+2026/01/26 23:52:02 Mesh Sync: Pushing shipments to production_pda_repair (https://pda.repair/E)
+2026/01/26 23:52:02 📦 Mesh Push: Querying shipments since 2026-01-26 23:47:03.015502 +0100 CET
+2026/01/26 23:52:02 📦 Mesh Push: No new shipments found for production_pda_repair (checked since 2026-01-26 23:47:03.015502 +0100 CET)
+2026/01/26 23:52:02 📦 Mesh Push: Querying tracking since 2026-01-26 23:47:03.015502 +0100 CET
+2026/01/26 23:52:02 📦 Mesh Push: No new tracking found for production_pda_repair (checked since 2026-01-26 23:47:03.015502 +0100 CET)
+2026/01/26 23:52:02 📱 Mesh Push: Querying devices since 2026-01-26 23:47:03.015502 +0100 CET
+2026/01/26 23:52:02 📱 Mesh Push: No new devices found for production_pda_repair (checked since 2026-01-26 23:47:03.015502 +0100 CET)
+2026/01/26 23:52:02 Mesh Sync: No data to push to production_pda_repair
+2026/01/26 23:52:02 ✅ Sync completed in 109.3432ms: 0 entities, 0 conflicts
+2026/01/26 23:52:05 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:52:35 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:53:06 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:53:36 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:54:06 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:54:36 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:55:06 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:55:36 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:56:06 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:56:36 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:57:02 Auto-sync triggered
+2026/01/26 23:57:02 📥 Full sync requested
+2026/01/26 23:57:02 🔄 Processing sync request: full_sync 
+2026/01/26 23:57:02 🔄 Syncing lots...
+2026/01/26 23:57:02 🔄 Syncing Lots via Checksum Engine...
+2026/01/26 23:57:02 🔄 Syncing packages...
+2026/01/26 23:57:02 🔄 Syncing Packages via Checksum Engine...
+2026/01/26 23:57:02 🔄 Syncing tracking...
+2026/01/26 23:57:02 🔄 Syncing quants...
+2026/01/26 23:57:02 🔄 Syncing Quants via Checksum Engine...
+2026/01/26 23:57:02    Found 0 local quant checksums
+2026/01/26 23:57:02 🔄 Syncing products...
+2026/01/26 23:57:02 🔄 Syncing Products via Checksum Engine...
+2026/01/26 23:57:02    Found 2 local product checksums
+2026/01/26 23:57:02 🔄 Syncing locations...
+2026/01/26 23:57:02 🔄 Syncing Locations via Checksum Engine...
+2026/01/26 23:57:02    Found 0 local location checksums
+2026/01/26 23:57:02 🔄 Syncing pickings...
+2026/01/26 23:57:02 🔄 Syncing Pickings via Checksum Engine...
+2026/01/26 23:57:02 🔄 Syncing shipments...
+2026/01/26 23:57:02 🔄 Syncing partners...
+2026/01/26 23:57:02 🔄 Syncing Partners via Checksum Engine...
+2026/01/26 23:57:02 ✅ Sync completed in 125.8637ms: 2 entities, 0 conflicts
+2026/01/26 23:57:02 🔄 Processing sync request: relay_sync 
+2026/01/26 23:57:02 Mesh Sync: Starting sync as peer with 1 known nodes
+2026/01/26 23:57:02 Mesh Sync: Pulling data from production_pda_repair (https://pda.repair/E)
+2026/01/26 23:57:02 Mesh Sync: Successfully pulled from production_pda_repair (products: 0, locations: 0, quants: 0, shipments: 0, tracking: 0)
+2026/01/26 23:57:02 Mesh Sync: Pushing shipments to production_pda_repair (https://pda.repair/E)
+2026/01/26 23:57:02 📦 Mesh Push: Querying shipments since 2026-01-26 23:47:03.015502 +0100 CET
+2026/01/26 23:57:02 📦 Mesh Push: No new shipments found for production_pda_repair (checked since 2026-01-26 23:47:03.015502 +0100 CET)
+2026/01/26 23:57:02 📦 Mesh Push: Querying tracking since 2026-01-26 23:47:03.015502 +0100 CET
+2026/01/26 23:57:02 📦 Mesh Push: No new tracking found for production_pda_repair (checked since 2026-01-26 23:47:03.015502 +0100 CET)
+2026/01/26 23:57:02 📱 Mesh Push: Querying devices since 2026-01-26 23:47:03.015502 +0100 CET
+2026/01/26 23:57:02 📱 Mesh Push: No new devices found for production_pda_repair (checked since 2026-01-26 23:47:03.015502 +0100 CET)
+2026/01/26 23:57:02 Mesh Sync: No data to push to production_pda_repair
+2026/01/26 23:57:02 ✅ Sync completed in 123.5529ms: 0 entities, 0 conflicts
+2026/01/26 23:57:07 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:57:09 🔄 Odoo: Starting full sync...
+2026/01/26 23:57:09 📍 Odoo: Syncing Locations...
+2026/01/26 23:57:09 ❌ Odoo Sync Error (Locations): failed to unmarshal into target: json: cannot unmarshal bool into Go struct field StockLocation.location_id of type int64
+2026/01/26 23:57:09 📦 Odoo: Syncing Products...
+2026/01/26 23:57:09 👥 Odoo: Syncing Partners (Customers/Suppliers)...
+2026/01/26 23:57:09 ❌ Odoo Sync Error (Partners): failed to unmarshal into target: json: cannot unmarshal bool into Go struct field ResPartner.country_id of type int64
+2026/01/26 23:57:09 🏷️ Odoo: Syncing Lots...
+2026/01/26 23:57:09 📦 Odoo: Syncing Packages...
+2026/01/26 23:57:09 ❌ Odoo Sync Error (Packages): failed to execute search_read: Fault(2): Object stock.quant.package doesn't exist
+2026/01/26 23:57:09 📊 Odoo: Syncing Quants...
+2026/01/26 23:57:10 📋 Odoo: Syncing Pickings (Transfer Orders)...
+2026/01/26 23:57:10 ❌ Odoo Sync Error (Pickings): failed to unmarshal into target: Time.UnmarshalJSON: input is not a JSON string
+2026/01/26 23:57:10 📝 Odoo: Syncing Move Lines...
+2026/01/26 23:57:10 ✅ Odoo: Full sync completed
+2026/01/26 23:57:37 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:58:07 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:58:37 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:59:07 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 23:59:37 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/27 00:00:07 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/27 00:00:37 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/27 00:01:07 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/27 00:01:38 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/27 00:02:02 Auto-sync triggered
+2026/01/27 00:02:02 📥 Full sync requested
+2026/01/27 00:02:02 🔄 Processing sync request: full_sync 
+2026/01/27 00:02:02 🔄 Syncing products...
+2026/01/27 00:02:02 🔄 Syncing Products via Checksum Engine...
+2026/01/27 00:02:02    Found 2 local product checksums
+2026/01/27 00:02:02 🔄 Syncing locations...
+2026/01/27 00:02:02 🔄 Syncing Locations via Checksum Engine...
+2026/01/27 00:02:02    Found 0 local location checksums
+2026/01/27 00:02:02 🔄 Syncing pickings...
+2026/01/27 00:02:02 🔄 Syncing Pickings via Checksum Engine...
+2026/01/27 00:02:02 🔄 Syncing shipments...
+2026/01/27 00:02:02 🔄 Syncing partners...
+2026/01/27 00:02:02 🔄 Syncing Partners via Checksum Engine...
+2026/01/27 00:02:02 🔄 Syncing lots...
+2026/01/27 00:02:02 🔄 Syncing Lots via Checksum Engine...
+2026/01/27 00:02:02 🔄 Syncing packages...
+2026/01/27 00:02:02 🔄 Syncing Packages via Checksum Engine...
+2026/01/27 00:02:02 🔄 Syncing tracking...
+2026/01/27 00:02:02 🔄 Syncing quants...
+2026/01/27 00:02:02 🔄 Syncing Quants via Checksum Engine...
+2026/01/27 00:02:02    Found 0 local quant checksums
+2026/01/27 00:02:02 ✅ Sync completed in 42.1511ms: 2 entities, 0 conflicts
+2026/01/27 00:02:02 🔄 Processing sync request: relay_sync 
+2026/01/27 00:02:02 Mesh Sync: Starting sync as peer with 1 known nodes
+2026/01/27 00:02:02 Mesh Sync: Pulling data from production_pda_repair (https://pda.repair/E)
+2026/01/27 00:02:02 Mesh Sync: Successfully pulled from production_pda_repair (products: 0, locations: 0, quants: 0, shipments: 0, tracking: 0)
+2026/01/27 00:02:02 Mesh Sync: Pushing shipments to production_pda_repair (https://pda.repair/E)
+2026/01/27 00:02:02 📦 Mesh Push: Querying shipments since 2026-01-26 23:47:03.015502 +0100 CET
+2026/01/27 00:02:02 📦 Mesh Push: No new shipments found for production_pda_repair (checked since 2026-01-26 23:47:03.015502 +0100 CET)
+2026/01/27 00:02:02 📦 Mesh Push: Querying tracking since 2026-01-26 23:47:03.015502 +0100 CET
+2026/01/27 00:02:02 📦 Mesh Push: No new tracking found for production_pda_repair (checked since 2026-01-26 23:47:03.015502 +0100 CET)
+2026/01/27 00:02:02 📱 Mesh Push: Querying devices since 2026-01-26 23:47:03.015502 +0100 CET
+2026/01/27 00:02:02 📱 Mesh Push: No new devices found for production_pda_repair (checked since 2026-01-26 23:47:03.015502 +0100 CET)
+2026/01/27 00:02:02 Mesh Sync: No data to push to production_pda_repair
+2026/01/27 00:02:02 ✅ Sync completed in 91.9963ms: 0 entities, 0 conflicts
+2026/01/27 00:02:08 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/27 00:02:38 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/27 00:03:08 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/27 00:03:38 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/27 00:04:08 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
