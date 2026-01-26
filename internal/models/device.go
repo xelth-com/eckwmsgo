@@ -17,13 +17,13 @@ const (
 
 // RegisteredDevice represents a PDA/Scanner that has initiated a handshake
 type RegisteredDevice struct {
-	DeviceID   string         `gorm:"primaryKey" json:"deviceId"`
+	DeviceID   string         `gorm:"column:device_id;primaryKey" json:"deviceId"`
 	Name       string         `json:"name"`
-	PublicKey  string         `gorm:"not null" json:"publicKey"` // Base64 encoded Ed25519 public key
+	PublicKey  string         `gorm:"column:public_key;not null" json:"publicKey"` // Base64 encoded Ed25519 public key
 	Status     DeviceStatus   `gorm:"default:'pending'" json:"status"`
-	LastSeenAt time.Time      `json:"lastSeenAt"`
-	CreatedAt  time.Time      `json:"createdAt"`
-	UpdatedAt  time.Time      `json:"updatedAt"`
+	LastSeenAt time.Time      `gorm:"column:last_seen_at" json:"lastSeenAt"`
+	CreatedAt  time.Time      `gorm:"column:created_at" json:"createdAt"`
+	UpdatedAt  time.Time      `gorm:"column:updated_at" json:"updatedAt"`
 	DeletedAt  gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
