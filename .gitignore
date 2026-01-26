@@ -67,3 +67,6 @@ eckwms
 eckwms-*
 eckwmsgo-*
 .eck/instance_id
+.test_temp/
+verify_fix.sh
+*.log

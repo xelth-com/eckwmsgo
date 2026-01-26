@@ -45,7 +45,12 @@ func main() {
 	}
 	// Note: db.Close() is called manually in shutdown handler below
 
-	// 4. Auto-Migrate Schema (Critical for Zero-Config)
+	// 4. Register GORM hooks for automatic checksum updates
+	log.Println("🪝 Registering sync hooks...")
+	checksumCalc := sync.NewChecksumCalculator(cfg.InstanceID)
+	sync.RegisterHooks(db.DB, checksumCalc, cfg.InstanceID)
+
+	// 5. Auto-Migrate Schema (Critical for Zero-Config)
 	log.Println("🚀 Synchronizing database schema...")
 	err = db.AutoMigrate(
 		&models.UserAuth{},
@@ -108,11 +113,6 @@ func main() {
 		BaseURL:    cfg.BaseURL,
 		NodeRole:   string(cfg.NodeRole),
 	})
-
-	// Register GORM hooks for automatic checksum updates
-	log.Println("🪝 Registering sync hooks...")
-	checksumCalc := sync.NewChecksumCalculator(cfg.InstanceID)
-	sync.RegisterHooks(db.DB, checksumCalc, cfg.InstanceID)
 
 	if syncCfg.Enabled {
 		if err := syncEngine.Start(); err != nil {

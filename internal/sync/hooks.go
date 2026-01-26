@@ -16,13 +16,15 @@ func RegisterHooks(db *gorm.DB, calculator *ChecksumCalculator, instanceID strin
 			return
 		}
 
-		// Check if the model implements SyncableEntity
+		// Check if model implements SyncableEntity
 		model := db.Statement.Model
 		syncable, ok := model.(models.SyncableEntity)
 		if !ok {
 			// Not a syncable entity, skip
 			return
 		}
+
+		log.Printf("🪝 SyncHook: Processing %s:%s", syncable.GetEntityType(), syncable.GetEntityID())
 
 		// Calculate new hash
 		hash, err := calculator.ComputeChecksum(model)
