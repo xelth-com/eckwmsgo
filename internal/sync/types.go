@@ -60,14 +60,26 @@ const (
 type EntityType string
 
 const (
-	EntityTypeItem      EntityType = "item"
-	EntityTypeBox       EntityType = "box"
-	EntityTypePlace     EntityType = "place"
-	EntityTypeRack      EntityType = "rack"
-	EntityTypeWarehouse EntityType = "warehouse"
-	EntityTypeOrder     EntityType = "order"
-	EntityTypeUser      EntityType = "user"
-	EntityTypeDevice    EntityType = "device"
+	// New Odoo-aligned entity types (match config keys)
+	EntityTypeProduct  EntityType = "products"  // ProductProduct (was "item")
+	EntityTypeLocation EntityType = "locations" // StockLocation (was "place")
+	EntityTypeQuant    EntityType = "quants"    // StockQuant (new)
+	EntityTypeLot      EntityType = "lots"      // StockLot (new)
+	EntityTypePackage  EntityType = "packages"  // StockQuantPackage (was "box")
+	EntityTypePicking  EntityType = "pickings"  // StockPicking (new)
+	EntityTypePartner  EntityType = "partners"  // ResPartner (new)
+
+	// Legacy entity types (kept for backward compatibility)
+	EntityTypeItem      EntityType = "items"      // Deprecated, use EntityTypeProduct
+	EntityTypeBox       EntityType = "boxes"      // Deprecated, use EntityTypePackage
+	EntityTypePlace     EntityType = "places"     // Deprecated, use EntityTypeLocation
+	EntityTypeRack      EntityType = "racks"      // Legacy
+	EntityTypeWarehouse EntityType = "warehouses" // Legacy
+	EntityTypeOrder     EntityType = "orders"     // Legacy
+	EntityTypeUser      EntityType = "users"      // Legacy
+	EntityTypeDevice    EntityType = "devices"    // Legacy
+	EntityTypeShipment  EntityType = "shipments"  // Legacy
+	EntityTypeTracking  EntityType = "tracking"   // Legacy
 )
 
 // SyncStatus represents the status of a sync operation

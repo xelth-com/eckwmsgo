@@ -173,8 +173,67 @@ func getDefaultSyncConfig() *SyncConfig {
 // getDefaultEntityConfigs returns default entity sync configs
 func getDefaultEntityConfigs() map[string]EntitySyncConfig {
 	return map[string]EntitySyncConfig{
-		"items": {
+		// New Odoo-aligned entity types
+		"products": {
 			Enabled:      true,
+			Strategy:     "checksum", // Use checksum-based sync
+			HistoryDepth: 0,
+			MaxRecords:   0,
+			SyncInterval: 60,
+			Priority:     10,
+		},
+		"locations": {
+			Enabled:      true,
+			Strategy:     "checksum", // Use checksum-based sync
+			HistoryDepth: 0,
+			MaxRecords:   0,
+			SyncInterval: 300,
+			Priority:     8,
+		},
+		"quants": {
+			Enabled:      true,
+			Strategy:     "checksum", // Use checksum-based sync
+			HistoryDepth: 0,
+			MaxRecords:   0,
+			SyncInterval: 60,
+			Priority:     9,
+		},
+		"lots": {
+			Enabled:      true,
+			Strategy:     "checksum",
+			HistoryDepth: 0,
+			MaxRecords:   0,
+			SyncInterval: 120,
+			Priority:     7,
+		},
+		"packages": {
+			Enabled:      true,
+			Strategy:     "checksum",
+			HistoryDepth: 0,
+			MaxRecords:   0,
+			SyncInterval: 60,
+			Priority:     8,
+		},
+		"pickings": {
+			Enabled:      true,
+			Strategy:     "checksum",
+			HistoryDepth: 0,
+			MaxRecords:   0,
+			SyncInterval: 120,
+			Priority:     9,
+		},
+		"partners": {
+			Enabled:      true,
+			Strategy:     "checksum",
+			HistoryDepth: 0,
+			MaxRecords:   0,
+			SyncInterval: 300,
+			Priority:     6,
+		},
+
+		// Legacy entity types (kept for backward compatibility, disabled by default)
+		"items": {
+			Enabled:      false, // Deprecated, use "products"
 			Strategy:     "active_only",
 			HistoryDepth: 0,
 			MaxRecords:   0,
@@ -182,7 +241,7 @@ func getDefaultEntityConfigs() map[string]EntitySyncConfig {
 			Priority:     10,
 		},
 		"boxes": {
-			Enabled:      true,
+			Enabled:      false, // Deprecated, use "packages"
 			Strategy:     "active_only",
 			HistoryDepth: 0,
 			MaxRecords:   0,
@@ -190,7 +249,7 @@ func getDefaultEntityConfigs() map[string]EntitySyncConfig {
 			Priority:     9,
 		},
 		"places": {
-			Enabled:      true,
+			Enabled:      false, // Deprecated, use "locations"
 			Strategy:     "full",
 			HistoryDepth: 0,
 			MaxRecords:   0,
@@ -198,7 +257,7 @@ func getDefaultEntityConfigs() map[string]EntitySyncConfig {
 			Priority:     8,
 		},
 		"racks": {
-			Enabled:      true,
+			Enabled:      false,
 			Strategy:     "full",
 			HistoryDepth: 0,
 			MaxRecords:   0,
@@ -206,7 +265,7 @@ func getDefaultEntityConfigs() map[string]EntitySyncConfig {
 			Priority:     7,
 		},
 		"warehouses": {
-			Enabled:      true,
+			Enabled:      false,
 			Strategy:     "full",
 			HistoryDepth: 0,
 			MaxRecords:   0,
@@ -214,7 +273,7 @@ func getDefaultEntityConfigs() map[string]EntitySyncConfig {
 			Priority:     7,
 		},
 		"orders": {
-			Enabled:      true,
+			Enabled:      false,
 			Strategy:     "time_window",
 			HistoryDepth: 90,
 			MaxRecords:   0,
@@ -222,7 +281,7 @@ func getDefaultEntityConfigs() map[string]EntitySyncConfig {
 			Priority:     10,
 		},
 		"users": {
-			Enabled:      true,
+			Enabled:      false,
 			Strategy:     "active_only",
 			HistoryDepth: 0,
 			MaxRecords:   0,
@@ -230,7 +289,7 @@ func getDefaultEntityConfigs() map[string]EntitySyncConfig {
 			Priority:     5,
 		},
 		"devices": {
-			Enabled:      true,
+			Enabled:      false,
 			Strategy:     "active_only",
 			HistoryDepth: 0,
 			MaxRecords:   0,
@@ -238,7 +297,7 @@ func getDefaultEntityConfigs() map[string]EntitySyncConfig {
 			Priority:     6,
 		},
 		"shipments": {
-			Enabled:      true,
+			Enabled:      false,
 			Strategy:     "time_window",
 			HistoryDepth: 30,
 			MaxRecords:   0,
@@ -246,7 +305,7 @@ func getDefaultEntityConfigs() map[string]EntitySyncConfig {
 			Priority:     9,
 		},
 		"tracking": {
-			Enabled:      true,
+			Enabled:      false,
 			Strategy:     "time_window",
 			HistoryDepth: 30,
 			MaxRecords:   0,
