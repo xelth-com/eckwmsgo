@@ -362,8 +362,8 @@ func (sh *SyncHandler) MeshPush(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Mesh Push: Received data from %s (products: %d, locations: %d)",
-		data.NodeID, len(data.Products), len(data.Locations))
+	log.Printf("Mesh Push: Received data from %s (products: %d, locations: %d, quants: %d, shipments: %d, tracking: %d)",
+		data.NodeID, len(data.Products), len(data.Locations), len(data.Quants), len(data.Shipments), len(data.Tracking))
 
 	// Apply updates using transaction
 	tx := sh.db.DB.Begin()
@@ -414,6 +414,26 @@ func (sh *SyncHandler) MeshPush(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		tx.Where("id = ?", partner.ID).Assign(partner).FirstOrCreate(&models.ResPartner{})
+	}
+
+	// Upsert shipments
+	for _, shipment := range data.Shipments {
+		if shipment.ID == 0 {
+			continue
+		}
+		if err := tx.Where("id = ?", shipment.ID).Assign(shipment).FirstOrCreate(&models.StockPickingDelivery{}).Error; err != nil {
+			log.Printf("❌ Mesh Push: Failed to upsert shipment %d: %v", shipment.ID, err)
+		}
+	}
+
+	// Upsert tracking
+	for _, tracking := range data.Tracking {
+		if tracking.ID == 0 {
+			continue
+		}
+		if err := tx.Where("id = ?", tracking.ID).Assign(tracking).FirstOrCreate(&models.DeliveryTracking{}).Error; err != nil {
+			log.Printf("❌ Mesh Push: Failed to upsert tracking %d: %v", tracking.ID, err)
+		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
