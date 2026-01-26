@@ -2,6 +2,7 @@
     import { onMount } from 'svelte';
     import { api } from '$lib/api';
     import { goto } from '$app/navigation';
+    import { base } from '$app/paths';
     import { toastStore } from '$lib/stores/toastStore';
 
     let warehouses = [];
@@ -37,7 +38,7 @@
     }
 
     function openWarehouse(id) {
-        goto(`/dashboard/warehouse/${id}`);
+        goto(`${base}/dashboard/warehouse/${id}`);
     }
 </script>
 
@@ -45,6 +46,7 @@
     <header>
         <h1>Warehouses</h1>
         <div class="actions">
+            <a href="{base}/dashboard/warehouse/blueprint" class="action-btn secondary">Blueprint Editor</a>
             <button class="action-btn primary" on:click={createWarehouse}>+ New Warehouse</button>
         </div>
     </header>
@@ -104,6 +106,8 @@
     }
 
     .action-btn.primary { background: #4a69bd; color: white; }
+    .action-btn.secondary { background: #333; color: #ddd; text-decoration: none; }
+    .action-btn.secondary:hover { background: #444; }
 
     .grid-container {
         display: grid;
