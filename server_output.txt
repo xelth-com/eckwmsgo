@@ -1,384 +1,516 @@
-2026/01/26 22:25:13 🆔 Server Instance ID: 36563884-3fb2-4cf0-82bd-f16ef6941ab2
-2026/01/26 22:25:13 🌐 Mode: [External PostgreSQL] - Connecting to localhost:5432
-2026/01/26 22:25:14 ✅ Database connection established
-2026/01/26 22:25:14 🪝 Registering sync hooks...
-2026/01/26 22:25:14 ✅ GORM sync hooks registered successfully
-2026/01/26 22:25:14 🚀 Synchronizing database schema...
-2026/01/26 22:25:15 ✅ Schema synchronized successfully
-2026/01/26 22:25:15 🔄 Initializing Mesh Sync Engine...
-2026/01/26 22:25:15 🔗 Adding web sync route: https://pda.repair/E
-2026/01/26 22:25:15 🔄 Sync Engine starting...
+2026/01/26 22:47:10 🆔 Server Instance ID: 36563884-3fb2-4cf0-82bd-f16ef6941ab2
+2026/01/26 22:47:10 🌐 Mode: [External PostgreSQL] - Connecting to localhost:5432
+2026/01/26 22:47:10 ✅ Database connection established
+2026/01/26 22:47:10 🪝 Registering sync hooks...
+2026/01/26 22:47:10 ✅ GORM sync hooks registered successfully
+2026/01/26 22:47:10 🚀 Synchronizing database schema...
+2026/01/26 22:47:12 ✅ Schema synchronized successfully
+2026/01/26 22:47:12 🔄 Initializing Mesh Sync Engine...
 [Discovery] Skipping report: INSTANCE_ID, GLOBAL_SERVER_URL or API_KEY not set
-2026/01/26 22:25:15 ✅ Sync Engine started
-2026/01/26 22:25:15 ✅ Sync Engine: Started successfully
-2026/01/26 22:25:15 📡 Odoo Sync Service started
-2026/01/26 22:25:15 📦 Initializing Delivery System...
-2026/01/26 22:25:15 ✅ Delivery: OPAL provider registered
-2026/01/26 22:25:15 ✅ Delivery: DHL provider registered
-2026/01/26 22:25:15 ✅ Delivery: Background worker started
-2026/01/26 22:25:15 🧠 Initializing Gemini AI (Primary: gemini-3-flash-preview, Fallback: gemini-2.5-flash)...
-2026/01/26 22:25:15 ✅ AI Client initialized
-2026/01/26 22:25:15 ✅ Delivery: OPAL import scheduler started (hourly)
-2026/01/26 22:25:15 🚀 Server (peer) starting on port 3210 [Prefix: '/E']
-2026/01/26 22:25:15 📱 Device connected: web_685e6c56-0e90-4276-a6b5-e26fcbb902a1
-2026/01/26 22:25:15 📱 Device connected: web_231d86e9-7e25-4f0e-bc00-8cb0ff217d4f
-2026/01/26 22:25:17 Mesh: Handshake success with https://pda.repair/E (peer, ID: production_pda_repair)
-2026/01/26 22:25:20 📥 Full sync requested
-2026/01/26 22:25:20 🔄 Processing sync request: full_sync 
-2026/01/26 22:25:20 ⚠️ Warning: Connection Manager reports offline, but continuing sync attempt...
-2026/01/26 22:25:20 🔄 Syncing shipments...
-2026/01/26 22:25:20 🔄 Syncing tracking...
-2026/01/26 22:25:20 🔄 Syncing products...
-2026/01/26 22:25:20 🔄 Syncing Products via Checksum Engine...
-2026/01/26 22:25:20    Found 2 local product checksums
-2026/01/26 22:25:20 🔄 Syncing partners...
-2026/01/26 22:25:20 🔄 Syncing Partners via Checksum Engine...
-2026/01/26 22:25:20 🔄 Syncing locations...
-2026/01/26 22:25:20 🔄 Syncing Locations via Checksum Engine...
-2026/01/26 22:25:20    Found 0 local location checksums
-2026/01/26 22:25:20 🔄 Syncing pickings...
-2026/01/26 22:25:20 🔄 Syncing Pickings via Checksum Engine...
-2026/01/26 22:25:20 🔄 Syncing quants...
-2026/01/26 22:25:20 🔄 Syncing Quants via Checksum Engine...
-2026/01/26 22:25:20    Found 0 local quant checksums
-2026/01/26 22:25:20 🔄 Syncing lots...
-2026/01/26 22:25:20 🔄 Syncing Lots via Checksum Engine...
-2026/01/26 22:25:20 🔄 Syncing packages...
-2026/01/26 22:25:20 🔄 Syncing Packages via Checksum Engine...
-2026/01/26 22:25:20 ✅ Sync completed in 2.219ms: 2 entities, 0 conflicts
-2026/01/26 22:25:21 🔄 Odoo: Starting full sync...
-2026/01/26 22:25:21 📍 Odoo: Syncing Locations...
-2026/01/26 22:25:21 ❌ Odoo Sync Error (Locations): failed to unmarshal into target: json: cannot unmarshal bool into Go struct field StockLocation.location_id of type int64
-2026/01/26 22:25:21 📦 Odoo: Syncing Products...
-2026/01/26 22:25:21 👥 Odoo: Syncing Partners (Customers/Suppliers)...
-2026/01/26 22:25:21 ❌ Odoo Sync Error (Partners): failed to unmarshal into target: json: cannot unmarshal bool into Go struct field ResPartner.country_id of type int64
-2026/01/26 22:25:21 🏷️ Odoo: Syncing Lots...
-2026/01/26 22:25:22 📦 Odoo: Syncing Packages...
-2026/01/26 22:25:22 ❌ Odoo Sync Error (Packages): failed to execute search_read: Fault(2): Object stock.quant.package doesn't exist
-2026/01/26 22:25:22 📊 Odoo: Syncing Quants...
-2026/01/26 22:25:22 📋 Odoo: Syncing Pickings (Transfer Orders)...
-2026/01/26 22:25:22 ❌ Odoo Sync Error (Pickings): failed to unmarshal into target: Time.UnmarshalJSON: input is not a JSON string
-2026/01/26 22:25:22 📝 Odoo: Syncing Move Lines...
-2026/01/26 22:25:22 ✅ Odoo: Full sync completed
-2026/01/26 22:25:43 Mesh Sync: Starting sync as peer with 1 known nodes
-2026/01/26 22:25:45 Route switched:  -> https://pda.repair/E (reason: health_check_reconnect)
-2026/01/26 22:25:47 Mesh: Handshake success with https://pda.repair/E (peer, ID: production_pda_repair)
-2026/01/26 22:26:15 ⏰ Running initial OPAL import...
+2026/01/26 22:47:12 🔗 Adding web sync route: https://pda.repair/E
+2026/01/26 22:47:12 🔄 Sync Engine starting...
+2026/01/26 22:47:12 ✅ Sync Engine started
+2026/01/26 22:47:12 ✅ Sync Engine: Started successfully
+2026/01/26 22:47:12 📡 Odoo Sync Service started
+2026/01/26 22:47:12 📦 Initializing Delivery System...
+2026/01/26 22:47:12 ✅ Delivery: OPAL provider registered
+2026/01/26 22:47:12 ✅ Delivery: DHL provider registered
+2026/01/26 22:47:12 ✅ Delivery: Background worker started
+2026/01/26 22:47:12 🧠 Initializing Gemini AI (Primary: gemini-3-flash-preview, Fallback: gemini-2.5-flash)...
+2026/01/26 22:47:12 ✅ AI Client initialized
+2026/01/26 22:47:12 ✅ Delivery: OPAL import scheduler started (hourly)
+2026/01/26 22:47:12 🚀 Server (peer) starting on port 3210 [Prefix: '/E']
+2026/01/26 22:47:13 📱 Device connected: web_42a226c2-148f-4224-8c2e-d59f2b246db1
+2026/01/26 22:47:14 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 22:47:15 📱 Device connected: web_f1d784c3-5fe3-460a-a979-f4ca91474f90
+2026/01/26 22:47:17 📥 Full sync requested
+2026/01/26 22:47:17 🔄 Processing sync request: full_sync 
+2026/01/26 22:47:17 ⚠️ Warning: Connection Manager reports offline, but continuing sync attempt...
+2026/01/26 22:47:17 🔄 Syncing shipments...
+2026/01/26 22:47:17 🔄 Syncing locations...
+2026/01/26 22:47:17 🔄 Syncing Locations via Checksum Engine...
+2026/01/26 22:47:17    Found 0 local location checksums
+2026/01/26 22:47:17 🔄 Syncing quants...
+2026/01/26 22:47:17 🔄 Syncing Quants via Checksum Engine...
+2026/01/26 22:47:17    Found 0 local quant checksums
+2026/01/26 22:47:17 🔄 Syncing pickings...
+2026/01/26 22:47:17 🔄 Syncing Pickings via Checksum Engine...
+2026/01/26 22:47:17 🔄 Syncing partners...
+2026/01/26 22:47:17 🔄 Syncing Partners via Checksum Engine...
+2026/01/26 22:47:17 🔄 Syncing tracking...
+2026/01/26 22:47:17 🔄 Syncing products...
+2026/01/26 22:47:17 🔄 Syncing Products via Checksum Engine...
+2026/01/26 22:47:17    Found 2 local product checksums
+2026/01/26 22:47:17 🔄 Syncing packages...
+2026/01/26 22:47:17 🔄 Syncing Packages via Checksum Engine...
+2026/01/26 22:47:17 🔄 Syncing lots...
+2026/01/26 22:47:17 🔄 Syncing Lots via Checksum Engine...
+2026/01/26 22:47:17 ✅ Sync completed in 3.825ms: 2 entities, 0 conflicts
+2026/01/26 22:47:18 🔄 Odoo: Starting full sync...
+2026/01/26 22:47:18 📍 Odoo: Syncing Locations...
+2026/01/26 22:47:18 ❌ Odoo Sync Error (Locations): failed to unmarshal into target: json: cannot unmarshal bool into Go struct field StockLocation.location_id of type int64
+2026/01/26 22:47:18 📦 Odoo: Syncing Products...
+2026/01/26 22:47:18 👥 Odoo: Syncing Partners (Customers/Suppliers)...
+2026/01/26 22:47:19 ❌ Odoo Sync Error (Partners): failed to unmarshal into target: json: cannot unmarshal bool into Go struct field ResPartner.country_id of type int64
+2026/01/26 22:47:19 🏷️ Odoo: Syncing Lots...
+2026/01/26 22:47:19 📦 Odoo: Syncing Packages...
+2026/01/26 22:47:19 ❌ Odoo Sync Error (Packages): failed to execute search_read: Fault(2): Object stock.quant.package doesn't exist
+2026/01/26 22:47:19 📊 Odoo: Syncing Quants...
+2026/01/26 22:47:19 📋 Odoo: Syncing Pickings (Transfer Orders)...
+2026/01/26 22:47:19 ❌ Odoo Sync Error (Pickings): failed to unmarshal into target: Time.UnmarshalJSON: input is not a JSON string
+2026/01/26 22:47:19 📝 Odoo: Syncing Move Lines...
+2026/01/26 22:47:19 ✅ Odoo: Full sync completed
+2026/01/26 22:47:37 Mesh Sync: Starting sync as peer with 1 known nodes
+2026/01/26 22:47:37 Mesh Sync: Pulling data from production_pda_repair (https://pda.repair/E)
+2026/01/26 22:47:38 Mesh Sync: Successfully pulled from production_pda_repair (products: 0, locations: 0, quants: 0, shipments: 0, tracking: 0)
+2026/01/26 22:47:38 Mesh Sync: Pushing shipments to production_pda_repair (https://pda.repair/E)
+2026/01/26 22:47:38 📦 Mesh Push: Querying shipments since 2020-01-01 00:00:00 +0100 CET
+2026/01/26 22:47:38 📦 Mesh Push: Found 68 shipments (since 2020-01-01 00:00:00 +0100 CET)
+2026/01/26 22:47:38   Shipment[0]: ID=173, Tracking=OCU-998-509865, Status=delivered, UpdatedAt=2026-01-26 22:43:52.158505 +0100 CET
+2026/01/26 22:47:38   Shipment[1]: ID=159, Tracking=041940510175, Status=delivered, UpdatedAt=2026-01-26 22:43:52.136761 +0100 CET
+2026/01/26 22:47:38   Shipment[2]: ID=162, Tracking=OCU-998-510727, Status=delivered, UpdatedAt=2026-01-26 22:43:52.141505 +0100 CET
+2026/01/26 22:47:38   Shipment[3]: ID=163, Tracking=OCU-998-510725, Status=delivered, UpdatedAt=2026-01-26 22:43:52.142506 +0100 CET
+2026/01/26 22:47:38   Shipment[4]: ID=157, Tracking=OCU-998-511131, Status=delivered, UpdatedAt=2026-01-26 22:43:52.133358 +0100 CET
+2026/01/26 22:47:38   Shipment[5]: ID=161, Tracking=OCU-998-510729, Status=delivered, UpdatedAt=2026-01-26 22:43:52.140125 +0100 CET
+2026/01/26 22:47:38   Shipment[6]: ID=160, Tracking=OCU-998-510703, Status=delivered, UpdatedAt=2026-01-26 22:43:52.138708 +0100 CET
+2026/01/26 22:47:38   Shipment[7]: ID=204, Tracking=00340434326960037567, Status=delivered, UpdatedAt=2026-01-23 07:45:04.230162 +0100 CET
+2026/01/26 22:47:38   Shipment[8]: ID=191, Tracking=OCU-998-508519, Status=delivered, UpdatedAt=2026-01-26 22:43:52.178792 +0100 CET
+2026/01/26 22:47:38   Shipment[9]: ID=217, Tracking=OCU-998-512037, Status=delivered, UpdatedAt=2026-01-26 22:43:52.110054 +0100 CET
+2026/01/26 22:47:38   Shipment[10]: ID=203, Tracking=00340434326960037529, Status=delivered, UpdatedAt=2026-01-23 07:45:04.228734 +0100 CET
+2026/01/26 22:47:38   Shipment[11]: ID=205, Tracking=681539267737, Status=shipped, UpdatedAt=2026-01-23 07:45:04.231561 +0100 CET
+2026/01/26 22:47:38   Shipment[12]: ID=206, Tracking=00340434326960037536, Status=delivered, UpdatedAt=2026-01-23 07:45:04.232177 +0100 CET
+2026/01/26 22:47:38   Shipment[13]: ID=172, Tracking=OCU-998-509996, Status=delivered, UpdatedAt=2026-01-26 22:43:52.156935 +0100 CET
+2026/01/26 22:47:38   Shipment[14]: ID=174, Tracking=OCU-998-509866, Status=delivered, UpdatedAt=2026-01-26 22:43:52.160072 +0100 CET
+2026/01/26 22:47:38   Shipment[15]: ID=175, Tracking=OCU-998-509621, Status=delivered, UpdatedAt=2026-01-26 22:43:52.161525 +0100 CET
+2026/01/26 22:47:38   Shipment[16]: ID=207, Tracking=00340434326960037512, Status=delivered, UpdatedAt=2026-01-23 07:45:04.233478 +0100 CET
+2026/01/26 22:47:38   Shipment[17]: ID=153, Tracking=OCU-998-511413, Status=delivered, UpdatedAt=2026-01-26 22:43:52.127245 +0100 CET
+2026/01/26 22:47:38   Shipment[18]: ID=181, Tracking=OCU-998-509182, Status=delivered, UpdatedAt=2026-01-26 22:43:52.167137 +0100 CET
+2026/01/26 22:47:38   Shipment[19]: ID=155, Tracking=OCU-998-511217, Status=delivered, UpdatedAt=2026-01-26 22:43:52.130372 +0100 CET
+2026/01/26 22:47:38   Shipment[20]: ID=179, Tracking=OCU-998-509242, Status=delivered, UpdatedAt=2026-01-26 22:43:52.165162 +0100 CET
+2026/01/26 22:47:38   Shipment[21]: ID=180, Tracking=OCU-998-509241, Status=delivered, UpdatedAt=2026-01-26 22:43:52.166492 +0100 CET
+2026/01/26 22:47:38   Shipment[22]: ID=188, Tracking=OCU-998-508740, Status=delivered, UpdatedAt=2026-01-26 22:43:52.173623 +0100 CET
+2026/01/26 22:47:38   Shipment[23]: ID=158, Tracking=OCU-998-511089, Status=delivered, UpdatedAt=2026-01-26 22:43:52.135143 +0100 CET
+2026/01/26 22:47:38   Shipment[24]: ID=184, Tracking=OCU-998-509063, Status=delivered, UpdatedAt=2026-01-26 22:43:52.170305 +0100 CET
+2026/01/26 22:47:38   Shipment[25]: ID=185, Tracking=OCU-998-508827, Status=delivered, UpdatedAt=2026-01-26 22:43:52.171436 +0100 CET
+2026/01/26 22:47:38   Shipment[26]: ID=186, Tracking=OCU-998-508823, Status=delivered, UpdatedAt=2026-01-26 22:43:52.171965 +0100 CET
+2026/01/26 22:47:38   Shipment[27]: ID=187, Tracking=OCU-998-508817, Status=delivered, UpdatedAt=2026-01-26 22:43:52.173106 +0100 CET
+2026/01/26 22:47:38   Shipment[28]: ID=193, Tracking=OCU-998-508489, Status=delivered, UpdatedAt=2026-01-26 22:43:52.18168 +0100 CET
+2026/01/26 22:47:38   Shipment[29]: ID=196, Tracking=OCU-998-508476, Status=delivered, UpdatedAt=2026-01-26 22:43:52.185217 +0100 CET
+2026/01/26 22:47:38   Shipment[30]: ID=167, Tracking=OCU-998-510397, Status=delivered, UpdatedAt=2026-01-26 22:43:52.148531 +0100 CET
+2026/01/26 22:47:38   Shipment[31]: ID=202, Tracking=00340434326960037543, Status=delivered, UpdatedAt=2026-01-23 07:45:04.225484 +0100 CET
+2026/01/26 22:47:38   Shipment[32]: ID=211, Tracking=00340434326960037451, Status=delivered, UpdatedAt=2026-01-23 07:45:04.23751 +0100 CET
+2026/01/26 22:47:38   Shipment[33]: ID=166, Tracking=OCU-998-510368, Status=delivered, UpdatedAt=2026-01-26 22:43:52.147127 +0100 CET
+2026/01/26 22:47:38   Shipment[34]: ID=197, Tracking=OCU-998-508391, Status=delivered, UpdatedAt=2026-01-26 22:43:52.186983 +0100 CET
+2026/01/26 22:47:38   Shipment[35]: ID=156, Tracking=OCU-998-511138, Status=delivered, UpdatedAt=2026-01-26 22:43:52.131771 +0100 CET
+2026/01/26 22:47:38   Shipment[36]: ID=198, Tracking=OCU-998-508356, Status=delivered, UpdatedAt=2026-01-26 22:43:52.187576 +0100 CET
+2026/01/26 22:47:38   Shipment[37]: ID=199, Tracking=OCU-998-508263, Status=delivered, UpdatedAt=2026-01-23 14:17:36.099151 +0100 CET
+2026/01/26 22:47:38   Shipment[38]: ID=200, Tracking=00340434326960037574, Status=shipped, UpdatedAt=2026-01-23 07:45:04.221984 +0100 CET
+2026/01/26 22:47:38   Shipment[39]: ID=201, Tracking=00340434326960037550, Status=shipped, UpdatedAt=2026-01-23 07:45:04.224337 +0100 CET
+2026/01/26 22:47:38   Shipment[40]: ID=212, Tracking=00340434326960037499, Status=delivered, UpdatedAt=2026-01-23 07:45:04.238699 +0100 CET
+2026/01/26 22:47:38   Shipment[41]: ID=213, Tracking=00340434326960037482, Status=delivered, UpdatedAt=2026-01-23 07:45:04.239369 +0100 CET
+2026/01/26 22:47:38   Shipment[42]: ID=214, Tracking=00340434326960037475, Status=delivered, UpdatedAt=2026-01-23 07:45:04.240778 +0100 CET
+2026/01/26 22:47:38   Shipment[43]: ID=168, Tracking=OCU-998-510376, Status=delivered, UpdatedAt=2026-01-26 22:43:52.149953 +0100 CET
+2026/01/26 22:47:38   Shipment[44]: ID=208, Tracking=00340434326960037505, Status=delivered, UpdatedAt=2026-01-23 07:45:04.234184 +0100 CET
+2026/01/26 22:47:38   Shipment[45]: ID=209, Tracking=681539314724, Status=error, UpdatedAt=2026-01-23 07:45:04.235971 +0100 CET
+2026/01/26 22:47:38   Shipment[46]: ID=210, Tracking=681539269458, Status=error, UpdatedAt=2026-01-23 07:45:04.236992 +0100 CET
+2026/01/26 22:47:38   Shipment[47]: ID=216, Tracking=00340434326960037420, Status=cancelled, UpdatedAt=2026-01-22 15:20:50.130161 +0100 CET
+2026/01/26 22:47:38   Shipment[48]: ID=169, Tracking=OCU-998-510207, Status=error, UpdatedAt=2026-01-26 22:43:52.152201 +0100 CET
+2026/01/26 22:47:38   Shipment[49]: ID=154, Tracking=OCU-998-511439, Status=delivered, UpdatedAt=2026-01-26 22:43:52.129092 +0100 CET
+2026/01/26 22:47:38   Shipment[50]: ID=215, Tracking=00340434326960037468, Status=delivered, UpdatedAt=2026-01-23 07:45:04.241426 +0100 CET
+2026/01/26 22:47:38   Shipment[51]: ID=170, Tracking=OCU-998-510113, Status=delivered, UpdatedAt=2026-01-26 22:43:52.153844 +0100 CET
+2026/01/26 22:47:38   Shipment[52]: ID=182, Tracking=OCU-998-509164, Status=delivered, UpdatedAt=2026-01-26 22:43:52.168648 +0100 CET
+2026/01/26 22:47:38   Shipment[53]: ID=150, Tracking=OCU-998-511590, Status=delivered, UpdatedAt=2026-01-26 22:43:52.121264 +0100 CET
+2026/01/26 22:47:38   Shipment[54]: ID=177, Tracking=OCU-998-509479, Status=delivered, UpdatedAt=2026-01-26 22:43:52.163416 +0100 CET
+2026/01/26 22:47:38   Shipment[55]: ID=183, Tracking=OCU-998-509136, Status=delivered, UpdatedAt=2026-01-26 22:43:52.169223 +0100 CET
+2026/01/26 22:47:38   Shipment[56]: ID=152, Tracking=OCU-998-511436, Status=delivered, UpdatedAt=2026-01-26 22:43:52.125275 +0100 CET
+2026/01/26 22:47:38   Shipment[57]: ID=176, Tracking=OCU-998-509569, Status=delivered, UpdatedAt=2026-01-26 22:43:52.162157 +0100 CET
+2026/01/26 22:47:38   Shipment[58]: ID=189, Tracking=OCU-998-508584, Status=delivered, UpdatedAt=2026-01-26 22:43:52.175572 +0100 CET
+2026/01/26 22:47:38   Shipment[59]: ID=190, Tracking=OCU-998-508541, Status=delivered, UpdatedAt=2026-01-26 22:43:52.177615 +0100 CET
+2026/01/26 22:47:38   Shipment[60]: ID=151, Tracking=OCU-998-511484, Status=delivered, UpdatedAt=2026-01-26 22:43:52.123681 +0100 CET
+2026/01/26 22:47:38   Shipment[61]: ID=164, Tracking=OCU-998-510722, Status=delivered, UpdatedAt=2026-01-26 22:43:52.144344 +0100 CET
+2026/01/26 22:47:38   Shipment[62]: ID=171, Tracking=OCU-998-509999, Status=delivered, UpdatedAt=2026-01-26 22:43:52.155314 +0100 CET
+2026/01/26 22:47:38   Shipment[63]: ID=194, Tracking=OCU-998-508450, Status=delivered, UpdatedAt=2026-01-26 22:43:52.182932 +0100 CET
+2026/01/26 22:47:38   Shipment[64]: ID=165, Tracking=OCU-998-510581, Status=delivered, UpdatedAt=2026-01-26 22:43:52.145699 +0100 CET
+2026/01/26 22:47:38   Shipment[65]: ID=178, Tracking=OCU-998-509426, Status=delivered, UpdatedAt=2026-01-26 22:43:52.164487 +0100 CET
+2026/01/26 22:47:38   Shipment[66]: ID=192, Tracking=OCU-998-508513, Status=delivered, UpdatedAt=2026-01-26 22:43:52.180446 +0100 CET
+2026/01/26 22:47:38   Shipment[67]: ID=195, Tracking=OCU-998-508446, Status=delivered, UpdatedAt=2026-01-26 22:43:52.184026 +0100 CET
+2026/01/26 22:47:38 📦 Mesh Push: Querying tracking since 2020-01-01 00:00:00 +0100 CET
+2026/01/26 22:47:38 📦 Mesh Push: Found 139 tracking entries (since 2020-01-01 00:00:00 +0100 CET)
+2026/01/26 22:47:38   Tracking[0]: ID=201, PickingDeliveryID=150, Status=delivered, CreatedAt=2026-01-22 09:55:37.831304 +0100 CET
+2026/01/26 22:47:38   Tracking[1]: ID=202, PickingDeliveryID=151, Status=delivered, CreatedAt=2026-01-22 09:55:37.839353 +0100 CET
+2026/01/26 22:47:38   Tracking[2]: ID=203, PickingDeliveryID=152, Status=delivered, CreatedAt=2026-01-22 09:55:37.841873 +0100 CET
+2026/01/26 22:47:38   Tracking[3]: ID=204, PickingDeliveryID=153, Status=delivered, CreatedAt=2026-01-22 09:55:37.844844 +0100 CET
+2026/01/26 22:47:38   Tracking[4]: ID=205, PickingDeliveryID=154, Status=delivered, CreatedAt=2026-01-22 09:55:37.847274 +0100 CET
+2026/01/26 22:47:38   Tracking[5]: ID=206, PickingDeliveryID=155, Status=delivered, CreatedAt=2026-01-22 09:55:37.849655 +0100 CET
+2026/01/26 22:47:38   Tracking[6]: ID=207, PickingDeliveryID=156, Status=delivered, CreatedAt=2026-01-22 09:55:37.852168 +0100 CET
+2026/01/26 22:47:38   Tracking[7]: ID=208, PickingDeliveryID=157, Status=delivered, CreatedAt=2026-01-22 09:55:37.855973 +0100 CET
+2026/01/26 22:47:38   Tracking[8]: ID=209, PickingDeliveryID=158, Status=delivered, CreatedAt=2026-01-22 09:55:37.858209 +0100 CET
+2026/01/26 22:47:38   Tracking[9]: ID=210, PickingDeliveryID=159, Status=delivered, CreatedAt=2026-01-22 09:55:37.860674 +0100 CET
+2026/01/26 22:47:38   Tracking[10]: ID=211, PickingDeliveryID=160, Status=delivered, CreatedAt=2026-01-22 09:55:37.863076 +0100 CET
+2026/01/26 22:47:38   Tracking[11]: ID=212, PickingDeliveryID=161, Status=delivered, CreatedAt=2026-01-22 09:55:37.864835 +0100 CET
+2026/01/26 22:47:38   Tracking[12]: ID=213, PickingDeliveryID=162, Status=delivered, CreatedAt=2026-01-22 09:55:37.867372 +0100 CET
+2026/01/26 22:47:38   Tracking[13]: ID=214, PickingDeliveryID=163, Status=delivered, CreatedAt=2026-01-22 09:55:37.869884 +0100 CET
+2026/01/26 22:47:38   Tracking[14]: ID=215, PickingDeliveryID=164, Status=delivered, CreatedAt=2026-01-22 09:55:37.872422 +0100 CET
+2026/01/26 22:47:38   Tracking[15]: ID=216, PickingDeliveryID=165, Status=delivered, CreatedAt=2026-01-22 09:55:37.87433 +0100 CET
+2026/01/26 22:47:38   Tracking[16]: ID=217, PickingDeliveryID=166, Status=delivered, CreatedAt=2026-01-22 09:55:37.876894 +0100 CET
+2026/01/26 22:47:38   Tracking[17]: ID=218, PickingDeliveryID=167, Status=delivered, CreatedAt=2026-01-22 09:55:37.878712 +0100 CET
+2026/01/26 22:47:38   Tracking[18]: ID=219, PickingDeliveryID=168, Status=delivered, CreatedAt=2026-01-22 09:55:37.88268 +0100 CET
+2026/01/26 22:47:38   Tracking[19]: ID=220, PickingDeliveryID=169, Status=delivered, CreatedAt=2026-01-22 09:55:37.885688 +0100 CET
+2026/01/26 22:47:38   Tracking[20]: ID=221, PickingDeliveryID=170, Status=delivered, CreatedAt=2026-01-22 09:55:37.888144 +0100 CET
+2026/01/26 22:47:38   Tracking[21]: ID=222, PickingDeliveryID=171, Status=delivered, CreatedAt=2026-01-22 09:55:37.890504 +0100 CET
+2026/01/26 22:47:38   Tracking[22]: ID=223, PickingDeliveryID=172, Status=delivered, CreatedAt=2026-01-22 09:55:37.892289 +0100 CET
+2026/01/26 22:47:38   Tracking[23]: ID=224, PickingDeliveryID=173, Status=delivered, CreatedAt=2026-01-22 09:55:37.894771 +0100 CET
+2026/01/26 22:47:38   Tracking[24]: ID=225, PickingDeliveryID=174, Status=delivered, CreatedAt=2026-01-22 09:55:37.896586 +0100 CET
+2026/01/26 22:47:38   Tracking[25]: ID=226, PickingDeliveryID=175, Status=delivered, CreatedAt=2026-01-22 09:55:37.898925 +0100 CET
+2026/01/26 22:47:38   Tracking[26]: ID=227, PickingDeliveryID=176, Status=delivered, CreatedAt=2026-01-22 09:55:37.902483 +0100 CET
+2026/01/26 22:47:38   Tracking[27]: ID=228, PickingDeliveryID=177, Status=delivered, CreatedAt=2026-01-22 09:55:37.905159 +0100 CET
+2026/01/26 22:47:38   Tracking[28]: ID=229, PickingDeliveryID=178, Status=delivered, CreatedAt=2026-01-22 09:55:37.90769 +0100 CET
+2026/01/26 22:47:38   Tracking[29]: ID=230, PickingDeliveryID=179, Status=delivered, CreatedAt=2026-01-22 09:55:37.910166 +0100 CET
+2026/01/26 22:47:38   Tracking[30]: ID=231, PickingDeliveryID=180, Status=delivered, CreatedAt=2026-01-22 09:55:37.912745 +0100 CET
+2026/01/26 22:47:38   Tracking[31]: ID=232, PickingDeliveryID=181, Status=delivered, CreatedAt=2026-01-22 09:55:37.915448 +0100 CET
+2026/01/26 22:47:38   Tracking[32]: ID=233, PickingDeliveryID=182, Status=delivered, CreatedAt=2026-01-22 09:55:37.918812 +0100 CET
+2026/01/26 22:47:38   Tracking[33]: ID=234, PickingDeliveryID=183, Status=delivered, CreatedAt=2026-01-22 09:55:37.921038 +0100 CET
+2026/01/26 22:47:38   Tracking[34]: ID=235, PickingDeliveryID=184, Status=delivered, CreatedAt=2026-01-22 09:55:37.92287 +0100 CET
+2026/01/26 22:47:38   Tracking[35]: ID=236, PickingDeliveryID=185, Status=delivered, CreatedAt=2026-01-22 09:55:37.924872 +0100 CET
+2026/01/26 22:47:38   Tracking[36]: ID=237, PickingDeliveryID=186, Status=delivered, CreatedAt=2026-01-22 09:55:37.927283 +0100 CET
+2026/01/26 22:47:38   Tracking[37]: ID=238, PickingDeliveryID=187, Status=delivered, CreatedAt=2026-01-22 09:55:37.929027 +0100 CET
+2026/01/26 22:47:38   Tracking[38]: ID=239, PickingDeliveryID=188, Status=delivered, CreatedAt=2026-01-22 09:55:37.931265 +0100 CET
+2026/01/26 22:47:38   Tracking[39]: ID=240, PickingDeliveryID=189, Status=delivered, CreatedAt=2026-01-22 09:55:37.934708 +0100 CET
+2026/01/26 22:47:38   Tracking[40]: ID=241, PickingDeliveryID=190, Status=delivered, CreatedAt=2026-01-22 09:55:37.937018 +0100 CET
+2026/01/26 22:47:38   Tracking[41]: ID=242, PickingDeliveryID=191, Status=delivered, CreatedAt=2026-01-22 09:55:37.939261 +0100 CET
+2026/01/26 22:47:38   Tracking[42]: ID=243, PickingDeliveryID=192, Status=delivered, CreatedAt=2026-01-22 09:55:37.941397 +0100 CET
+2026/01/26 22:47:38   Tracking[43]: ID=244, PickingDeliveryID=193, Status=delivered, CreatedAt=2026-01-22 09:55:37.944054 +0100 CET
+2026/01/26 22:47:38   Tracking[44]: ID=245, PickingDeliveryID=194, Status=delivered, CreatedAt=2026-01-22 09:55:37.94596 +0100 CET
+2026/01/26 22:47:38   Tracking[45]: ID=246, PickingDeliveryID=195, Status=delivered, CreatedAt=2026-01-22 09:55:37.948304 +0100 CET
+2026/01/26 22:47:38   Tracking[46]: ID=247, PickingDeliveryID=196, Status=delivered, CreatedAt=2026-01-22 09:55:37.951605 +0100 CET
+2026/01/26 22:47:38   Tracking[47]: ID=248, PickingDeliveryID=197, Status=delivered, CreatedAt=2026-01-22 09:55:37.953953 +0100 CET
+2026/01/26 22:47:38   Tracking[48]: ID=249, PickingDeliveryID=198, Status=delivered, CreatedAt=2026-01-22 09:55:37.955748 +0100 CET
+2026/01/26 22:47:38   Tracking[49]: ID=250, PickingDeliveryID=199, Status=delivered, CreatedAt=2026-01-22 09:55:37.957892 +0100 CET
+2026/01/26 22:47:38   Tracking[50]: ID=251, PickingDeliveryID=200, Status=shipped, CreatedAt=2026-01-22 14:54:15.648802 +0100 CET
+2026/01/26 22:47:38   Tracking[51]: ID=252, PickingDeliveryID=201, Status=shipped, CreatedAt=2026-01-22 14:54:15.650946 +0100 CET
+2026/01/26 22:47:38   Tracking[52]: ID=253, PickingDeliveryID=202, Status=delivered, CreatedAt=2026-01-22 14:54:15.652938 +0100 CET
+2026/01/26 22:47:38   Tracking[53]: ID=254, PickingDeliveryID=203, Status=delivered, CreatedAt=2026-01-22 14:54:15.65477 +0100 CET
+2026/01/26 22:47:38   Tracking[54]: ID=255, PickingDeliveryID=204, Status=delivered, CreatedAt=2026-01-22 14:54:15.656033 +0100 CET
+2026/01/26 22:47:38   Tracking[55]: ID=256, PickingDeliveryID=205, Status=shipped, CreatedAt=2026-01-22 14:54:15.656599 +0100 CET
+2026/01/26 22:47:38   Tracking[56]: ID=257, PickingDeliveryID=206, Status=delivered, CreatedAt=2026-01-22 14:54:15.657916 +0100 CET
+2026/01/26 22:47:38   Tracking[57]: ID=258, PickingDeliveryID=207, Status=delivered, CreatedAt=2026-01-22 14:54:15.659371 +0100 CET
+2026/01/26 22:47:38   Tracking[58]: ID=259, PickingDeliveryID=208, Status=delivered, CreatedAt=2026-01-22 14:54:15.660399 +0100 CET
+2026/01/26 22:47:38   Tracking[59]: ID=260, PickingDeliveryID=209, Status=pending, CreatedAt=2026-01-22 14:54:15.661481 +0100 CET
+2026/01/26 22:47:38   Tracking[60]: ID=261, PickingDeliveryID=210, Status=pending, CreatedAt=2026-01-22 14:54:15.663074 +0100 CET
+2026/01/26 22:47:38   Tracking[61]: ID=262, PickingDeliveryID=211, Status=delivered, CreatedAt=2026-01-22 14:54:15.66416 +0100 CET
+2026/01/26 22:47:38   Tracking[62]: ID=263, PickingDeliveryID=212, Status=delivered, CreatedAt=2026-01-22 14:54:15.664739 +0100 CET
+2026/01/26 22:47:38   Tracking[63]: ID=264, PickingDeliveryID=213, Status=delivered, CreatedAt=2026-01-22 14:54:15.665783 +0100 CET
+2026/01/26 22:47:38   Tracking[64]: ID=265, PickingDeliveryID=214, Status=delivered, CreatedAt=2026-01-22 14:54:15.667725 +0100 CET
+2026/01/26 22:47:38   Tracking[65]: ID=266, PickingDeliveryID=215, Status=delivered, CreatedAt=2026-01-22 14:54:15.668396 +0100 CET
+2026/01/26 22:47:38   Tracking[66]: ID=267, PickingDeliveryID=216, Status=cancelled, CreatedAt=2026-01-22 14:54:15.669449 +0100 CET
+2026/01/26 22:47:38   Tracking[67]: ID=268, PickingDeliveryID=209, Status=error, CreatedAt=2026-01-22 14:56:05.713864 +0100 CET
+2026/01/26 22:47:38   Tracking[68]: ID=269, PickingDeliveryID=210, Status=error, CreatedAt=2026-01-22 14:56:05.718293 +0100 CET
+2026/01/26 22:47:38   Tracking[69]: ID=270, PickingDeliveryID=150, Status=delivered, CreatedAt=2026-01-22 15:16:41.884291 +0100 CET
+2026/01/26 22:47:38   Tracking[70]: ID=271, PickingDeliveryID=151, Status=delivered, CreatedAt=2026-01-22 15:16:41.887369 +0100 CET
+2026/01/26 22:47:38   Tracking[71]: ID=272, PickingDeliveryID=152, Status=delivered, CreatedAt=2026-01-22 15:16:41.889383 +0100 CET
+2026/01/26 22:47:38   Tracking[72]: ID=273, PickingDeliveryID=153, Status=delivered, CreatedAt=2026-01-22 15:16:41.89223 +0100 CET
+2026/01/26 22:47:38   Tracking[73]: ID=274, PickingDeliveryID=154, Status=delivered, CreatedAt=2026-01-22 15:16:41.894884 +0100 CET
+2026/01/26 22:47:38   Tracking[74]: ID=275, PickingDeliveryID=155, Status=delivered, CreatedAt=2026-01-22 15:16:41.897155 +0100 CET
+2026/01/26 22:47:38   Tracking[75]: ID=276, PickingDeliveryID=156, Status=delivered, CreatedAt=2026-01-22 15:16:41.899432 +0100 CET
+2026/01/26 22:47:38   Tracking[76]: ID=277, PickingDeliveryID=157, Status=delivered, CreatedAt=2026-01-22 15:16:41.902169 +0100 CET
+2026/01/26 22:47:38   Tracking[77]: ID=278, PickingDeliveryID=158, Status=delivered, CreatedAt=2026-01-22 15:16:41.903949 +0100 CET
+2026/01/26 22:47:38   Tracking[78]: ID=279, PickingDeliveryID=159, Status=delivered, CreatedAt=2026-01-22 15:16:41.9058 +0100 CET
+2026/01/26 22:47:38   Tracking[79]: ID=280, PickingDeliveryID=160, Status=delivered, CreatedAt=2026-01-22 15:16:41.907564 +0100 CET
+2026/01/26 22:47:38   Tracking[80]: ID=281, PickingDeliveryID=161, Status=delivered, CreatedAt=2026-01-22 15:16:41.909418 +0100 CET
+2026/01/26 22:47:38   Tracking[81]: ID=282, PickingDeliveryID=162, Status=delivered, CreatedAt=2026-01-22 15:16:41.911381 +0100 CET
+2026/01/26 22:47:38   Tracking[82]: ID=283, PickingDeliveryID=163, Status=delivered, CreatedAt=2026-01-22 15:16:41.913265 +0100 CET
+2026/01/26 22:47:38   Tracking[83]: ID=284, PickingDeliveryID=164, Status=delivered, CreatedAt=2026-01-22 15:16:41.915647 +0100 CET
+2026/01/26 22:47:38   Tracking[84]: ID=285, PickingDeliveryID=165, Status=delivered, CreatedAt=2026-01-22 15:16:41.917469 +0100 CET
+2026/01/26 22:47:38   Tracking[85]: ID=286, PickingDeliveryID=166, Status=delivered, CreatedAt=2026-01-22 15:16:41.919177 +0100 CET
+2026/01/26 22:47:38   Tracking[86]: ID=287, PickingDeliveryID=167, Status=delivered, CreatedAt=2026-01-22 15:16:41.921998 +0100 CET
+2026/01/26 22:47:38   Tracking[87]: ID=288, PickingDeliveryID=168, Status=delivered, CreatedAt=2026-01-22 15:16:41.924343 +0100 CET
+2026/01/26 22:47:38   Tracking[88]: ID=289, PickingDeliveryID=169, Status=error, CreatedAt=2026-01-22 15:16:41.929141 +0100 CET
+2026/01/26 22:47:38   Tracking[89]: ID=290, PickingDeliveryID=170, Status=delivered, CreatedAt=2026-01-22 15:16:41.930791 +0100 CET
+2026/01/26 22:47:38   Tracking[90]: ID=291, PickingDeliveryID=171, Status=delivered, CreatedAt=2026-01-22 15:16:41.932778 +0100 CET
+2026/01/26 22:47:38   Tracking[91]: ID=292, PickingDeliveryID=172, Status=delivered, CreatedAt=2026-01-22 15:16:41.934108 +0100 CET
+2026/01/26 22:47:38   Tracking[92]: ID=293, PickingDeliveryID=173, Status=delivered, CreatedAt=2026-01-22 15:16:41.935912 +0100 CET
+2026/01/26 22:47:38   Tracking[93]: ID=294, PickingDeliveryID=174, Status=delivered, CreatedAt=2026-01-22 15:16:41.937235 +0100 CET
+2026/01/26 22:47:38   Tracking[94]: ID=295, PickingDeliveryID=175, Status=delivered, CreatedAt=2026-01-22 15:16:41.939006 +0100 CET
+2026/01/26 22:47:38   Tracking[95]: ID=296, PickingDeliveryID=176, Status=delivered, CreatedAt=2026-01-22 15:16:41.940571 +0100 CET
+2026/01/26 22:47:38   Tracking[96]: ID=297, PickingDeliveryID=177, Status=delivered, CreatedAt=2026-01-22 15:16:41.941903 +0100 CET
+2026/01/26 22:47:38   Tracking[97]: ID=298, PickingDeliveryID=178, Status=delivered, CreatedAt=2026-01-22 15:16:41.943517 +0100 CET
+2026/01/26 22:47:38   Tracking[98]: ID=299, PickingDeliveryID=179, Status=delivered, CreatedAt=2026-01-22 15:16:41.945217 +0100 CET
+2026/01/26 22:47:38   Tracking[99]: ID=300, PickingDeliveryID=180, Status=delivered, CreatedAt=2026-01-22 15:16:41.946456 +0100 CET
+2026/01/26 22:47:38   Tracking[100]: ID=301, PickingDeliveryID=181, Status=delivered, CreatedAt=2026-01-22 15:16:41.948206 +0100 CET
+2026/01/26 22:47:38   Tracking[101]: ID=302, PickingDeliveryID=182, Status=delivered, CreatedAt=2026-01-22 15:16:41.949454 +0100 CET
+2026/01/26 22:47:38   Tracking[102]: ID=303, PickingDeliveryID=183, Status=delivered, CreatedAt=2026-01-22 15:16:41.951258 +0100 CET
+2026/01/26 22:47:38   Tracking[103]: ID=304, PickingDeliveryID=184, Status=delivered, CreatedAt=2026-01-22 15:16:41.95363 +0100 CET
+2026/01/26 22:47:38   Tracking[104]: ID=305, PickingDeliveryID=185, Status=delivered, CreatedAt=2026-01-22 15:16:41.955931 +0100 CET
+2026/01/26 22:47:38   Tracking[105]: ID=306, PickingDeliveryID=186, Status=delivered, CreatedAt=2026-01-22 15:16:41.957451 +0100 CET
+2026/01/26 22:47:38   Tracking[106]: ID=307, PickingDeliveryID=187, Status=delivered, CreatedAt=2026-01-22 15:16:41.959119 +0100 CET
+2026/01/26 22:47:38   Tracking[107]: ID=308, PickingDeliveryID=188, Status=delivered, CreatedAt=2026-01-22 15:16:41.960943 +0100 CET
+2026/01/26 22:47:38   Tracking[108]: ID=309, PickingDeliveryID=189, Status=delivered, CreatedAt=2026-01-22 15:16:41.96333 +0100 CET
+2026/01/26 22:47:38   Tracking[109]: ID=310, PickingDeliveryID=190, Status=delivered, CreatedAt=2026-01-22 15:16:41.964968 +0100 CET
+2026/01/26 22:47:38   Tracking[110]: ID=311, PickingDeliveryID=191, Status=delivered, CreatedAt=2026-01-22 15:16:41.96682 +0100 CET
+2026/01/26 22:47:38   Tracking[111]: ID=312, PickingDeliveryID=192, Status=delivered, CreatedAt=2026-01-22 15:16:41.969091 +0100 CET
+2026/01/26 22:47:38   Tracking[112]: ID=313, PickingDeliveryID=193, Status=delivered, CreatedAt=2026-01-22 15:16:41.970834 +0100 CET
+2026/01/26 22:47:38   Tracking[113]: ID=314, PickingDeliveryID=194, Status=delivered, CreatedAt=2026-01-22 15:16:41.972676 +0100 CET
+2026/01/26 22:47:38   Tracking[114]: ID=315, PickingDeliveryID=195, Status=delivered, CreatedAt=2026-01-22 15:16:41.974348 +0100 CET
+2026/01/26 22:47:38   Tracking[115]: ID=316, PickingDeliveryID=196, Status=delivered, CreatedAt=2026-01-22 15:16:41.976484 +0100 CET
+2026/01/26 22:47:38   Tracking[116]: ID=317, PickingDeliveryID=197, Status=delivered, CreatedAt=2026-01-22 15:16:41.97834 +0100 CET
+2026/01/26 22:47:38   Tracking[117]: ID=318, PickingDeliveryID=198, Status=delivered, CreatedAt=2026-01-22 15:16:41.979486 +0100 CET
+2026/01/26 22:47:38   Tracking[118]: ID=319, PickingDeliveryID=199, Status=delivered, CreatedAt=2026-01-22 15:16:41.981415 +0100 CET
+2026/01/26 22:47:38   Tracking[119]: ID=320, PickingDeliveryID=200, Status=shipped, CreatedAt=2026-01-22 15:20:50.107291 +0100 CET
+2026/01/26 22:47:38   Tracking[120]: ID=321, PickingDeliveryID=201, Status=shipped, CreatedAt=2026-01-22 15:20:50.110635 +0100 CET
+2026/01/26 22:47:38   Tracking[121]: ID=322, PickingDeliveryID=202, Status=delivered, CreatedAt=2026-01-22 15:20:50.11174 +0100 CET
+2026/01/26 22:47:38   Tracking[122]: ID=323, PickingDeliveryID=203, Status=delivered, CreatedAt=2026-01-22 15:20:50.113534 +0100 CET
+2026/01/26 22:47:38   Tracking[123]: ID=324, PickingDeliveryID=204, Status=delivered, CreatedAt=2026-01-22 15:20:50.115283 +0100 CET
+2026/01/26 22:47:38   Tracking[124]: ID=325, PickingDeliveryID=205, Status=shipped, CreatedAt=2026-01-22 15:20:50.117221 +0100 CET
+2026/01/26 22:47:38   Tracking[125]: ID=326, PickingDeliveryID=206, Status=delivered, CreatedAt=2026-01-22 15:20:50.118386 +0100 CET
+2026/01/26 22:47:38   Tracking[126]: ID=327, PickingDeliveryID=207, Status=delivered, CreatedAt=2026-01-22 15:20:50.119953 +0100 CET
+2026/01/26 22:47:38   Tracking[127]: ID=328, PickingDeliveryID=208, Status=delivered, CreatedAt=2026-01-22 15:20:50.121169 +0100 CET
+2026/01/26 22:47:38   Tracking[128]: ID=329, PickingDeliveryID=209, Status=pending, CreatedAt=2026-01-22 15:20:50.122432 +0100 CET
+2026/01/26 22:47:38   Tracking[129]: ID=330, PickingDeliveryID=210, Status=pending, CreatedAt=2026-01-22 15:20:50.123621 +0100 CET
+2026/01/26 22:47:38   Tracking[130]: ID=331, PickingDeliveryID=211, Status=delivered, CreatedAt=2026-01-22 15:20:50.124853 +0100 CET
+2026/01/26 22:47:38   Tracking[131]: ID=332, PickingDeliveryID=212, Status=delivered, CreatedAt=2026-01-22 15:20:50.126012 +0100 CET
+2026/01/26 22:47:38   Tracking[132]: ID=333, PickingDeliveryID=213, Status=delivered, CreatedAt=2026-01-22 15:20:50.127098 +0100 CET
+2026/01/26 22:47:38   Tracking[133]: ID=334, PickingDeliveryID=214, Status=delivered, CreatedAt=2026-01-22 15:20:50.128186 +0100 CET
+2026/01/26 22:47:38   Tracking[134]: ID=335, PickingDeliveryID=215, Status=delivered, CreatedAt=2026-01-22 15:20:50.129274 +0100 CET
+2026/01/26 22:47:38   Tracking[135]: ID=336, PickingDeliveryID=216, Status=cancelled, CreatedAt=2026-01-22 15:20:50.130665 +0100 CET
+2026/01/26 22:47:38   Tracking[136]: ID=337, PickingDeliveryID=217, Status=pending, CreatedAt=2026-01-23 15:49:12.540753 +0100 CET
+2026/01/26 22:47:38   Tracking[137]: ID=338, PickingDeliveryID=217, Status=error, CreatedAt=2026-01-23 15:49:54.800938 +0100 CET
+2026/01/26 22:47:38   Tracking[138]: ID=339, PickingDeliveryID=217, Status=delivered, CreatedAt=2026-01-26 10:18:32.497736 +0100 CET
+2026/01/26 22:47:38 📱 Mesh Push: Querying devices since 2020-01-01 00:00:00 +0100 CET
+2026/01/26 22:47:38 📱 Mesh Push: Found 1 devices (since 2020-01-01 00:00:00 +0100 CET)
+2026/01/26 22:47:38   Device[0]: ID=7079f94ca9373a43, Name=Ranger2, Status=active, UpdatedAt=2026-01-26 18:00:12.594301 +0100 CET
+2026/01/26 22:47:38 Mesh Sync: Pushing data to production_pda_repair (https://pda.repair/E)
+2026/01/26 22:47:39 Mesh Sync: Failed to push shipments to production_pda_repair: push failed with status 500: commit unexpectedly resulted in rollback
+2026/01/26 22:47:42 Route switched:  -> https://pda.repair/E (reason: health_check_reconnect)
+2026/01/26 22:47:44 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 22:48:12 ⏰ Running initial OPAL import...
 [OPAL Import] Starting OPAL order import...
-2026/01/26 22:26:17 Mesh: Handshake success with https://pda.repair/E (peer, ID: production_pda_repair)
-2026/01/26 22:26:47 Mesh: Handshake success with https://pda.repair/E (peer, ID: production_pda_repair)
-2026/01/26 22:27:18 Mesh: Handshake success with https://pda.repair/E (peer, ID: production_pda_repair)
+2026/01/26 22:48:14 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 22:48:44 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 22:49:14 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
 [OPAL Import] Fetched 50 orders from OPAL
 [OPAL Import] OPAL import completed: 0 created, 50 updated, 0 skipped
-2026/01/26 22:27:27 ✅ OPAL Import (initial) completed
-2026/01/26 22:27:48 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
-2026/01/26 22:27:52 Mesh Sync: Starting sync as peer with 1 known nodes
-2026/01/26 22:27:52 Mesh Sync: Pulling data from production_pda_repair (https://pda.repair/E)
-2026/01/26 22:27:52 Mesh Sync: Successfully pulled from production_pda_repair (products: 0, locations: 0, quants: 0, shipments: 0, tracking: 0)
-2026/01/26 22:27:52 Mesh Sync: Pushing shipments to production_pda_repair (https://pda.repair/E)
-2026/01/26 22:27:52 📦 Mesh Push: Querying shipments since 2020-01-01 00:00:00 +0100 CET
-2026/01/26 22:27:52 📦 Mesh Push: Found 68 shipments (since 2020-01-01 00:00:00 +0100 CET)
-2026/01/26 22:27:52   Shipment[0]: ID=160, Tracking=OCU-998-510703, Status=delivered, UpdatedAt=2026-01-26 22:27:27.774574 +0100 CET
-2026/01/26 22:27:52   Shipment[1]: ID=161, Tracking=OCU-998-510729, Status=delivered, UpdatedAt=2026-01-26 22:27:27.776211 +0100 CET
-2026/01/26 22:27:52   Shipment[2]: ID=162, Tracking=OCU-998-510727, Status=delivered, UpdatedAt=2026-01-26 22:27:27.777753 +0100 CET
-2026/01/26 22:27:52   Shipment[3]: ID=163, Tracking=OCU-998-510725, Status=delivered, UpdatedAt=2026-01-26 22:27:27.779183 +0100 CET
-2026/01/26 22:27:52   Shipment[4]: ID=159, Tracking=041940510175, Status=delivered, UpdatedAt=2026-01-26 22:27:27.772869 +0100 CET
-2026/01/26 22:27:52   Shipment[5]: ID=157, Tracking=OCU-998-511131, Status=delivered, UpdatedAt=2026-01-26 22:27:27.769488 +0100 CET
-2026/01/26 22:27:52   Shipment[6]: ID=204, Tracking=00340434326960037567, Status=delivered, UpdatedAt=2026-01-23 07:45:04.230162 +0100 CET
-2026/01/26 22:27:52   Shipment[7]: ID=191, Tracking=OCU-998-508519, Status=delivered, UpdatedAt=2026-01-26 22:27:27.823025 +0100 CET
-2026/01/26 22:27:52   Shipment[8]: ID=217, Tracking=OCU-998-512037, Status=delivered, UpdatedAt=2026-01-26 22:27:27.753575 +0100 CET
-2026/01/26 22:27:52   Shipment[9]: ID=203, Tracking=00340434326960037529, Status=delivered, UpdatedAt=2026-01-23 07:45:04.228734 +0100 CET
-2026/01/26 22:27:52   Shipment[10]: ID=205, Tracking=681539267737, Status=shipped, UpdatedAt=2026-01-23 07:45:04.231561 +0100 CET
-2026/01/26 22:27:52   Shipment[11]: ID=206, Tracking=00340434326960037536, Status=delivered, UpdatedAt=2026-01-23 07:45:04.232177 +0100 CET
-2026/01/26 22:27:52   Shipment[12]: ID=172, Tracking=OCU-998-509996, Status=delivered, UpdatedAt=2026-01-26 22:27:27.792742 +0100 CET
-2026/01/26 22:27:52   Shipment[13]: ID=174, Tracking=OCU-998-509866, Status=delivered, UpdatedAt=2026-01-26 22:27:27.797058 +0100 CET
-2026/01/26 22:27:52   Shipment[14]: ID=175, Tracking=OCU-998-509621, Status=delivered, UpdatedAt=2026-01-26 22:27:27.798645 +0100 CET
-2026/01/26 22:27:52   Shipment[15]: ID=207, Tracking=00340434326960037512, Status=delivered, UpdatedAt=2026-01-23 07:45:04.233478 +0100 CET
-2026/01/26 22:27:52   Shipment[16]: ID=181, Tracking=OCU-998-509182, Status=delivered, UpdatedAt=2026-01-26 22:27:27.80787 +0100 CET
-2026/01/26 22:27:52   Shipment[17]: ID=179, Tracking=OCU-998-509242, Status=delivered, UpdatedAt=2026-01-26 22:27:27.804731 +0100 CET
-2026/01/26 22:27:52   Shipment[18]: ID=153, Tracking=OCU-998-511413, Status=delivered, UpdatedAt=2026-01-26 22:27:27.762434 +0100 CET
-2026/01/26 22:27:52   Shipment[19]: ID=180, Tracking=OCU-998-509241, Status=delivered, UpdatedAt=2026-01-26 22:27:27.806392 +0100 CET
-2026/01/26 22:27:52   Shipment[20]: ID=155, Tracking=OCU-998-511217, Status=delivered, UpdatedAt=2026-01-26 22:27:27.76627 +0100 CET
-2026/01/26 22:27:52   Shipment[21]: ID=186, Tracking=OCU-998-508823, Status=delivered, UpdatedAt=2026-01-26 22:27:27.815645 +0100 CET
-2026/01/26 22:27:52   Shipment[22]: ID=187, Tracking=OCU-998-508817, Status=delivered, UpdatedAt=2026-01-26 22:27:27.817147 +0100 CET
-2026/01/26 22:27:52   Shipment[23]: ID=188, Tracking=OCU-998-508740, Status=delivered, UpdatedAt=2026-01-26 22:27:27.818666 +0100 CET
-2026/01/26 22:27:52   Shipment[24]: ID=158, Tracking=OCU-998-511089, Status=delivered, UpdatedAt=2026-01-26 22:27:27.77136 +0100 CET
-2026/01/26 22:27:52   Shipment[25]: ID=184, Tracking=OCU-998-509063, Status=delivered, UpdatedAt=2026-01-26 22:27:27.812602 +0100 CET
-2026/01/26 22:27:52   Shipment[26]: ID=185, Tracking=OCU-998-508827, Status=delivered, UpdatedAt=2026-01-26 22:27:27.813736 +0100 CET
-2026/01/26 22:27:52   Shipment[27]: ID=166, Tracking=OCU-998-510368, Status=delivered, UpdatedAt=2026-01-26 22:27:27.784103 +0100 CET
-2026/01/26 22:27:52   Shipment[28]: ID=167, Tracking=OCU-998-510397, Status=delivered, UpdatedAt=2026-01-26 22:27:27.785088 +0100 CET
-2026/01/26 22:27:52   Shipment[29]: ID=193, Tracking=OCU-998-508489, Status=delivered, UpdatedAt=2026-01-26 22:27:27.826283 +0100 CET
-2026/01/26 22:27:52   Shipment[30]: ID=202, Tracking=00340434326960037543, Status=delivered, UpdatedAt=2026-01-23 07:45:04.225484 +0100 CET
-2026/01/26 22:27:52   Shipment[31]: ID=211, Tracking=00340434326960037451, Status=delivered, UpdatedAt=2026-01-23 07:45:04.23751 +0100 CET
-2026/01/26 22:27:52   Shipment[32]: ID=196, Tracking=OCU-998-508476, Status=delivered, UpdatedAt=2026-01-26 22:27:27.831183 +0100 CET
-2026/01/26 22:27:52   Shipment[33]: ID=198, Tracking=OCU-998-508356, Status=delivered, UpdatedAt=2026-01-26 22:27:27.834265 +0100 CET
-2026/01/26 22:27:52   Shipment[34]: ID=156, Tracking=OCU-998-511138, Status=delivered, UpdatedAt=2026-01-26 22:27:27.767519 +0100 CET
-2026/01/26 22:27:52   Shipment[35]: ID=199, Tracking=OCU-998-508263, Status=delivered, UpdatedAt=2026-01-23 14:17:36.099151 +0100 CET
-2026/01/26 22:27:52   Shipment[36]: ID=200, Tracking=00340434326960037574, Status=shipped, UpdatedAt=2026-01-23 07:45:04.221984 +0100 CET
-2026/01/26 22:27:52   Shipment[37]: ID=197, Tracking=OCU-998-508391, Status=delivered, UpdatedAt=2026-01-26 22:27:27.832785 +0100 CET
-2026/01/26 22:27:52   Shipment[38]: ID=201, Tracking=00340434326960037550, Status=shipped, UpdatedAt=2026-01-23 07:45:04.224337 +0100 CET
-2026/01/26 22:27:52   Shipment[39]: ID=212, Tracking=00340434326960037499, Status=delivered, UpdatedAt=2026-01-23 07:45:04.238699 +0100 CET
-2026/01/26 22:27:52   Shipment[40]: ID=213, Tracking=00340434326960037482, Status=delivered, UpdatedAt=2026-01-23 07:45:04.239369 +0100 CET
-2026/01/26 22:27:52   Shipment[41]: ID=214, Tracking=00340434326960037475, Status=delivered, UpdatedAt=2026-01-23 07:45:04.240778 +0100 CET
-2026/01/26 22:27:52   Shipment[42]: ID=208, Tracking=00340434326960037505, Status=delivered, UpdatedAt=2026-01-23 07:45:04.234184 +0100 CET
-2026/01/26 22:27:52   Shipment[43]: ID=209, Tracking=681539314724, Status=error, UpdatedAt=2026-01-23 07:45:04.235971 +0100 CET
-2026/01/26 22:27:52   Shipment[44]: ID=210, Tracking=681539269458, Status=error, UpdatedAt=2026-01-23 07:45:04.236992 +0100 CET
-2026/01/26 22:27:52   Shipment[45]: ID=216, Tracking=00340434326960037420, Status=cancelled, UpdatedAt=2026-01-22 15:20:50.130161 +0100 CET
-2026/01/26 22:27:52   Shipment[46]: ID=150, Tracking=OCU-998-511590, Status=delivered, UpdatedAt=2026-01-26 22:27:27.756433 +0100 CET
-2026/01/26 22:27:52   Shipment[47]: ID=170, Tracking=OCU-998-510113, Status=delivered, UpdatedAt=2026-01-26 22:27:27.789337 +0100 CET
-2026/01/26 22:27:52   Shipment[48]: ID=215, Tracking=00340434326960037468, Status=delivered, UpdatedAt=2026-01-23 07:45:04.241426 +0100 CET
-2026/01/26 22:27:52   Shipment[49]: ID=154, Tracking=OCU-998-511439, Status=delivered, UpdatedAt=2026-01-26 22:27:27.764305 +0100 CET
-2026/01/26 22:27:52   Shipment[50]: ID=169, Tracking=OCU-998-510207, Status=error, UpdatedAt=2026-01-26 22:27:27.788402 +0100 CET
-2026/01/26 22:27:52   Shipment[51]: ID=182, Tracking=OCU-998-509164, Status=delivered, UpdatedAt=2026-01-26 22:27:27.809547 +0100 CET
-2026/01/26 22:27:52   Shipment[52]: ID=152, Tracking=OCU-998-511436, Status=delivered, UpdatedAt=2026-01-26 22:27:27.760462 +0100 CET
-2026/01/26 22:27:52   Shipment[53]: ID=176, Tracking=OCU-998-509569, Status=delivered, UpdatedAt=2026-01-26 22:27:27.800176 +0100 CET
-2026/01/26 22:27:52   Shipment[54]: ID=177, Tracking=OCU-998-509479, Status=delivered, UpdatedAt=2026-01-26 22:27:27.801772 +0100 CET
-2026/01/26 22:27:52   Shipment[55]: ID=189, Tracking=OCU-998-508584, Status=delivered, UpdatedAt=2026-01-26 22:27:27.82012 +0100 CET
-2026/01/26 22:27:52   Shipment[56]: ID=190, Tracking=OCU-998-508541, Status=delivered, UpdatedAt=2026-01-26 22:27:27.821527 +0100 CET
-2026/01/26 22:27:52   Shipment[57]: ID=164, Tracking=OCU-998-510722, Status=delivered, UpdatedAt=2026-01-26 22:27:27.780778 +0100 CET
-2026/01/26 22:27:52   Shipment[58]: ID=151, Tracking=OCU-998-511484, Status=delivered, UpdatedAt=2026-01-26 22:27:27.758427 +0100 CET
-2026/01/26 22:27:52   Shipment[59]: ID=171, Tracking=OCU-998-509999, Status=delivered, UpdatedAt=2026-01-26 22:27:27.791253 +0100 CET
-2026/01/26 22:27:52   Shipment[60]: ID=165, Tracking=OCU-998-510581, Status=delivered, UpdatedAt=2026-01-26 22:27:27.782392 +0100 CET
-2026/01/26 22:27:52   Shipment[61]: ID=173, Tracking=OCU-998-509865, Status=delivered, UpdatedAt=2026-01-26 22:27:27.794349 +0100 CET
-2026/01/26 22:27:52   Shipment[62]: ID=194, Tracking=OCU-998-508450, Status=delivered, UpdatedAt=2026-01-26 22:27:27.828012 +0100 CET
-2026/01/26 22:27:52   Shipment[63]: ID=183, Tracking=OCU-998-509136, Status=delivered, UpdatedAt=2026-01-26 22:27:27.811028 +0100 CET
-2026/01/26 22:27:52   Shipment[64]: ID=168, Tracking=OCU-998-510376, Status=delivered, UpdatedAt=2026-01-26 22:27:27.786937 +0100 CET
-2026/01/26 22:27:52   Shipment[65]: ID=178, Tracking=OCU-998-509426, Status=delivered, UpdatedAt=2026-01-26 22:27:27.80327 +0100 CET
-2026/01/26 22:27:52   Shipment[66]: ID=192, Tracking=OCU-998-508513, Status=delivered, UpdatedAt=2026-01-26 22:27:27.824761 +0100 CET
-2026/01/26 22:27:52   Shipment[67]: ID=195, Tracking=OCU-998-508446, Status=delivered, UpdatedAt=2026-01-26 22:27:27.829232 +0100 CET
-2026/01/26 22:27:52 📦 Mesh Push: Querying tracking since 2020-01-01 00:00:00 +0100 CET
-2026/01/26 22:27:52 📦 Mesh Push: Found 139 tracking entries (since 2020-01-01 00:00:00 +0100 CET)
-2026/01/26 22:27:52   Tracking[0]: ID=201, PickingDeliveryID=150, Status=delivered, CreatedAt=2026-01-22 09:55:37.831304 +0100 CET
-2026/01/26 22:27:52   Tracking[1]: ID=202, PickingDeliveryID=151, Status=delivered, CreatedAt=2026-01-22 09:55:37.839353 +0100 CET
-2026/01/26 22:27:52   Tracking[2]: ID=203, PickingDeliveryID=152, Status=delivered, CreatedAt=2026-01-22 09:55:37.841873 +0100 CET
-2026/01/26 22:27:52   Tracking[3]: ID=204, PickingDeliveryID=153, Status=delivered, CreatedAt=2026-01-22 09:55:37.844844 +0100 CET
-2026/01/26 22:27:52   Tracking[4]: ID=205, PickingDeliveryID=154, Status=delivered, CreatedAt=2026-01-22 09:55:37.847274 +0100 CET
-2026/01/26 22:27:52   Tracking[5]: ID=206, PickingDeliveryID=155, Status=delivered, CreatedAt=2026-01-22 09:55:37.849655 +0100 CET
-2026/01/26 22:27:52   Tracking[6]: ID=207, PickingDeliveryID=156, Status=delivered, CreatedAt=2026-01-22 09:55:37.852168 +0100 CET
-2026/01/26 22:27:52   Tracking[7]: ID=208, PickingDeliveryID=157, Status=delivered, CreatedAt=2026-01-22 09:55:37.855973 +0100 CET
-2026/01/26 22:27:52   Tracking[8]: ID=209, PickingDeliveryID=158, Status=delivered, CreatedAt=2026-01-22 09:55:37.858209 +0100 CET
-2026/01/26 22:27:52   Tracking[9]: ID=210, PickingDeliveryID=159, Status=delivered, CreatedAt=2026-01-22 09:55:37.860674 +0100 CET
-2026/01/26 22:27:52   Tracking[10]: ID=211, PickingDeliveryID=160, Status=delivered, CreatedAt=2026-01-22 09:55:37.863076 +0100 CET
-2026/01/26 22:27:52   Tracking[11]: ID=212, PickingDeliveryID=161, Status=delivered, CreatedAt=2026-01-22 09:55:37.864835 +0100 CET
-2026/01/26 22:27:52   Tracking[12]: ID=213, PickingDeliveryID=162, Status=delivered, CreatedAt=2026-01-22 09:55:37.867372 +0100 CET
-2026/01/26 22:27:52   Tracking[13]: ID=214, PickingDeliveryID=163, Status=delivered, CreatedAt=2026-01-22 09:55:37.869884 +0100 CET
-2026/01/26 22:27:52   Tracking[14]: ID=215, PickingDeliveryID=164, Status=delivered, CreatedAt=2026-01-22 09:55:37.872422 +0100 CET
-2026/01/26 22:27:52   Tracking[15]: ID=216, PickingDeliveryID=165, Status=delivered, CreatedAt=2026-01-22 09:55:37.87433 +0100 CET
-2026/01/26 22:27:52   Tracking[16]: ID=217, PickingDeliveryID=166, Status=delivered, CreatedAt=2026-01-22 09:55:37.876894 +0100 CET
-2026/01/26 22:27:52   Tracking[17]: ID=218, PickingDeliveryID=167, Status=delivered, CreatedAt=2026-01-22 09:55:37.878712 +0100 CET
-2026/01/26 22:27:52   Tracking[18]: ID=219, PickingDeliveryID=168, Status=delivered, CreatedAt=2026-01-22 09:55:37.88268 +0100 CET
-2026/01/26 22:27:52   Tracking[19]: ID=220, PickingDeliveryID=169, Status=delivered, CreatedAt=2026-01-22 09:55:37.885688 +0100 CET
-2026/01/26 22:27:52   Tracking[20]: ID=221, PickingDeliveryID=170, Status=delivered, CreatedAt=2026-01-22 09:55:37.888144 +0100 CET
-2026/01/26 22:27:52   Tracking[21]: ID=222, PickingDeliveryID=171, Status=delivered, CreatedAt=2026-01-22 09:55:37.890504 +0100 CET
-2026/01/26 22:27:52   Tracking[22]: ID=223, PickingDeliveryID=172, Status=delivered, CreatedAt=2026-01-22 09:55:37.892289 +0100 CET
-2026/01/26 22:27:52   Tracking[23]: ID=224, PickingDeliveryID=173, Status=delivered, CreatedAt=2026-01-22 09:55:37.894771 +0100 CET
-2026/01/26 22:27:52   Tracking[24]: ID=225, PickingDeliveryID=174, Status=delivered, CreatedAt=2026-01-22 09:55:37.896586 +0100 CET
-2026/01/26 22:27:52   Tracking[25]: ID=226, PickingDeliveryID=175, Status=delivered, CreatedAt=2026-01-22 09:55:37.898925 +0100 CET
-2026/01/26 22:27:52   Tracking[26]: ID=227, PickingDeliveryID=176, Status=delivered, CreatedAt=2026-01-22 09:55:37.902483 +0100 CET
-2026/01/26 22:27:52   Tracking[27]: ID=228, PickingDeliveryID=177, Status=delivered, CreatedAt=2026-01-22 09:55:37.905159 +0100 CET
-2026/01/26 22:27:52   Tracking[28]: ID=229, PickingDeliveryID=178, Status=delivered, CreatedAt=2026-01-22 09:55:37.90769 +0100 CET
-2026/01/26 22:27:52   Tracking[29]: ID=230, PickingDeliveryID=179, Status=delivered, CreatedAt=2026-01-22 09:55:37.910166 +0100 CET
-2026/01/26 22:27:52   Tracking[30]: ID=231, PickingDeliveryID=180, Status=delivered, CreatedAt=2026-01-22 09:55:37.912745 +0100 CET
-2026/01/26 22:27:52   Tracking[31]: ID=232, PickingDeliveryID=181, Status=delivered, CreatedAt=2026-01-22 09:55:37.915448 +0100 CET
-2026/01/26 22:27:52   Tracking[32]: ID=233, PickingDeliveryID=182, Status=delivered, CreatedAt=2026-01-22 09:55:37.918812 +0100 CET
-2026/01/26 22:27:52   Tracking[33]: ID=234, PickingDeliveryID=183, Status=delivered, CreatedAt=2026-01-22 09:55:37.921038 +0100 CET
-2026/01/26 22:27:52   Tracking[34]: ID=235, PickingDeliveryID=184, Status=delivered, CreatedAt=2026-01-22 09:55:37.92287 +0100 CET
-2026/01/26 22:27:52   Tracking[35]: ID=236, PickingDeliveryID=185, Status=delivered, CreatedAt=2026-01-22 09:55:37.924872 +0100 CET
-2026/01/26 22:27:52   Tracking[36]: ID=237, PickingDeliveryID=186, Status=delivered, CreatedAt=2026-01-22 09:55:37.927283 +0100 CET
-2026/01/26 22:27:52   Tracking[37]: ID=238, PickingDeliveryID=187, Status=delivered, CreatedAt=2026-01-22 09:55:37.929027 +0100 CET
-2026/01/26 22:27:52   Tracking[38]: ID=239, PickingDeliveryID=188, Status=delivered, CreatedAt=2026-01-22 09:55:37.931265 +0100 CET
-2026/01/26 22:27:52   Tracking[39]: ID=240, PickingDeliveryID=189, Status=delivered, CreatedAt=2026-01-22 09:55:37.934708 +0100 CET
-2026/01/26 22:27:52   Tracking[40]: ID=241, PickingDeliveryID=190, Status=delivered, CreatedAt=2026-01-22 09:55:37.937018 +0100 CET
-2026/01/26 22:27:52   Tracking[41]: ID=242, PickingDeliveryID=191, Status=delivered, CreatedAt=2026-01-22 09:55:37.939261 +0100 CET
-2026/01/26 22:27:52   Tracking[42]: ID=243, PickingDeliveryID=192, Status=delivered, CreatedAt=2026-01-22 09:55:37.941397 +0100 CET
-2026/01/26 22:27:52   Tracking[43]: ID=244, PickingDeliveryID=193, Status=delivered, CreatedAt=2026-01-22 09:55:37.944054 +0100 CET
-2026/01/26 22:27:52   Tracking[44]: ID=245, PickingDeliveryID=194, Status=delivered, CreatedAt=2026-01-22 09:55:37.94596 +0100 CET
-2026/01/26 22:27:52   Tracking[45]: ID=246, PickingDeliveryID=195, Status=delivered, CreatedAt=2026-01-22 09:55:37.948304 +0100 CET
-2026/01/26 22:27:52   Tracking[46]: ID=247, PickingDeliveryID=196, Status=delivered, CreatedAt=2026-01-22 09:55:37.951605 +0100 CET
-2026/01/26 22:27:52   Tracking[47]: ID=248, PickingDeliveryID=197, Status=delivered, CreatedAt=2026-01-22 09:55:37.953953 +0100 CET
-2026/01/26 22:27:52   Tracking[48]: ID=249, PickingDeliveryID=198, Status=delivered, CreatedAt=2026-01-22 09:55:37.955748 +0100 CET
-2026/01/26 22:27:52   Tracking[49]: ID=250, PickingDeliveryID=199, Status=delivered, CreatedAt=2026-01-22 09:55:37.957892 +0100 CET
-2026/01/26 22:27:52   Tracking[50]: ID=251, PickingDeliveryID=200, Status=shipped, CreatedAt=2026-01-22 14:54:15.648802 +0100 CET
-2026/01/26 22:27:52   Tracking[51]: ID=252, PickingDeliveryID=201, Status=shipped, CreatedAt=2026-01-22 14:54:15.650946 +0100 CET
-2026/01/26 22:27:52   Tracking[52]: ID=253, PickingDeliveryID=202, Status=delivered, CreatedAt=2026-01-22 14:54:15.652938 +0100 CET
-2026/01/26 22:27:52   Tracking[53]: ID=254, PickingDeliveryID=203, Status=delivered, CreatedAt=2026-01-22 14:54:15.65477 +0100 CET
-2026/01/26 22:27:52   Tracking[54]: ID=255, PickingDeliveryID=204, Status=delivered, CreatedAt=2026-01-22 14:54:15.656033 +0100 CET
-2026/01/26 22:27:52   Tracking[55]: ID=256, PickingDeliveryID=205, Status=shipped, CreatedAt=2026-01-22 14:54:15.656599 +0100 CET
-2026/01/26 22:27:52   Tracking[56]: ID=257, PickingDeliveryID=206, Status=delivered, CreatedAt=2026-01-22 14:54:15.657916 +0100 CET
-2026/01/26 22:27:52   Tracking[57]: ID=258, PickingDeliveryID=207, Status=delivered, CreatedAt=2026-01-22 14:54:15.659371 +0100 CET
-2026/01/26 22:27:52   Tracking[58]: ID=259, PickingDeliveryID=208, Status=delivered, CreatedAt=2026-01-22 14:54:15.660399 +0100 CET
-2026/01/26 22:27:52   Tracking[59]: ID=260, PickingDeliveryID=209, Status=pending, CreatedAt=2026-01-22 14:54:15.661481 +0100 CET
-2026/01/26 22:27:52   Tracking[60]: ID=261, PickingDeliveryID=210, Status=pending, CreatedAt=2026-01-22 14:54:15.663074 +0100 CET
-2026/01/26 22:27:52   Tracking[61]: ID=262, PickingDeliveryID=211, Status=delivered, CreatedAt=2026-01-22 14:54:15.66416 +0100 CET
-2026/01/26 22:27:52   Tracking[62]: ID=263, PickingDeliveryID=212, Status=delivered, CreatedAt=2026-01-22 14:54:15.664739 +0100 CET
-2026/01/26 22:27:52   Tracking[63]: ID=264, PickingDeliveryID=213, Status=delivered, CreatedAt=2026-01-22 14:54:15.665783 +0100 CET
-2026/01/26 22:27:52   Tracking[64]: ID=265, PickingDeliveryID=214, Status=delivered, CreatedAt=2026-01-22 14:54:15.667725 +0100 CET
-2026/01/26 22:27:52   Tracking[65]: ID=266, PickingDeliveryID=215, Status=delivered, CreatedAt=2026-01-22 14:54:15.668396 +0100 CET
-2026/01/26 22:27:52   Tracking[66]: ID=267, PickingDeliveryID=216, Status=cancelled, CreatedAt=2026-01-22 14:54:15.669449 +0100 CET
-2026/01/26 22:27:52   Tracking[67]: ID=268, PickingDeliveryID=209, Status=error, CreatedAt=2026-01-22 14:56:05.713864 +0100 CET
-2026/01/26 22:27:52   Tracking[68]: ID=269, PickingDeliveryID=210, Status=error, CreatedAt=2026-01-22 14:56:05.718293 +0100 CET
-2026/01/26 22:27:52   Tracking[69]: ID=270, PickingDeliveryID=150, Status=delivered, CreatedAt=2026-01-22 15:16:41.884291 +0100 CET
-2026/01/26 22:27:52   Tracking[70]: ID=271, PickingDeliveryID=151, Status=delivered, CreatedAt=2026-01-22 15:16:41.887369 +0100 CET
-2026/01/26 22:27:52   Tracking[71]: ID=272, PickingDeliveryID=152, Status=delivered, CreatedAt=2026-01-22 15:16:41.889383 +0100 CET
-2026/01/26 22:27:52   Tracking[72]: ID=273, PickingDeliveryID=153, Status=delivered, CreatedAt=2026-01-22 15:16:41.89223 +0100 CET
-2026/01/26 22:27:52   Tracking[73]: ID=274, PickingDeliveryID=154, Status=delivered, CreatedAt=2026-01-22 15:16:41.894884 +0100 CET
-2026/01/26 22:27:52   Tracking[74]: ID=275, PickingDeliveryID=155, Status=delivered, CreatedAt=2026-01-22 15:16:41.897155 +0100 CET
-2026/01/26 22:27:52   Tracking[75]: ID=276, PickingDeliveryID=156, Status=delivered, CreatedAt=2026-01-22 15:16:41.899432 +0100 CET
-2026/01/26 22:27:52   Tracking[76]: ID=277, PickingDeliveryID=157, Status=delivered, CreatedAt=2026-01-22 15:16:41.902169 +0100 CET
-2026/01/26 22:27:52   Tracking[77]: ID=278, PickingDeliveryID=158, Status=delivered, CreatedAt=2026-01-22 15:16:41.903949 +0100 CET
-2026/01/26 22:27:52   Tracking[78]: ID=279, PickingDeliveryID=159, Status=delivered, CreatedAt=2026-01-22 15:16:41.9058 +0100 CET
-2026/01/26 22:27:52   Tracking[79]: ID=280, PickingDeliveryID=160, Status=delivered, CreatedAt=2026-01-22 15:16:41.907564 +0100 CET
-2026/01/26 22:27:52   Tracking[80]: ID=281, PickingDeliveryID=161, Status=delivered, CreatedAt=2026-01-22 15:16:41.909418 +0100 CET
-2026/01/26 22:27:52   Tracking[81]: ID=282, PickingDeliveryID=162, Status=delivered, CreatedAt=2026-01-22 15:16:41.911381 +0100 CET
-2026/01/26 22:27:52   Tracking[82]: ID=283, PickingDeliveryID=163, Status=delivered, CreatedAt=2026-01-22 15:16:41.913265 +0100 CET
-2026/01/26 22:27:52   Tracking[83]: ID=284, PickingDeliveryID=164, Status=delivered, CreatedAt=2026-01-22 15:16:41.915647 +0100 CET
-2026/01/26 22:27:52   Tracking[84]: ID=285, PickingDeliveryID=165, Status=delivered, CreatedAt=2026-01-22 15:16:41.917469 +0100 CET
-2026/01/26 22:27:52   Tracking[85]: ID=286, PickingDeliveryID=166, Status=delivered, CreatedAt=2026-01-22 15:16:41.919177 +0100 CET
-2026/01/26 22:27:52   Tracking[86]: ID=287, PickingDeliveryID=167, Status=delivered, CreatedAt=2026-01-22 15:16:41.921998 +0100 CET
-2026/01/26 22:27:52   Tracking[87]: ID=288, PickingDeliveryID=168, Status=delivered, CreatedAt=2026-01-22 15:16:41.924343 +0100 CET
-2026/01/26 22:27:52   Tracking[88]: ID=289, PickingDeliveryID=169, Status=error, CreatedAt=2026-01-22 15:16:41.929141 +0100 CET
-2026/01/26 22:27:52   Tracking[89]: ID=290, PickingDeliveryID=170, Status=delivered, CreatedAt=2026-01-22 15:16:41.930791 +0100 CET
-2026/01/26 22:27:52   Tracking[90]: ID=291, PickingDeliveryID=171, Status=delivered, CreatedAt=2026-01-22 15:16:41.932778 +0100 CET
-2026/01/26 22:27:52   Tracking[91]: ID=292, PickingDeliveryID=172, Status=delivered, CreatedAt=2026-01-22 15:16:41.934108 +0100 CET
-2026/01/26 22:27:52   Tracking[92]: ID=293, PickingDeliveryID=173, Status=delivered, CreatedAt=2026-01-22 15:16:41.935912 +0100 CET
-2026/01/26 22:27:52   Tracking[93]: ID=294, PickingDeliveryID=174, Status=delivered, CreatedAt=2026-01-22 15:16:41.937235 +0100 CET
-2026/01/26 22:27:52   Tracking[94]: ID=295, PickingDeliveryID=175, Status=delivered, CreatedAt=2026-01-22 15:16:41.939006 +0100 CET
-2026/01/26 22:27:52   Tracking[95]: ID=296, PickingDeliveryID=176, Status=delivered, CreatedAt=2026-01-22 15:16:41.940571 +0100 CET
-2026/01/26 22:27:52   Tracking[96]: ID=297, PickingDeliveryID=177, Status=delivered, CreatedAt=2026-01-22 15:16:41.941903 +0100 CET
-2026/01/26 22:27:52   Tracking[97]: ID=298, PickingDeliveryID=178, Status=delivered, CreatedAt=2026-01-22 15:16:41.943517 +0100 CET
-2026/01/26 22:27:52   Tracking[98]: ID=299, PickingDeliveryID=179, Status=delivered, CreatedAt=2026-01-22 15:16:41.945217 +0100 CET
-2026/01/26 22:27:52   Tracking[99]: ID=300, PickingDeliveryID=180, Status=delivered, CreatedAt=2026-01-22 15:16:41.946456 +0100 CET
-2026/01/26 22:27:52   Tracking[100]: ID=301, PickingDeliveryID=181, Status=delivered, CreatedAt=2026-01-22 15:16:41.948206 +0100 CET
-2026/01/26 22:27:52   Tracking[101]: ID=302, PickingDeliveryID=182, Status=delivered, CreatedAt=2026-01-22 15:16:41.949454 +0100 CET
-2026/01/26 22:27:52   Tracking[102]: ID=303, PickingDeliveryID=183, Status=delivered, CreatedAt=2026-01-22 15:16:41.951258 +0100 CET
-2026/01/26 22:27:52   Tracking[103]: ID=304, PickingDeliveryID=184, Status=delivered, CreatedAt=2026-01-22 15:16:41.95363 +0100 CET
-2026/01/26 22:27:52   Tracking[104]: ID=305, PickingDeliveryID=185, Status=delivered, CreatedAt=2026-01-22 15:16:41.955931 +0100 CET
-2026/01/26 22:27:52   Tracking[105]: ID=306, PickingDeliveryID=186, Status=delivered, CreatedAt=2026-01-22 15:16:41.957451 +0100 CET
-2026/01/26 22:27:52   Tracking[106]: ID=307, PickingDeliveryID=187, Status=delivered, CreatedAt=2026-01-22 15:16:41.959119 +0100 CET
-2026/01/26 22:27:52   Tracking[107]: ID=308, PickingDeliveryID=188, Status=delivered, CreatedAt=2026-01-22 15:16:41.960943 +0100 CET
-2026/01/26 22:27:52   Tracking[108]: ID=309, PickingDeliveryID=189, Status=delivered, CreatedAt=2026-01-22 15:16:41.96333 +0100 CET
-2026/01/26 22:27:52   Tracking[109]: ID=310, PickingDeliveryID=190, Status=delivered, CreatedAt=2026-01-22 15:16:41.964968 +0100 CET
-2026/01/26 22:27:52   Tracking[110]: ID=311, PickingDeliveryID=191, Status=delivered, CreatedAt=2026-01-22 15:16:41.96682 +0100 CET
-2026/01/26 22:27:52   Tracking[111]: ID=312, PickingDeliveryID=192, Status=delivered, CreatedAt=2026-01-22 15:16:41.969091 +0100 CET
-2026/01/26 22:27:52   Tracking[112]: ID=313, PickingDeliveryID=193, Status=delivered, CreatedAt=2026-01-22 15:16:41.970834 +0100 CET
-2026/01/26 22:27:52   Tracking[113]: ID=314, PickingDeliveryID=194, Status=delivered, CreatedAt=2026-01-22 15:16:41.972676 +0100 CET
-2026/01/26 22:27:52   Tracking[114]: ID=315, PickingDeliveryID=195, Status=delivered, CreatedAt=2026-01-22 15:16:41.974348 +0100 CET
-2026/01/26 22:27:52   Tracking[115]: ID=316, PickingDeliveryID=196, Status=delivered, CreatedAt=2026-01-22 15:16:41.976484 +0100 CET
-2026/01/26 22:27:52   Tracking[116]: ID=317, PickingDeliveryID=197, Status=delivered, CreatedAt=2026-01-22 15:16:41.97834 +0100 CET
-2026/01/26 22:27:52   Tracking[117]: ID=318, PickingDeliveryID=198, Status=delivered, CreatedAt=2026-01-22 15:16:41.979486 +0100 CET
-2026/01/26 22:27:52   Tracking[118]: ID=319, PickingDeliveryID=199, Status=delivered, CreatedAt=2026-01-22 15:16:41.981415 +0100 CET
-2026/01/26 22:27:52   Tracking[119]: ID=320, PickingDeliveryID=200, Status=shipped, CreatedAt=2026-01-22 15:20:50.107291 +0100 CET
-2026/01/26 22:27:52   Tracking[120]: ID=321, PickingDeliveryID=201, Status=shipped, CreatedAt=2026-01-22 15:20:50.110635 +0100 CET
-2026/01/26 22:27:52   Tracking[121]: ID=322, PickingDeliveryID=202, Status=delivered, CreatedAt=2026-01-22 15:20:50.11174 +0100 CET
-2026/01/26 22:27:52   Tracking[122]: ID=323, PickingDeliveryID=203, Status=delivered, CreatedAt=2026-01-22 15:20:50.113534 +0100 CET
-2026/01/26 22:27:52   Tracking[123]: ID=324, PickingDeliveryID=204, Status=delivered, CreatedAt=2026-01-22 15:20:50.115283 +0100 CET
-2026/01/26 22:27:52   Tracking[124]: ID=325, PickingDeliveryID=205, Status=shipped, CreatedAt=2026-01-22 15:20:50.117221 +0100 CET
-2026/01/26 22:27:52   Tracking[125]: ID=326, PickingDeliveryID=206, Status=delivered, CreatedAt=2026-01-22 15:20:50.118386 +0100 CET
-2026/01/26 22:27:52   Tracking[126]: ID=327, PickingDeliveryID=207, Status=delivered, CreatedAt=2026-01-22 15:20:50.119953 +0100 CET
-2026/01/26 22:27:52   Tracking[127]: ID=328, PickingDeliveryID=208, Status=delivered, CreatedAt=2026-01-22 15:20:50.121169 +0100 CET
-2026/01/26 22:27:52   Tracking[128]: ID=329, PickingDeliveryID=209, Status=pending, CreatedAt=2026-01-22 15:20:50.122432 +0100 CET
-2026/01/26 22:27:52   Tracking[129]: ID=330, PickingDeliveryID=210, Status=pending, CreatedAt=2026-01-22 15:20:50.123621 +0100 CET
-2026/01/26 22:27:52   Tracking[130]: ID=331, PickingDeliveryID=211, Status=delivered, CreatedAt=2026-01-22 15:20:50.124853 +0100 CET
-2026/01/26 22:27:52   Tracking[131]: ID=332, PickingDeliveryID=212, Status=delivered, CreatedAt=2026-01-22 15:20:50.126012 +0100 CET
-2026/01/26 22:27:52   Tracking[132]: ID=333, PickingDeliveryID=213, Status=delivered, CreatedAt=2026-01-22 15:20:50.127098 +0100 CET
-2026/01/26 22:27:52   Tracking[133]: ID=334, PickingDeliveryID=214, Status=delivered, CreatedAt=2026-01-22 15:20:50.128186 +0100 CET
-2026/01/26 22:27:52   Tracking[134]: ID=335, PickingDeliveryID=215, Status=delivered, CreatedAt=2026-01-22 15:20:50.129274 +0100 CET
-2026/01/26 22:27:52   Tracking[135]: ID=336, PickingDeliveryID=216, Status=cancelled, CreatedAt=2026-01-22 15:20:50.130665 +0100 CET
-2026/01/26 22:27:52   Tracking[136]: ID=337, PickingDeliveryID=217, Status=pending, CreatedAt=2026-01-23 15:49:12.540753 +0100 CET
-2026/01/26 22:27:52   Tracking[137]: ID=338, PickingDeliveryID=217, Status=error, CreatedAt=2026-01-23 15:49:54.800938 +0100 CET
-2026/01/26 22:27:52   Tracking[138]: ID=339, PickingDeliveryID=217, Status=delivered, CreatedAt=2026-01-26 10:18:32.497736 +0100 CET
-2026/01/26 22:27:52 Mesh Sync: Pushing data to production_pda_repair (https://pda.repair/E)
-2026/01/26 22:27:53 Mesh Sync: Successfully pushed to production_pda_repair
-2026/01/26 22:28:18 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
-2026/01/26 22:28:48 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
-2026/01/26 22:29:18 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
-2026/01/26 22:29:25 📴 Device disconnected: web_231d86e9-7e25-4f0e-bc00-8cb0ff217d4f
-2026/01/26 22:29:25 📱 Device connected: web_215a537f-fdda-4f67-8b44-ea3440ba07d6
-2026/01/26 22:29:48 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
-2026/01/26 22:30:15 Auto-sync triggered
-2026/01/26 22:30:15 📥 Full sync requested
-2026/01/26 22:30:15 🔄 Processing sync request: full_sync 
-2026/01/26 22:30:15 🔄 Syncing products...
-2026/01/26 22:30:15 🔄 Syncing Products via Checksum Engine...
-2026/01/26 22:30:15    Found 2 local product checksums
-2026/01/26 22:30:15 🔄 Syncing partners...
-2026/01/26 22:30:15 🔄 Syncing Partners via Checksum Engine...
-2026/01/26 22:30:15 🔄 Syncing locations...
-2026/01/26 22:30:15 🔄 Syncing Locations via Checksum Engine...
-2026/01/26 22:30:15    Found 0 local location checksums
-2026/01/26 22:30:15 🔄 Syncing pickings...
-2026/01/26 22:30:15 🔄 Syncing Pickings via Checksum Engine...
-2026/01/26 22:30:15 🔄 Syncing quants...
-2026/01/26 22:30:15 🔄 Syncing Quants via Checksum Engine...
-2026/01/26 22:30:15    Found 0 local quant checksums
-2026/01/26 22:30:15 🔄 Syncing lots...
-2026/01/26 22:30:15 🔄 Syncing Lots via Checksum Engine...
-2026/01/26 22:30:15 🔄 Syncing packages...
-2026/01/26 22:30:15 🔄 Syncing Packages via Checksum Engine...
-2026/01/26 22:30:15 🔄 Syncing shipments...
-2026/01/26 22:30:15 🔄 Syncing tracking...
-2026/01/26 22:30:15 ✅ Sync completed in 1.3879ms: 2 entities, 0 conflicts
-2026/01/26 22:30:15 🔄 Processing sync request: relay_sync 
-2026/01/26 22:30:15 Mesh Sync: Starting sync as peer with 1 known nodes
-2026/01/26 22:30:15 Mesh Sync: Pulling data from production_pda_repair (https://pda.repair/E)
-2026/01/26 22:30:15 Mesh Sync: Successfully pulled from production_pda_repair (products: 0, locations: 0, quants: 0, shipments: 0, tracking: 0)
-2026/01/26 22:30:15 Mesh Sync: Pushing shipments to production_pda_repair (https://pda.repair/E)
-2026/01/26 22:30:15 📦 Mesh Push: Querying shipments since 2026-01-26 22:27:53.889747 +0100 CET
-2026/01/26 22:30:15 📦 Mesh Push: No new shipments found for production_pda_repair (checked since 2026-01-26 22:27:53.889747 +0100 CET)
-2026/01/26 22:30:15 📦 Mesh Push: Querying tracking since 2026-01-26 22:27:53.889747 +0100 CET
-2026/01/26 22:30:15 📦 Mesh Push: No new tracking found for production_pda_repair (checked since 2026-01-26 22:27:53.889747 +0100 CET)
-2026/01/26 22:30:15 Mesh Sync: No shipments to push to production_pda_repair
-2026/01/26 22:30:15 ✅ Sync completed in 143.7768ms: 0 entities, 0 conflicts
-2026/01/26 22:30:18 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
-2026/01/26 22:30:48 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
-2026/01/26 22:31:18 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
-2026/01/26 22:31:48 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
-2026/01/26 22:32:19 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
-2026/01/26 22:32:49 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
-2026/01/26 22:33:15 Route https://pda.repair/E returned status 502
-2026/01/26 22:33:15 Route switched: https://pda.repair/E -> offline (reason: current_route_failed)
-2026/01/26 22:33:45 Route https://pda.repair/E returned status 502
-2026/01/26 22:34:15 Route https://pda.repair/E returned status 502
-2026/01/26 22:34:45 Route https://pda.repair/E returned status 502
-2026/01/26 22:35:15 Auto-sync triggered
-2026/01/26 22:35:15 📥 Full sync requested
-2026/01/26 22:35:15 🔄 Processing sync request: full_sync 
-2026/01/26 22:35:15 Route https://pda.repair/E returned status 502
-2026/01/26 22:35:15 ⚠️ Warning: Connection Manager reports offline, but continuing sync attempt...
-2026/01/26 22:35:15 🔄 Syncing quants...
-2026/01/26 22:35:15 🔄 Syncing Quants via Checksum Engine...
-2026/01/26 22:35:15    Found 0 local quant checksums
-2026/01/26 22:35:15 🔄 Syncing lots...
-2026/01/26 22:35:15 🔄 Syncing Lots via Checksum Engine...
-2026/01/26 22:35:15 🔄 Syncing packages...
-2026/01/26 22:35:15 🔄 Syncing Packages via Checksum Engine...
-2026/01/26 22:35:15 🔄 Syncing shipments...
-2026/01/26 22:35:15 🔄 Syncing tracking...
-2026/01/26 22:35:15 🔄 Syncing products...
-2026/01/26 22:35:15 🔄 Syncing Products via Checksum Engine...
-2026/01/26 22:35:15    Found 2 local product checksums
-2026/01/26 22:35:15 🔄 Syncing partners...
-2026/01/26 22:35:15 🔄 Syncing Partners via Checksum Engine...
-2026/01/26 22:35:15 🔄 Syncing locations...
-2026/01/26 22:35:15 🔄 Syncing Locations via Checksum Engine...
-2026/01/26 22:35:15    Found 0 local location checksums
-2026/01/26 22:35:15 🔄 Syncing pickings...
-2026/01/26 22:35:15 🔄 Syncing Pickings via Checksum Engine...
-2026/01/26 22:35:15 ✅ Sync completed in 156.8602ms: 2 entities, 0 conflicts
-2026/01/26 22:35:15 🔄 Processing sync request: relay_sync 
-2026/01/26 22:35:15 Mesh Sync: Starting sync as peer with 1 known nodes
-2026/01/26 22:35:15 Mesh Sync: Pulling data from production_pda_repair (https://pda.repair/E)
-2026/01/26 22:35:15 Mesh Sync: Failed to pull from production_pda_repair: pull failed with status 502: <html>
-<head><title>502 Bad Gateway</title></head>
-<body>
-<center><h1>502 Bad Gateway</h1></center>
-<hr><center>nginx/1.22.1</center>
-</body>
-</html>
-2026/01/26 22:35:15 Mesh Sync: Pushing shipments to production_pda_repair (https://pda.repair/E)
-2026/01/26 22:35:15 📦 Mesh Push: Querying shipments since 2026-01-26 22:27:53.889747 +0100 CET
-2026/01/26 22:35:15 📦 Mesh Push: No new shipments found for production_pda_repair (checked since 2026-01-26 22:27:53.889747 +0100 CET)
-2026/01/26 22:35:15 📦 Mesh Push: Querying tracking since 2026-01-26 22:27:53.889747 +0100 CET
-2026/01/26 22:35:15 📦 Mesh Push: No new tracking found for production_pda_repair (checked since 2026-01-26 22:27:53.889747 +0100 CET)
-2026/01/26 22:35:15 Mesh Sync: No shipments to push to production_pda_repair
-2026/01/26 22:35:15 ✅ Sync completed in 158.6551ms: 0 entities, 0 conflicts
+2026/01/26 22:49:18 ✅ OPAL Import (initial) completed
+2026/01/26 22:49:44 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 22:49:50 Mesh Sync: Starting sync as peer with 1 known nodes
+2026/01/26 22:49:50 Mesh Sync: Pulling data from production_pda_repair (https://pda.repair/E)
+2026/01/26 22:49:50 Mesh Sync: Successfully pulled from production_pda_repair (products: 0, locations: 0, quants: 0, shipments: 0, tracking: 0)
+2026/01/26 22:49:50 Mesh Sync: Pushing shipments to production_pda_repair (https://pda.repair/E)
+2026/01/26 22:49:50 📦 Mesh Push: Querying shipments since 2020-01-01 00:00:00 +0100 CET
+2026/01/26 22:49:50 📦 Mesh Push: Found 68 shipments (since 2020-01-01 00:00:00 +0100 CET)
+2026/01/26 22:49:50   Shipment[0]: ID=173, Tracking=OCU-998-509865, Status=delivered, UpdatedAt=2026-01-26 22:49:18.927051 +0100 CET
+2026/01/26 22:49:50   Shipment[1]: ID=160, Tracking=OCU-998-510703, Status=delivered, UpdatedAt=2026-01-26 22:49:18.907168 +0100 CET
+2026/01/26 22:49:50   Shipment[2]: ID=163, Tracking=OCU-998-510725, Status=delivered, UpdatedAt=2026-01-26 22:49:18.91103 +0100 CET
+2026/01/26 22:49:50   Shipment[3]: ID=157, Tracking=OCU-998-511131, Status=delivered, UpdatedAt=2026-01-26 22:49:18.902585 +0100 CET
+2026/01/26 22:49:50   Shipment[4]: ID=159, Tracking=041940510175, Status=delivered, UpdatedAt=2026-01-26 22:49:18.90561 +0100 CET
+2026/01/26 22:49:50   Shipment[5]: ID=162, Tracking=OCU-998-510727, Status=delivered, UpdatedAt=2026-01-26 22:49:18.910089 +0100 CET
+2026/01/26 22:49:50   Shipment[6]: ID=161, Tracking=OCU-998-510729, Status=delivered, UpdatedAt=2026-01-26 22:49:18.908651 +0100 CET
+2026/01/26 22:49:50   Shipment[7]: ID=191, Tracking=OCU-998-508519, Status=delivered, UpdatedAt=2026-01-26 22:49:18.954813 +0100 CET
+2026/01/26 22:49:50   Shipment[8]: ID=204, Tracking=00340434326960037567, Status=delivered, UpdatedAt=2026-01-23 07:45:04.230162 +0100 CET
+2026/01/26 22:49:50   Shipment[9]: ID=203, Tracking=00340434326960037529, Status=delivered, UpdatedAt=2026-01-23 07:45:04.228734 +0100 CET
+2026/01/26 22:49:50   Shipment[10]: ID=217, Tracking=OCU-998-512037, Status=delivered, UpdatedAt=2026-01-26 22:49:18.878361 +0100 CET
+2026/01/26 22:49:50   Shipment[11]: ID=205, Tracking=681539267737, Status=shipped, UpdatedAt=2026-01-23 07:45:04.231561 +0100 CET
+2026/01/26 22:49:50   Shipment[12]: ID=172, Tracking=OCU-998-509996, Status=delivered, UpdatedAt=2026-01-26 22:49:18.925563 +0100 CET
+2026/01/26 22:49:50   Shipment[13]: ID=206, Tracking=00340434326960037536, Status=delivered, UpdatedAt=2026-01-23 07:45:04.232177 +0100 CET
+2026/01/26 22:49:50   Shipment[14]: ID=174, Tracking=OCU-998-509866, Status=delivered, UpdatedAt=2026-01-26 22:49:18.928417 +0100 CET
+2026/01/26 22:49:50   Shipment[15]: ID=175, Tracking=OCU-998-509621, Status=delivered, UpdatedAt=2026-01-26 22:49:18.929972 +0100 CET
+2026/01/26 22:49:50   Shipment[16]: ID=207, Tracking=00340434326960037512, Status=delivered, UpdatedAt=2026-01-23 07:45:04.233478 +0100 CET
+2026/01/26 22:49:50   Shipment[17]: ID=155, Tracking=OCU-998-511217, Status=delivered, UpdatedAt=2026-01-26 22:49:18.899451 +0100 CET
+2026/01/26 22:49:50   Shipment[18]: ID=179, Tracking=OCU-998-509242, Status=delivered, UpdatedAt=2026-01-26 22:49:18.936266 +0100 CET
+2026/01/26 22:49:50   Shipment[19]: ID=180, Tracking=OCU-998-509241, Status=delivered, UpdatedAt=2026-01-26 22:49:18.937873 +0100 CET
+2026/01/26 22:49:50   Shipment[20]: ID=153, Tracking=OCU-998-511413, Status=delivered, UpdatedAt=2026-01-26 22:49:18.895263 +0100 CET
+2026/01/26 22:49:50   Shipment[21]: ID=181, Tracking=OCU-998-509182, Status=delivered, UpdatedAt=2026-01-26 22:49:18.939303 +0100 CET
+2026/01/26 22:49:50   Shipment[22]: ID=158, Tracking=OCU-998-511089, Status=delivered, UpdatedAt=2026-01-26 22:49:18.904064 +0100 CET
+2026/01/26 22:49:50   Shipment[23]: ID=184, Tracking=OCU-998-509063, Status=delivered, UpdatedAt=2026-01-26 22:49:18.943984 +0100 CET
+2026/01/26 22:49:50   Shipment[24]: ID=185, Tracking=OCU-998-508827, Status=delivered, UpdatedAt=2026-01-26 22:49:18.94552 +0100 CET
+2026/01/26 22:49:50   Shipment[25]: ID=186, Tracking=OCU-998-508823, Status=delivered, UpdatedAt=2026-01-26 22:49:18.94709 +0100 CET
+2026/01/26 22:49:50   Shipment[26]: ID=187, Tracking=OCU-998-508817, Status=delivered, UpdatedAt=2026-01-26 22:49:18.94864 +0100 CET
+2026/01/26 22:49:50   Shipment[27]: ID=188, Tracking=OCU-998-508740, Status=delivered, UpdatedAt=2026-01-26 22:49:18.950175 +0100 CET
+2026/01/26 22:49:50   Shipment[28]: ID=196, Tracking=OCU-998-508476, Status=delivered, UpdatedAt=2026-01-26 22:49:18.962438 +0100 CET
+2026/01/26 22:49:50   Shipment[29]: ID=193, Tracking=OCU-998-508489, Status=delivered, UpdatedAt=2026-01-26 22:49:18.957855 +0100 CET
+2026/01/26 22:49:50   Shipment[30]: ID=166, Tracking=OCU-998-510368, Status=delivered, UpdatedAt=2026-01-26 22:49:18.916044 +0100 CET
+2026/01/26 22:49:50   Shipment[31]: ID=202, Tracking=00340434326960037543, Status=delivered, UpdatedAt=2026-01-23 07:45:04.225484 +0100 CET
+2026/01/26 22:49:50   Shipment[32]: ID=211, Tracking=00340434326960037451, Status=delivered, UpdatedAt=2026-01-23 07:45:04.23751 +0100 CET
+2026/01/26 22:49:50   Shipment[33]: ID=167, Tracking=OCU-998-510397, Status=delivered, UpdatedAt=2026-01-26 22:49:18.916629 +0100 CET
+2026/01/26 22:49:50   Shipment[34]: ID=198, Tracking=OCU-998-508356, Status=delivered, UpdatedAt=2026-01-26 22:49:18.965558 +0100 CET
+2026/01/26 22:49:50   Shipment[35]: ID=197, Tracking=OCU-998-508391, Status=delivered, UpdatedAt=2026-01-26 22:49:18.963969 +0100 CET
+2026/01/26 22:49:50   Shipment[36]: ID=199, Tracking=OCU-998-508263, Status=delivered, UpdatedAt=2026-01-23 14:17:36.099151 +0100 CET
+2026/01/26 22:49:50   Shipment[37]: ID=200, Tracking=00340434326960037574, Status=shipped, UpdatedAt=2026-01-23 07:45:04.221984 +0100 CET
+2026/01/26 22:49:50   Shipment[38]: ID=156, Tracking=OCU-998-511138, Status=delivered, UpdatedAt=2026-01-26 22:49:18.900854 +0100 CET
+2026/01/26 22:49:50   Shipment[39]: ID=201, Tracking=00340434326960037550, Status=shipped, UpdatedAt=2026-01-23 07:45:04.224337 +0100 CET
+2026/01/26 22:49:50   Shipment[40]: ID=212, Tracking=00340434326960037499, Status=delivered, UpdatedAt=2026-01-23 07:45:04.238699 +0100 CET
+2026/01/26 22:49:50   Shipment[41]: ID=213, Tracking=00340434326960037482, Status=delivered, UpdatedAt=2026-01-23 07:45:04.239369 +0100 CET
+2026/01/26 22:49:50   Shipment[42]: ID=214, Tracking=00340434326960037475, Status=delivered, UpdatedAt=2026-01-23 07:45:04.240778 +0100 CET
+2026/01/26 22:49:50   Shipment[43]: ID=208, Tracking=00340434326960037505, Status=delivered, UpdatedAt=2026-01-23 07:45:04.234184 +0100 CET
+2026/01/26 22:49:50   Shipment[44]: ID=209, Tracking=681539314724, Status=error, UpdatedAt=2026-01-23 07:45:04.235971 +0100 CET
+2026/01/26 22:49:50   Shipment[45]: ID=210, Tracking=681539269458, Status=error, UpdatedAt=2026-01-23 07:45:04.236992 +0100 CET
+2026/01/26 22:49:50   Shipment[46]: ID=216, Tracking=00340434326960037420, Status=cancelled, UpdatedAt=2026-01-22 15:20:50.130161 +0100 CET
+2026/01/26 22:49:50   Shipment[47]: ID=170, Tracking=OCU-998-510113, Status=delivered, UpdatedAt=2026-01-26 22:49:18.922595 +0100 CET
+2026/01/26 22:49:50   Shipment[48]: ID=150, Tracking=OCU-998-511590, Status=delivered, UpdatedAt=2026-01-26 22:49:18.889976 +0100 CET
+2026/01/26 22:49:50   Shipment[49]: ID=169, Tracking=OCU-998-510207, Status=error, UpdatedAt=2026-01-26 22:49:18.92075 +0100 CET
+2026/01/26 22:49:50   Shipment[50]: ID=215, Tracking=00340434326960037468, Status=delivered, UpdatedAt=2026-01-23 07:45:04.241426 +0100 CET
+2026/01/26 22:49:50   Shipment[51]: ID=182, Tracking=OCU-998-509164, Status=delivered, UpdatedAt=2026-01-26 22:49:18.939905 +0100 CET
+2026/01/26 22:49:50   Shipment[52]: ID=154, Tracking=OCU-998-511439, Status=delivered, UpdatedAt=2026-01-26 22:49:18.897282 +0100 CET
+2026/01/26 22:49:50   Shipment[53]: ID=152, Tracking=OCU-998-511436, Status=delivered, UpdatedAt=2026-01-26 22:49:18.893701 +0100 CET
+2026/01/26 22:49:50   Shipment[54]: ID=177, Tracking=OCU-998-509479, Status=delivered, UpdatedAt=2026-01-26 22:49:18.93299 +0100 CET
+2026/01/26 22:49:50   Shipment[55]: ID=176, Tracking=OCU-998-509569, Status=delivered, UpdatedAt=2026-01-26 22:49:18.931452 +0100 CET
+2026/01/26 22:49:50   Shipment[56]: ID=183, Tracking=OCU-998-509136, Status=delivered, UpdatedAt=2026-01-26 22:49:18.942281 +0100 CET
+2026/01/26 22:49:50   Shipment[57]: ID=168, Tracking=OCU-998-510376, Status=delivered, UpdatedAt=2026-01-26 22:49:18.918422 +0100 CET
+2026/01/26 22:49:50   Shipment[58]: ID=189, Tracking=OCU-998-508584, Status=delivered, UpdatedAt=2026-01-26 22:49:18.951852 +0100 CET
+2026/01/26 22:49:50   Shipment[59]: ID=190, Tracking=OCU-998-508541, Status=delivered, UpdatedAt=2026-01-26 22:49:18.953348 +0100 CET
+2026/01/26 22:49:50   Shipment[60]: ID=151, Tracking=OCU-998-511484, Status=delivered, UpdatedAt=2026-01-26 22:49:18.891855 +0100 CET
+2026/01/26 22:49:50   Shipment[61]: ID=164, Tracking=OCU-998-510722, Status=delivered, UpdatedAt=2026-01-26 22:49:18.912943 +0100 CET
+2026/01/26 22:49:50   Shipment[62]: ID=171, Tracking=OCU-998-509999, Status=delivered, UpdatedAt=2026-01-26 22:49:18.924047 +0100 CET
+2026/01/26 22:49:50   Shipment[63]: ID=165, Tracking=OCU-998-510581, Status=delivered, UpdatedAt=2026-01-26 22:49:18.914617 +0100 CET
+2026/01/26 22:49:50   Shipment[64]: ID=194, Tracking=OCU-998-508450, Status=delivered, UpdatedAt=2026-01-26 22:49:18.95937 +0100 CET
+2026/01/26 22:49:50   Shipment[65]: ID=178, Tracking=OCU-998-509426, Status=delivered, UpdatedAt=2026-01-26 22:49:18.934746 +0100 CET
+2026/01/26 22:49:50   Shipment[66]: ID=192, Tracking=OCU-998-508513, Status=delivered, UpdatedAt=2026-01-26 22:49:18.956361 +0100 CET
+2026/01/26 22:49:50   Shipment[67]: ID=195, Tracking=OCU-998-508446, Status=delivered, UpdatedAt=2026-01-26 22:49:18.96088 +0100 CET
+2026/01/26 22:49:50 📦 Mesh Push: Querying tracking since 2020-01-01 00:00:00 +0100 CET
+2026/01/26 22:49:50 📦 Mesh Push: Found 139 tracking entries (since 2020-01-01 00:00:00 +0100 CET)
+2026/01/26 22:49:50   Tracking[0]: ID=201, PickingDeliveryID=150, Status=delivered, CreatedAt=2026-01-22 09:55:37.831304 +0100 CET
+2026/01/26 22:49:50   Tracking[1]: ID=202, PickingDeliveryID=151, Status=delivered, CreatedAt=2026-01-22 09:55:37.839353 +0100 CET
+2026/01/26 22:49:50   Tracking[2]: ID=203, PickingDeliveryID=152, Status=delivered, CreatedAt=2026-01-22 09:55:37.841873 +0100 CET
+2026/01/26 22:49:50   Tracking[3]: ID=204, PickingDeliveryID=153, Status=delivered, CreatedAt=2026-01-22 09:55:37.844844 +0100 CET
+2026/01/26 22:49:50   Tracking[4]: ID=205, PickingDeliveryID=154, Status=delivered, CreatedAt=2026-01-22 09:55:37.847274 +0100 CET
+2026/01/26 22:49:50   Tracking[5]: ID=206, PickingDeliveryID=155, Status=delivered, CreatedAt=2026-01-22 09:55:37.849655 +0100 CET
+2026/01/26 22:49:50   Tracking[6]: ID=207, PickingDeliveryID=156, Status=delivered, CreatedAt=2026-01-22 09:55:37.852168 +0100 CET
+2026/01/26 22:49:50   Tracking[7]: ID=208, PickingDeliveryID=157, Status=delivered, CreatedAt=2026-01-22 09:55:37.855973 +0100 CET
+2026/01/26 22:49:50   Tracking[8]: ID=209, PickingDeliveryID=158, Status=delivered, CreatedAt=2026-01-22 09:55:37.858209 +0100 CET
+2026/01/26 22:49:50   Tracking[9]: ID=210, PickingDeliveryID=159, Status=delivered, CreatedAt=2026-01-22 09:55:37.860674 +0100 CET
+2026/01/26 22:49:50   Tracking[10]: ID=211, PickingDeliveryID=160, Status=delivered, CreatedAt=2026-01-22 09:55:37.863076 +0100 CET
+2026/01/26 22:49:50   Tracking[11]: ID=212, PickingDeliveryID=161, Status=delivered, CreatedAt=2026-01-22 09:55:37.864835 +0100 CET
+2026/01/26 22:49:50   Tracking[12]: ID=213, PickingDeliveryID=162, Status=delivered, CreatedAt=2026-01-22 09:55:37.867372 +0100 CET
+2026/01/26 22:49:50   Tracking[13]: ID=214, PickingDeliveryID=163, Status=delivered, CreatedAt=2026-01-22 09:55:37.869884 +0100 CET
+2026/01/26 22:49:50   Tracking[14]: ID=215, PickingDeliveryID=164, Status=delivered, CreatedAt=2026-01-22 09:55:37.872422 +0100 CET
+2026/01/26 22:49:50   Tracking[15]: ID=216, PickingDeliveryID=165, Status=delivered, CreatedAt=2026-01-22 09:55:37.87433 +0100 CET
+2026/01/26 22:49:50   Tracking[16]: ID=217, PickingDeliveryID=166, Status=delivered, CreatedAt=2026-01-22 09:55:37.876894 +0100 CET
+2026/01/26 22:49:50   Tracking[17]: ID=218, PickingDeliveryID=167, Status=delivered, CreatedAt=2026-01-22 09:55:37.878712 +0100 CET
+2026/01/26 22:49:50   Tracking[18]: ID=219, PickingDeliveryID=168, Status=delivered, CreatedAt=2026-01-22 09:55:37.88268 +0100 CET
+2026/01/26 22:49:50   Tracking[19]: ID=220, PickingDeliveryID=169, Status=delivered, CreatedAt=2026-01-22 09:55:37.885688 +0100 CET
+2026/01/26 22:49:50   Tracking[20]: ID=221, PickingDeliveryID=170, Status=delivered, CreatedAt=2026-01-22 09:55:37.888144 +0100 CET
+2026/01/26 22:49:50   Tracking[21]: ID=222, PickingDeliveryID=171, Status=delivered, CreatedAt=2026-01-22 09:55:37.890504 +0100 CET
+2026/01/26 22:49:50   Tracking[22]: ID=223, PickingDeliveryID=172, Status=delivered, CreatedAt=2026-01-22 09:55:37.892289 +0100 CET
+2026/01/26 22:49:50   Tracking[23]: ID=224, PickingDeliveryID=173, Status=delivered, CreatedAt=2026-01-22 09:55:37.894771 +0100 CET
+2026/01/26 22:49:50   Tracking[24]: ID=225, PickingDeliveryID=174, Status=delivered, CreatedAt=2026-01-22 09:55:37.896586 +0100 CET
+2026/01/26 22:49:50   Tracking[25]: ID=226, PickingDeliveryID=175, Status=delivered, CreatedAt=2026-01-22 09:55:37.898925 +0100 CET
+2026/01/26 22:49:50   Tracking[26]: ID=227, PickingDeliveryID=176, Status=delivered, CreatedAt=2026-01-22 09:55:37.902483 +0100 CET
+2026/01/26 22:49:50   Tracking[27]: ID=228, PickingDeliveryID=177, Status=delivered, CreatedAt=2026-01-22 09:55:37.905159 +0100 CET
+2026/01/26 22:49:50   Tracking[28]: ID=229, PickingDeliveryID=178, Status=delivered, CreatedAt=2026-01-22 09:55:37.90769 +0100 CET
+2026/01/26 22:49:50   Tracking[29]: ID=230, PickingDeliveryID=179, Status=delivered, CreatedAt=2026-01-22 09:55:37.910166 +0100 CET
+2026/01/26 22:49:50   Tracking[30]: ID=231, PickingDeliveryID=180, Status=delivered, CreatedAt=2026-01-22 09:55:37.912745 +0100 CET
+2026/01/26 22:49:50   Tracking[31]: ID=232, PickingDeliveryID=181, Status=delivered, CreatedAt=2026-01-22 09:55:37.915448 +0100 CET
+2026/01/26 22:49:50   Tracking[32]: ID=233, PickingDeliveryID=182, Status=delivered, CreatedAt=2026-01-22 09:55:37.918812 +0100 CET
+2026/01/26 22:49:50   Tracking[33]: ID=234, PickingDeliveryID=183, Status=delivered, CreatedAt=2026-01-22 09:55:37.921038 +0100 CET
+2026/01/26 22:49:50   Tracking[34]: ID=235, PickingDeliveryID=184, Status=delivered, CreatedAt=2026-01-22 09:55:37.92287 +0100 CET
+2026/01/26 22:49:50   Tracking[35]: ID=236, PickingDeliveryID=185, Status=delivered, CreatedAt=2026-01-22 09:55:37.924872 +0100 CET
+2026/01/26 22:49:50   Tracking[36]: ID=237, PickingDeliveryID=186, Status=delivered, CreatedAt=2026-01-22 09:55:37.927283 +0100 CET
+2026/01/26 22:49:50   Tracking[37]: ID=238, PickingDeliveryID=187, Status=delivered, CreatedAt=2026-01-22 09:55:37.929027 +0100 CET
+2026/01/26 22:49:50   Tracking[38]: ID=239, PickingDeliveryID=188, Status=delivered, CreatedAt=2026-01-22 09:55:37.931265 +0100 CET
+2026/01/26 22:49:50   Tracking[39]: ID=240, PickingDeliveryID=189, Status=delivered, CreatedAt=2026-01-22 09:55:37.934708 +0100 CET
+2026/01/26 22:49:50   Tracking[40]: ID=241, PickingDeliveryID=190, Status=delivered, CreatedAt=2026-01-22 09:55:37.937018 +0100 CET
+2026/01/26 22:49:50   Tracking[41]: ID=242, PickingDeliveryID=191, Status=delivered, CreatedAt=2026-01-22 09:55:37.939261 +0100 CET
+2026/01/26 22:49:50   Tracking[42]: ID=243, PickingDeliveryID=192, Status=delivered, CreatedAt=2026-01-22 09:55:37.941397 +0100 CET
+2026/01/26 22:49:50   Tracking[43]: ID=244, PickingDeliveryID=193, Status=delivered, CreatedAt=2026-01-22 09:55:37.944054 +0100 CET
+2026/01/26 22:49:50   Tracking[44]: ID=245, PickingDeliveryID=194, Status=delivered, CreatedAt=2026-01-22 09:55:37.94596 +0100 CET
+2026/01/26 22:49:50   Tracking[45]: ID=246, PickingDeliveryID=195, Status=delivered, CreatedAt=2026-01-22 09:55:37.948304 +0100 CET
+2026/01/26 22:49:50   Tracking[46]: ID=247, PickingDeliveryID=196, Status=delivered, CreatedAt=2026-01-22 09:55:37.951605 +0100 CET
+2026/01/26 22:49:50   Tracking[47]: ID=248, PickingDeliveryID=197, Status=delivered, CreatedAt=2026-01-22 09:55:37.953953 +0100 CET
+2026/01/26 22:49:50   Tracking[48]: ID=249, PickingDeliveryID=198, Status=delivered, CreatedAt=2026-01-22 09:55:37.955748 +0100 CET
+2026/01/26 22:49:50   Tracking[49]: ID=250, PickingDeliveryID=199, Status=delivered, CreatedAt=2026-01-22 09:55:37.957892 +0100 CET
+2026/01/26 22:49:50   Tracking[50]: ID=251, PickingDeliveryID=200, Status=shipped, CreatedAt=2026-01-22 14:54:15.648802 +0100 CET
+2026/01/26 22:49:50   Tracking[51]: ID=252, PickingDeliveryID=201, Status=shipped, CreatedAt=2026-01-22 14:54:15.650946 +0100 CET
+2026/01/26 22:49:50   Tracking[52]: ID=253, PickingDeliveryID=202, Status=delivered, CreatedAt=2026-01-22 14:54:15.652938 +0100 CET
+2026/01/26 22:49:50   Tracking[53]: ID=254, PickingDeliveryID=203, Status=delivered, CreatedAt=2026-01-22 14:54:15.65477 +0100 CET
+2026/01/26 22:49:50   Tracking[54]: ID=255, PickingDeliveryID=204, Status=delivered, CreatedAt=2026-01-22 14:54:15.656033 +0100 CET
+2026/01/26 22:49:50   Tracking[55]: ID=256, PickingDeliveryID=205, Status=shipped, CreatedAt=2026-01-22 14:54:15.656599 +0100 CET
+2026/01/26 22:49:50   Tracking[56]: ID=257, PickingDeliveryID=206, Status=delivered, CreatedAt=2026-01-22 14:54:15.657916 +0100 CET
+2026/01/26 22:49:50   Tracking[57]: ID=258, PickingDeliveryID=207, Status=delivered, CreatedAt=2026-01-22 14:54:15.659371 +0100 CET
+2026/01/26 22:49:50   Tracking[58]: ID=259, PickingDeliveryID=208, Status=delivered, CreatedAt=2026-01-22 14:54:15.660399 +0100 CET
+2026/01/26 22:49:50   Tracking[59]: ID=260, PickingDeliveryID=209, Status=pending, CreatedAt=2026-01-22 14:54:15.661481 +0100 CET
+2026/01/26 22:49:50   Tracking[60]: ID=261, PickingDeliveryID=210, Status=pending, CreatedAt=2026-01-22 14:54:15.663074 +0100 CET
+2026/01/26 22:49:50   Tracking[61]: ID=262, PickingDeliveryID=211, Status=delivered, CreatedAt=2026-01-22 14:54:15.66416 +0100 CET
+2026/01/26 22:49:50   Tracking[62]: ID=263, PickingDeliveryID=212, Status=delivered, CreatedAt=2026-01-22 14:54:15.664739 +0100 CET
+2026/01/26 22:49:50   Tracking[63]: ID=264, PickingDeliveryID=213, Status=delivered, CreatedAt=2026-01-22 14:54:15.665783 +0100 CET
+2026/01/26 22:49:50   Tracking[64]: ID=265, PickingDeliveryID=214, Status=delivered, CreatedAt=2026-01-22 14:54:15.667725 +0100 CET
+2026/01/26 22:49:50   Tracking[65]: ID=266, PickingDeliveryID=215, Status=delivered, CreatedAt=2026-01-22 14:54:15.668396 +0100 CET
+2026/01/26 22:49:50   Tracking[66]: ID=267, PickingDeliveryID=216, Status=cancelled, CreatedAt=2026-01-22 14:54:15.669449 +0100 CET
+2026/01/26 22:49:50   Tracking[67]: ID=268, PickingDeliveryID=209, Status=error, CreatedAt=2026-01-22 14:56:05.713864 +0100 CET
+2026/01/26 22:49:50   Tracking[68]: ID=269, PickingDeliveryID=210, Status=error, CreatedAt=2026-01-22 14:56:05.718293 +0100 CET
+2026/01/26 22:49:50   Tracking[69]: ID=270, PickingDeliveryID=150, Status=delivered, CreatedAt=2026-01-22 15:16:41.884291 +0100 CET
+2026/01/26 22:49:50   Tracking[70]: ID=271, PickingDeliveryID=151, Status=delivered, CreatedAt=2026-01-22 15:16:41.887369 +0100 CET
+2026/01/26 22:49:50   Tracking[71]: ID=272, PickingDeliveryID=152, Status=delivered, CreatedAt=2026-01-22 15:16:41.889383 +0100 CET
+2026/01/26 22:49:50   Tracking[72]: ID=273, PickingDeliveryID=153, Status=delivered, CreatedAt=2026-01-22 15:16:41.89223 +0100 CET
+2026/01/26 22:49:50   Tracking[73]: ID=274, PickingDeliveryID=154, Status=delivered, CreatedAt=2026-01-22 15:16:41.894884 +0100 CET
+2026/01/26 22:49:50   Tracking[74]: ID=275, PickingDeliveryID=155, Status=delivered, CreatedAt=2026-01-22 15:16:41.897155 +0100 CET
+2026/01/26 22:49:50   Tracking[75]: ID=276, PickingDeliveryID=156, Status=delivered, CreatedAt=2026-01-22 15:16:41.899432 +0100 CET
+2026/01/26 22:49:50   Tracking[76]: ID=277, PickingDeliveryID=157, Status=delivered, CreatedAt=2026-01-22 15:16:41.902169 +0100 CET
+2026/01/26 22:49:50   Tracking[77]: ID=278, PickingDeliveryID=158, Status=delivered, CreatedAt=2026-01-22 15:16:41.903949 +0100 CET
+2026/01/26 22:49:50   Tracking[78]: ID=279, PickingDeliveryID=159, Status=delivered, CreatedAt=2026-01-22 15:16:41.9058 +0100 CET
+2026/01/26 22:49:50   Tracking[79]: ID=280, PickingDeliveryID=160, Status=delivered, CreatedAt=2026-01-22 15:16:41.907564 +0100 CET
+2026/01/26 22:49:50   Tracking[80]: ID=281, PickingDeliveryID=161, Status=delivered, CreatedAt=2026-01-22 15:16:41.909418 +0100 CET
+2026/01/26 22:49:50   Tracking[81]: ID=282, PickingDeliveryID=162, Status=delivered, CreatedAt=2026-01-22 15:16:41.911381 +0100 CET
+2026/01/26 22:49:50   Tracking[82]: ID=283, PickingDeliveryID=163, Status=delivered, CreatedAt=2026-01-22 15:16:41.913265 +0100 CET
+2026/01/26 22:49:50   Tracking[83]: ID=284, PickingDeliveryID=164, Status=delivered, CreatedAt=2026-01-22 15:16:41.915647 +0100 CET
+2026/01/26 22:49:50   Tracking[84]: ID=285, PickingDeliveryID=165, Status=delivered, CreatedAt=2026-01-22 15:16:41.917469 +0100 CET
+2026/01/26 22:49:50   Tracking[85]: ID=286, PickingDeliveryID=166, Status=delivered, CreatedAt=2026-01-22 15:16:41.919177 +0100 CET
+2026/01/26 22:49:50   Tracking[86]: ID=287, PickingDeliveryID=167, Status=delivered, CreatedAt=2026-01-22 15:16:41.921998 +0100 CET
+2026/01/26 22:49:50   Tracking[87]: ID=288, PickingDeliveryID=168, Status=delivered, CreatedAt=2026-01-22 15:16:41.924343 +0100 CET
+2026/01/26 22:49:50   Tracking[88]: ID=289, PickingDeliveryID=169, Status=error, CreatedAt=2026-01-22 15:16:41.929141 +0100 CET
+2026/01/26 22:49:50   Tracking[89]: ID=290, PickingDeliveryID=170, Status=delivered, CreatedAt=2026-01-22 15:16:41.930791 +0100 CET
+2026/01/26 22:49:50   Tracking[90]: ID=291, PickingDeliveryID=171, Status=delivered, CreatedAt=2026-01-22 15:16:41.932778 +0100 CET
+2026/01/26 22:49:50   Tracking[91]: ID=292, PickingDeliveryID=172, Status=delivered, CreatedAt=2026-01-22 15:16:41.934108 +0100 CET
+2026/01/26 22:49:50   Tracking[92]: ID=293, PickingDeliveryID=173, Status=delivered, CreatedAt=2026-01-22 15:16:41.935912 +0100 CET
+2026/01/26 22:49:50   Tracking[93]: ID=294, PickingDeliveryID=174, Status=delivered, CreatedAt=2026-01-22 15:16:41.937235 +0100 CET
+2026/01/26 22:49:50   Tracking[94]: ID=295, PickingDeliveryID=175, Status=delivered, CreatedAt=2026-01-22 15:16:41.939006 +0100 CET
+2026/01/26 22:49:50   Tracking[95]: ID=296, PickingDeliveryID=176, Status=delivered, CreatedAt=2026-01-22 15:16:41.940571 +0100 CET
+2026/01/26 22:49:50   Tracking[96]: ID=297, PickingDeliveryID=177, Status=delivered, CreatedAt=2026-01-22 15:16:41.941903 +0100 CET
+2026/01/26 22:49:50   Tracking[97]: ID=298, PickingDeliveryID=178, Status=delivered, CreatedAt=2026-01-22 15:16:41.943517 +0100 CET
+2026/01/26 22:49:50   Tracking[98]: ID=299, PickingDeliveryID=179, Status=delivered, CreatedAt=2026-01-22 15:16:41.945217 +0100 CET
+2026/01/26 22:49:50   Tracking[99]: ID=300, PickingDeliveryID=180, Status=delivered, CreatedAt=2026-01-22 15:16:41.946456 +0100 CET
+2026/01/26 22:49:50   Tracking[100]: ID=301, PickingDeliveryID=181, Status=delivered, CreatedAt=2026-01-22 15:16:41.948206 +0100 CET
+2026/01/26 22:49:50   Tracking[101]: ID=302, PickingDeliveryID=182, Status=delivered, CreatedAt=2026-01-22 15:16:41.949454 +0100 CET
+2026/01/26 22:49:50   Tracking[102]: ID=303, PickingDeliveryID=183, Status=delivered, CreatedAt=2026-01-22 15:16:41.951258 +0100 CET
+2026/01/26 22:49:50   Tracking[103]: ID=304, PickingDeliveryID=184, Status=delivered, CreatedAt=2026-01-22 15:16:41.95363 +0100 CET
+2026/01/26 22:49:50   Tracking[104]: ID=305, PickingDeliveryID=185, Status=delivered, CreatedAt=2026-01-22 15:16:41.955931 +0100 CET
+2026/01/26 22:49:50   Tracking[105]: ID=306, PickingDeliveryID=186, Status=delivered, CreatedAt=2026-01-22 15:16:41.957451 +0100 CET
+2026/01/26 22:49:50   Tracking[106]: ID=307, PickingDeliveryID=187, Status=delivered, CreatedAt=2026-01-22 15:16:41.959119 +0100 CET
+2026/01/26 22:49:50   Tracking[107]: ID=308, PickingDeliveryID=188, Status=delivered, CreatedAt=2026-01-22 15:16:41.960943 +0100 CET
+2026/01/26 22:49:50   Tracking[108]: ID=309, PickingDeliveryID=189, Status=delivered, CreatedAt=2026-01-22 15:16:41.96333 +0100 CET
+2026/01/26 22:49:50   Tracking[109]: ID=310, PickingDeliveryID=190, Status=delivered, CreatedAt=2026-01-22 15:16:41.964968 +0100 CET
+2026/01/26 22:49:50   Tracking[110]: ID=311, PickingDeliveryID=191, Status=delivered, CreatedAt=2026-01-22 15:16:41.96682 +0100 CET
+2026/01/26 22:49:50   Tracking[111]: ID=312, PickingDeliveryID=192, Status=delivered, CreatedAt=2026-01-22 15:16:41.969091 +0100 CET
+2026/01/26 22:49:50   Tracking[112]: ID=313, PickingDeliveryID=193, Status=delivered, CreatedAt=2026-01-22 15:16:41.970834 +0100 CET
+2026/01/26 22:49:50   Tracking[113]: ID=314, PickingDeliveryID=194, Status=delivered, CreatedAt=2026-01-22 15:16:41.972676 +0100 CET
+2026/01/26 22:49:50   Tracking[114]: ID=315, PickingDeliveryID=195, Status=delivered, CreatedAt=2026-01-22 15:16:41.974348 +0100 CET
+2026/01/26 22:49:50   Tracking[115]: ID=316, PickingDeliveryID=196, Status=delivered, CreatedAt=2026-01-22 15:16:41.976484 +0100 CET
+2026/01/26 22:49:50   Tracking[116]: ID=317, PickingDeliveryID=197, Status=delivered, CreatedAt=2026-01-22 15:16:41.97834 +0100 CET
+2026/01/26 22:49:50   Tracking[117]: ID=318, PickingDeliveryID=198, Status=delivered, CreatedAt=2026-01-22 15:16:41.979486 +0100 CET
+2026/01/26 22:49:50   Tracking[118]: ID=319, PickingDeliveryID=199, Status=delivered, CreatedAt=2026-01-22 15:16:41.981415 +0100 CET
+2026/01/26 22:49:50   Tracking[119]: ID=320, PickingDeliveryID=200, Status=shipped, CreatedAt=2026-01-22 15:20:50.107291 +0100 CET
+2026/01/26 22:49:50   Tracking[120]: ID=321, PickingDeliveryID=201, Status=shipped, CreatedAt=2026-01-22 15:20:50.110635 +0100 CET
+2026/01/26 22:49:50   Tracking[121]: ID=322, PickingDeliveryID=202, Status=delivered, CreatedAt=2026-01-22 15:20:50.11174 +0100 CET
+2026/01/26 22:49:50   Tracking[122]: ID=323, PickingDeliveryID=203, Status=delivered, CreatedAt=2026-01-22 15:20:50.113534 +0100 CET
+2026/01/26 22:49:50   Tracking[123]: ID=324, PickingDeliveryID=204, Status=delivered, CreatedAt=2026-01-22 15:20:50.115283 +0100 CET
+2026/01/26 22:49:50   Tracking[124]: ID=325, PickingDeliveryID=205, Status=shipped, CreatedAt=2026-01-22 15:20:50.117221 +0100 CET
+2026/01/26 22:49:50   Tracking[125]: ID=326, PickingDeliveryID=206, Status=delivered, CreatedAt=2026-01-22 15:20:50.118386 +0100 CET
+2026/01/26 22:49:50   Tracking[126]: ID=327, PickingDeliveryID=207, Status=delivered, CreatedAt=2026-01-22 15:20:50.119953 +0100 CET
+2026/01/26 22:49:50   Tracking[127]: ID=328, PickingDeliveryID=208, Status=delivered, CreatedAt=2026-01-22 15:20:50.121169 +0100 CET
+2026/01/26 22:49:50   Tracking[128]: ID=329, PickingDeliveryID=209, Status=pending, CreatedAt=2026-01-22 15:20:50.122432 +0100 CET
+2026/01/26 22:49:50   Tracking[129]: ID=330, PickingDeliveryID=210, Status=pending, CreatedAt=2026-01-22 15:20:50.123621 +0100 CET
+2026/01/26 22:49:50   Tracking[130]: ID=331, PickingDeliveryID=211, Status=delivered, CreatedAt=2026-01-22 15:20:50.124853 +0100 CET
+2026/01/26 22:49:50   Tracking[131]: ID=332, PickingDeliveryID=212, Status=delivered, CreatedAt=2026-01-22 15:20:50.126012 +0100 CET
+2026/01/26 22:49:50   Tracking[132]: ID=333, PickingDeliveryID=213, Status=delivered, CreatedAt=2026-01-22 15:20:50.127098 +0100 CET
+2026/01/26 22:49:50   Tracking[133]: ID=334, PickingDeliveryID=214, Status=delivered, CreatedAt=2026-01-22 15:20:50.128186 +0100 CET
+2026/01/26 22:49:50   Tracking[134]: ID=335, PickingDeliveryID=215, Status=delivered, CreatedAt=2026-01-22 15:20:50.129274 +0100 CET
+2026/01/26 22:49:50   Tracking[135]: ID=336, PickingDeliveryID=216, Status=cancelled, CreatedAt=2026-01-22 15:20:50.130665 +0100 CET
+2026/01/26 22:49:50   Tracking[136]: ID=337, PickingDeliveryID=217, Status=pending, CreatedAt=2026-01-23 15:49:12.540753 +0100 CET
+2026/01/26 22:49:50   Tracking[137]: ID=338, PickingDeliveryID=217, Status=error, CreatedAt=2026-01-23 15:49:54.800938 +0100 CET
+2026/01/26 22:49:50   Tracking[138]: ID=339, PickingDeliveryID=217, Status=delivered, CreatedAt=2026-01-26 10:18:32.497736 +0100 CET
+2026/01/26 22:49:50 📱 Mesh Push: Querying devices since 2020-01-01 00:00:00 +0100 CET
+2026/01/26 22:49:50 📱 Mesh Push: Found 1 devices (since 2020-01-01 00:00:00 +0100 CET)
+2026/01/26 22:49:50   Device[0]: ID=7079f94ca9373a43, Name=Ranger2, Status=active, UpdatedAt=2026-01-26 18:00:12.594301 +0100 CET
+2026/01/26 22:49:50 Mesh Sync: Pushing data to production_pda_repair (https://pda.repair/E)
+2026/01/26 22:49:51 Mesh Sync: Failed to push shipments to production_pda_repair: push failed with status 500: commit unexpectedly resulted in rollback
+2026/01/26 22:50:14 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 22:50:45 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)
+2026/01/26 22:51:15 Mesh: Handshake success with https://pda.repair/E (master, ID: production_pda_repair)

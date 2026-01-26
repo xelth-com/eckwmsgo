@@ -441,7 +441,7 @@ func (sh *SyncHandler) MeshPush(w http.ResponseWriter, r *http.Request) {
 		if device.DeviceID == "" {
 			continue
 		}
-		if err := tx.Where("device_id = ?", device.DeviceID).Assign(device).FirstOrCreate(&models.RegisteredDevice{}).Error; err != nil {
+		if err := tx.Where("\"deviceId\" = ?", device.DeviceID).Assign(device).FirstOrCreate(&models.RegisteredDevice{}).Error; err != nil {
 			log.Printf("❌ Mesh Push: Failed to upsert device %s: %v", device.DeviceID, err)
 		}
 	}
