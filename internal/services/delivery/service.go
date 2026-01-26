@@ -386,9 +386,11 @@ func (s *Service) ImportOpalOrders(ctx context.Context) error {
 	log("Starting OPAL order import...")
 
 	// Get the OPAL provider from registry
+	// On microservice nodes without OPAL credentials, this provider won't be registered.
+	// That's expected - such nodes receive shipment data via Mesh Sync instead.
 	providerInt, err := s.registry.Get("opal")
 	if err != nil {
-		return fmt.Errorf("OPAL provider not registered: %w", err)
+		return fmt.Errorf("OPAL provider not configured on this node (sync-only mode): %w", err)
 	}
 
 	// Type assert to get access to FetchRecentOrders
@@ -586,9 +588,11 @@ func (s *Service) ImportDhlOrders(ctx context.Context) error {
 	log("Starting DHL order import...")
 
 	// Get the DHL provider from registry
+	// On microservice nodes without DHL credentials, this provider won't be registered.
+	// That's expected - such nodes receive shipment data via Mesh Sync instead.
 	providerInt, err := s.registry.Get("dhl")
 	if err != nil {
-		return fmt.Errorf("DHL provider not registered: %w", err)
+		return fmt.Errorf("DHL provider not configured on this node (sync-only mode): %w", err)
 	}
 
 	// Type assert to get access to FetchRecentShipments

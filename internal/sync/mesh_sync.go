@@ -253,52 +253,101 @@ func (se *SyncEngine) GetDataForPull(req *MeshSyncRequest) (*MeshSyncResponse, e
 	}
 
 	for _, entityType := range req.EntityTypes {
-		query := se.db.DB
-		if req.Since != nil {
-			query = query.Where("updated_at > ?", *req.Since)
-		}
-		if req.Limit > 0 {
-			query = query.Limit(req.Limit)
-		}
-
 		switch entityType {
 		case "products":
 			var products []models.ProductProduct
+			query := se.db.DB
+			if req.Since != nil {
+				query = query.Where("updated_at > ?", *req.Since)
+			}
+			if req.Limit > 0 {
+				query = query.Limit(req.Limit)
+			}
 			if err := query.Find(&products).Error; err == nil {
 				resp.Products = products
 			}
 		case "locations":
 			var locations []models.StockLocation
+			query := se.db.DB
+			if req.Since != nil {
+				query = query.Where("updated_at > ?", *req.Since)
+			}
+			if req.Limit > 0 {
+				query = query.Limit(req.Limit)
+			}
 			if err := query.Find(&locations).Error; err == nil {
 				resp.Locations = locations
 			}
 		case "quants":
 			var quants []models.StockQuant
+			query := se.db.DB
+			if req.Since != nil {
+				query = query.Where("updated_at > ?", *req.Since)
+			}
+			if req.Limit > 0 {
+				query = query.Limit(req.Limit)
+			}
 			if err := query.Find(&quants).Error; err == nil {
 				resp.Quants = quants
 			}
 		case "lots":
 			var lots []models.StockLot
+			query := se.db.DB
+			if req.Since != nil {
+				query = query.Where("updated_at > ?", *req.Since)
+			}
+			if req.Limit > 0 {
+				query = query.Limit(req.Limit)
+			}
 			if err := query.Find(&lots).Error; err == nil {
 				resp.Lots = lots
 			}
 		case "packages":
 			var packages []models.StockQuantPackage
+			query := se.db.DB
+			if req.Since != nil {
+				query = query.Where("updated_at > ?", *req.Since)
+			}
+			if req.Limit > 0 {
+				query = query.Limit(req.Limit)
+			}
 			if err := query.Find(&packages).Error; err == nil {
 				resp.Packages = packages
 			}
 		case "partners":
 			var partners []models.ResPartner
+			query := se.db.DB
+			if req.Since != nil {
+				query = query.Where("updated_at > ?", *req.Since)
+			}
+			if req.Limit > 0 {
+				query = query.Limit(req.Limit)
+			}
 			if err := query.Find(&partners).Error; err == nil {
 				resp.Partners = partners
 			}
 		case "shipments":
 			var shipments []models.StockPickingDelivery
+			query := se.db.DB
+			if req.Since != nil {
+				query = query.Where("updated_at > ?", *req.Since)
+			}
+			if req.Limit > 0 {
+				query = query.Limit(req.Limit)
+			}
 			if err := query.Find(&shipments).Error; err == nil {
 				resp.Shipments = shipments
 			}
 		case "tracking":
+			// Tracking events use created_at (immutable records)
 			var tracking []models.DeliveryTracking
+			query := se.db.DB
+			if req.Since != nil {
+				query = query.Where("created_at > ?", *req.Since)
+			}
+			if req.Limit > 0 {
+				query = query.Limit(req.Limit)
+			}
 			if err := query.Find(&tracking).Error; err == nil {
 				resp.Tracking = tracking
 			}
