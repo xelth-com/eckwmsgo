@@ -60,13 +60,13 @@ type SyncConfig struct {
 
 // EntitySyncConfig holds sync configuration for a specific entity type
 type EntitySyncConfig struct {
-	Enabled      bool               `json:"enabled"`
-	Strategy     string             `json:"strategy"` // full, active_only, time_window, filtered, metadata_only
-	Filters      []SyncFilter       `json:"filters"`
-	HistoryDepth int                `json:"history_depth"` // days, 0 = all history
-	MaxRecords   int                `json:"max_records"`   // 0 = no limit
-	SyncInterval int                `json:"sync_interval"` // seconds
-	Priority     int                `json:"priority"`      // 1-10, where 10 = highest
+	Enabled      bool         `json:"enabled"`
+	Strategy     string       `json:"strategy"` // full, active_only, time_window, filtered, metadata_only
+	Filters      []SyncFilter `json:"filters"`
+	HistoryDepth int          `json:"history_depth"` // days, 0 = all history
+	MaxRecords   int          `json:"max_records"`   // 0 = no limit
+	SyncInterval int          `json:"sync_interval"` // seconds
+	Priority     int          `json:"priority"`      // 1-10, where 10 = highest
 }
 
 // SyncFilter represents a filter for selective sync
@@ -80,9 +80,9 @@ type SyncFilter struct {
 // RealtimeConfig holds realtime sync configuration
 type RealtimeConfig struct {
 	Enabled             bool     `json:"enabled"`
-	Events              []string `json:"events"`   // create, update, delete
-	Entities            []string `json:"entities"` // which entities to track
-	BufferTime          int      `json:"buffer_time"`            // ms
+	Events              []string `json:"events"`      // create, update, delete
+	Entities            []string `json:"entities"`    // which entities to track
+	BufferTime          int      `json:"buffer_time"` // ms
 	AutoSyncOnReconnect bool     `json:"auto_sync_on_reconnect"`
 }
 
@@ -297,7 +297,7 @@ func getDefaultEntityConfigs() map[string]EntitySyncConfig {
 			Priority:     6,
 		},
 		"shipments": {
-			Enabled:      false,
+			Enabled:      true, // ENABLED
 			Strategy:     "time_window",
 			HistoryDepth: 30,
 			MaxRecords:   0,
@@ -305,7 +305,7 @@ func getDefaultEntityConfigs() map[string]EntitySyncConfig {
 			Priority:     9,
 		},
 		"tracking": {
-			Enabled:      false,
+			Enabled:      true, // ENABLED
 			Strategy:     "time_window",
 			HistoryDepth: 30,
 			MaxRecords:   0,
