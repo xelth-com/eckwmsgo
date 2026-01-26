@@ -22,17 +22,17 @@ type MeshSyncRequest struct {
 
 // MeshSyncResponse represents the response from a mesh sync request
 type MeshSyncResponse struct {
-	Products  []models.ProductProduct      `json:"products,omitempty"`
-	Locations []models.StockLocation       `json:"locations,omitempty"`
-	Quants    []models.StockQuant          `json:"quants,omitempty"`
-	Lots      []models.StockLot            `json:"lots,omitempty"`
-	Packages  []models.StockQuantPackage   `json:"packages,omitempty"`
-	Pickings  []models.StockPicking        `json:"pickings,omitempty"`
-	Partners  []models.ResPartner          `json:"partners,omitempty"`
+	Products  []models.ProductProduct       `json:"products,omitempty"`
+	Locations []models.StockLocation        `json:"locations,omitempty"`
+	Quants    []models.StockQuant           `json:"quants,omitempty"`
+	Lots      []models.StockLot             `json:"lots,omitempty"`
+	Packages  []models.StockQuantPackage    `json:"packages,omitempty"`
+	Pickings  []models.StockPicking         `json:"pickings,omitempty"`
+	Partners  []models.ResPartner           `json:"partners,omitempty"`
 	Shipments []models.StockPickingDelivery `json:"shipments,omitempty"`
-	Tracking  []models.DeliveryTracking    `json:"tracking,omitempty"`
-	SyncTime  time.Time                    `json:"sync_time"`
-	NodeID    string                       `json:"node_id"`
+	Tracking  []models.DeliveryTracking     `json:"tracking,omitempty"`
+	SyncTime  time.Time                     `json:"sync_time"`
+	NodeID    string                        `json:"node_id"`
 }
 
 // SyncWithRelay synchronizes data with mesh nodes
@@ -89,7 +89,7 @@ func (se *SyncEngine) pullFromNode(node *mesh.NodeInfo) error {
 
 	// Build request
 	req := MeshSyncRequest{
-		EntityTypes: []string{"products", "locations", "quants", "lots", "packages", "partners", "shipments", "tracking"},
+		EntityTypes: []string{"products", "locations", "quants", "lots", "packages", "partners", "devices", "shipments", "tracking"},
 		Limit:       1000,
 	}
 	if syncMeta.LastSyncAt != nil && !syncMeta.LastSyncAt.IsZero() {
