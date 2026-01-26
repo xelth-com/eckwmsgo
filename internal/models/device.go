@@ -22,8 +22,8 @@ type RegisteredDevice struct {
 	PublicKey  string         `gorm:"column:publicKey;not null" json:"publicKey"` // Base64 encoded Ed25519 public key
 	Status     DeviceStatus   `gorm:"default:'pending'" json:"status"`
 	LastSeenAt time.Time      `gorm:"column:lastSeenAt" json:"lastSeenAt"`
-	CreatedAt  time.Time      `gorm:"column:createdAt" json:"createdAt"`
-	UpdatedAt  time.Time      `gorm:"column:updatedAt" json:"updatedAt"`
+	CreatedAt  time.Time      `json:"createdAt"`
+	UpdatedAt  time.Time      `json:"updatedAt"`
 	DeletedAt  gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
