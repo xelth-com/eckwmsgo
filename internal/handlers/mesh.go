@@ -28,6 +28,21 @@ func (r *Router) handleHandshake(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// Don't register self (skip if peer has same INSTANCE_ID)
+	if peerInfo.InstanceID == cfg.InstanceID {
+		// Still respond with our info, but don't register ourselves
+		myInfo := mesh.NodeInfo{
+			InstanceID: cfg.InstanceID,
+			Role:       string(cfg.NodeRole),
+			BaseURL:    cfg.BaseURL,
+			Weight:     cfg.NodeWeight,
+			IsOnline:   true,
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(myInfo)
+		return
+	}
+
 	// Register Peer
 	mesh.GlobalRegistry.RegisterNode(*peerInfo)
 
@@ -44,11 +59,21 @@ func (r *Router) handleHandshake(w http.ResponseWriter, req *http.Request) {
 	json.NewEncoder(w).Encode(myInfo)
 }
 
-// listMeshNodes returns the list of known mesh nodes
+// listMeshNodes returns the list of known mesh nodes (excluding self)
 func (r *Router) listMeshNodes(w http.ResponseWriter, req *http.Request) {
-	nodes := mesh.GlobalRegistry.GetNodes()
+	cfg, _ := config.Load()
+	allNodes := mesh.GlobalRegistry.GetNodes()
+
+	// Filter out self (don't show own instance_id in the list)
+	peerNodes := []mesh.NodeInfo{}
+	for _, node := range allNodes {
+		if node.InstanceID != cfg.InstanceID {
+			peerNodes = append(peerNodes, *node)
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(nodes)
+	json.NewEncoder(w).Encode(peerNodes)
 }
 
 // getMeshNodeStatus returns status of a specific node

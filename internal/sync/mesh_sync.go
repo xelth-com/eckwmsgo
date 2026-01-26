@@ -56,11 +56,16 @@ func (se *SyncEngine) SyncWithRelay() error {
 			continue
 		}
 
-		// Peers pull from master, master pushes to peers
+		// Peers pull from master AND push local data (shipments from scrapers)
 		if role == RolePeer || role == RoleEdge {
 			if node.Role == "master" {
+				// Pull master data (products, locations, etc.)
 				if err := se.pullFromNode(node); err != nil {
 					log.Printf("Mesh Sync: Failed to pull from %s: %v", node.InstanceID, err)
+				}
+				// Push local shipment data to master (scraper results)
+				if err := se.pushShipmentsToNode(node); err != nil {
+					log.Printf("Mesh Sync: Failed to push shipments to %s: %v", node.InstanceID, err)
 				}
 			}
 		} else if role == RoleMaster {
@@ -253,52 +258,101 @@ func (se *SyncEngine) GetDataForPull(req *MeshSyncRequest) (*MeshSyncResponse, e
 	}
 
 	for _, entityType := range req.EntityTypes {
-		query := se.db.DB
-		if req.Since != nil {
-			query = query.Where("updated_at > ?", *req.Since)
-		}
-		if req.Limit > 0 {
-			query = query.Limit(req.Limit)
-		}
-
 		switch entityType {
 		case "products":
 			var products []models.ProductProduct
+			query := se.db.DB
+			if req.Since != nil {
+				query = query.Where("updated_at > ?", *req.Since)
+			}
+			if req.Limit > 0 {
+				query = query.Limit(req.Limit)
+			}
 			if err := query.Find(&products).Error; err == nil {
 				resp.Products = products
 			}
 		case "locations":
 			var locations []models.StockLocation
+			query := se.db.DB
+			if req.Since != nil {
+				query = query.Where("updated_at > ?", *req.Since)
+			}
+			if req.Limit > 0 {
+				query = query.Limit(req.Limit)
+			}
 			if err := query.Find(&locations).Error; err == nil {
 				resp.Locations = locations
 			}
 		case "quants":
 			var quants []models.StockQuant
+			query := se.db.DB
+			if req.Since != nil {
+				query = query.Where("updated_at > ?", *req.Since)
+			}
+			if req.Limit > 0 {
+				query = query.Limit(req.Limit)
+			}
 			if err := query.Find(&quants).Error; err == nil {
 				resp.Quants = quants
 			}
 		case "lots":
 			var lots []models.StockLot
+			query := se.db.DB
+			if req.Since != nil {
+				query = query.Where("updated_at > ?", *req.Since)
+			}
+			if req.Limit > 0 {
+				query = query.Limit(req.Limit)
+			}
 			if err := query.Find(&lots).Error; err == nil {
 				resp.Lots = lots
 			}
 		case "packages":
 			var packages []models.StockQuantPackage
+			query := se.db.DB
+			if req.Since != nil {
+				query = query.Where("updated_at > ?", *req.Since)
+			}
+			if req.Limit > 0 {
+				query = query.Limit(req.Limit)
+			}
 			if err := query.Find(&packages).Error; err == nil {
 				resp.Packages = packages
 			}
 		case "partners":
 			var partners []models.ResPartner
+			query := se.db.DB
+			if req.Since != nil {
+				query = query.Where("updated_at > ?", *req.Since)
+			}
+			if req.Limit > 0 {
+				query = query.Limit(req.Limit)
+			}
 			if err := query.Find(&partners).Error; err == nil {
 				resp.Partners = partners
 			}
 		case "shipments":
 			var shipments []models.StockPickingDelivery
+			query := se.db.DB
+			if req.Since != nil {
+				query = query.Where("updated_at > ?", *req.Since)
+			}
+			if req.Limit > 0 {
+				query = query.Limit(req.Limit)
+			}
 			if err := query.Find(&shipments).Error; err == nil {
 				resp.Shipments = shipments
 			}
 		case "tracking":
+			// Tracking events use created_at (immutable records)
 			var tracking []models.DeliveryTracking
+			query := se.db.DB
+			if req.Since != nil {
+				query = query.Where("created_at > ?", *req.Since)
+			}
+			if req.Limit > 0 {
+				query = query.Limit(req.Limit)
+			}
 			if err := query.Find(&tracking).Error; err == nil {
 				resp.Tracking = tracking
 			}
@@ -337,5 +391,62 @@ func (se *SyncEngine) PushToNode(node *mesh.NodeInfo, data *MeshSyncResponse) er
 	}
 
 	log.Printf("Mesh Sync: Successfully pushed to %s", node.InstanceID)
+	return nil
+}
+
+// pushShipmentsToNode pushes local shipment data (from scrapers) to master
+func (se *SyncEngine) pushShipmentsToNode(node *mesh.NodeInfo) error {
+	log.Printf("Mesh Sync: Pushing shipments to %s (%s)", node.InstanceID, node.BaseURL)
+
+	// Get last sync time for shipment push to this node
+	var syncMeta models.SyncMetadata
+	se.db.DB.Where("instance_id = ? AND entity_type = ?", node.InstanceID, "shipments_push").First(&syncMeta)
+
+	// Build data payload with shipments and tracking
+	data := &MeshSyncResponse{
+		NodeID:   se.instanceID,
+		SyncTime: time.Now(),
+	}
+
+	// Get shipments updated since last sync
+	var shipments []models.StockPickingDelivery
+	query := se.db.DB
+	if !syncMeta.LastSyncAt.IsZero() {
+		query = query.Where("updated_at > ?", syncMeta.LastSyncAt)
+	}
+	if err := query.Find(&shipments).Error; err == nil && len(shipments) > 0 {
+		data.Shipments = shipments
+		log.Printf("Mesh Sync: Found %d shipments to push", len(shipments))
+	}
+
+	// Get tracking entries created since last sync
+	var tracking []models.DeliveryTracking
+	trackQuery := se.db.DB
+	if !syncMeta.LastSyncAt.IsZero() {
+		trackQuery = trackQuery.Where("created_at > ?", syncMeta.LastSyncAt)
+	}
+	if err := trackQuery.Find(&tracking).Error; err == nil && len(tracking) > 0 {
+		data.Tracking = tracking
+		log.Printf("Mesh Sync: Found %d tracking entries to push", len(tracking))
+	}
+
+	// Skip if nothing to push
+	if len(data.Shipments) == 0 && len(data.Tracking) == 0 {
+		log.Printf("Mesh Sync: No shipments to push to %s", node.InstanceID)
+		return nil
+	}
+
+	// Push to master
+	if err := se.PushToNode(node, data); err != nil {
+		return err
+	}
+
+	// Update sync metadata
+	now := time.Now()
+	syncMeta.InstanceID = node.InstanceID
+	syncMeta.EntityType = "shipments_push"
+	syncMeta.LastSyncAt = &now
+	se.db.DB.Save(&syncMeta)
+
 	return nil
 }

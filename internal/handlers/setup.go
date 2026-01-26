@@ -8,14 +8,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/skip2/go-qrcode"
 	"github.com/xelth-com/eckwmsgo/internal/config"
 	"github.com/xelth-com/eckwmsgo/internal/models"
 	"github.com/xelth-com/eckwmsgo/internal/utils"
-	"github.com/skip2/go-qrcode"
 )
 
 // GeneratePairingQR generates a QR code for device pairing (ECK-P1-ALPHA protocol)
-// Protocol: ECK$1$COMPACTUUID$PUBKEY_HEX$URL
+// Protocol: ECK$2$COMPACTUUID$PUBKEY_HEX$URL_LIST[$INVITE_TOKEN]
 func (r *Router) generatePairingQR(w http.ResponseWriter, req *http.Request) {
 	identity := utils.GetServerIdentity()
 	if identity == nil {
@@ -34,20 +34,65 @@ func (r *Router) generatePairingQR(w http.ResponseWriter, req *http.Request) {
 	}
 	pubKeyHex = strings.ToUpper(pubKeyHex)
 
-	// 3. URL (from Config or Host header)
-	// Prefer environment variable, fallback to request host
-	serverURL := os.Getenv("GLOBAL_SERVER_URL")
-	if serverURL == "" {
+	// 3. Construct Connection Candidates List (Protocol v2)
+	var candidates []string
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "3210"
+	}
+
+	// A. Add Local IPs (Fastest/Preferred)
+	localIPs := utils.GetLocalIPs()
+
+	// Load path prefix directly from environment
+	prefix := os.Getenv("HTTP_PATH_PREFIX")
+	if prefix != "" && !strings.HasPrefix(prefix, "/") {
+		prefix = "/" + prefix
+	}
+	prefix = strings.TrimSuffix(prefix, "/")
+
+	for _, ip := range localIPs {
+		candidates = append(candidates, fmt.Sprintf("http://%s:%s%s", ip, port, prefix))
+	}
+
+	// B. Add Global URL (Fallback/Remote)
+	globalURL := os.Getenv("GLOBAL_SERVER_URL")
+	if globalURL != "" {
+		if !strings.HasSuffix(globalURL, "/") {
+			globalURL += "/"
+		}
+		candidates = append(candidates, globalURL)
+	}
+
+	// If list is empty (edge case), try to use Host header
+	if len(candidates) == 0 {
 		scheme := "http"
 		if req.TLS != nil {
 			scheme = "https"
 		}
-		serverURL = fmt.Sprintf("%s://%s", scheme, req.Host)
+		candidates = append(candidates, fmt.Sprintf("%s://%s", scheme, req.Host))
 	}
-	serverURL = strings.ToUpper(serverURL)
 
-	// Construct Protocol String
-	qrString := fmt.Sprintf("ECK$1$%s$%s$%s", compactUUID, pubKeyHex, serverURL)
+	// Join with commas and uppercase
+	connectionString := strings.ToUpper(strings.Join(candidates, ","))
+
+	// 4. Handle VIP/Invite Token
+	qrType := req.URL.Query().Get("type")
+	inviteToken := ""
+
+	if qrType == "vip" {
+		cfg, _ := config.Load()
+		token, err := utils.GenerateInviteToken(cfg)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, "Failed to generate invite token")
+			return
+		}
+		inviteToken = "$" + token
+	}
+
+	// Construct Protocol String (Version 2)
+	// Format: ECK$2$UUID$KEY$URL1,URL2...[$TOKEN]
+	qrString := fmt.Sprintf("ECK$2$%s$%s$%s%s", compactUUID, pubKeyHex, connectionString, inviteToken)
 
 	// Generate QR
 	png, err := qrcode.Encode(qrString, qrcode.Medium, 512)
@@ -66,6 +111,7 @@ type DeviceRegisterRequest struct {
 	DeviceName      string `json:"deviceName"`
 	DevicePublicKey string `json:"devicePublicKey"` // Base64
 	Signature       string `json:"signature"`       // Base64
+	InviteToken     string `json:"inviteToken"`     // Optional JWT for auto-approval
 }
 
 // RegisterDevice handles the handshake from a mobile device
@@ -83,8 +129,6 @@ func (r *Router) registerDevice(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// 2. Verify Signature
-	// The client signs the JSON string: {"deviceId":"...","devicePublicKey":"..."}
-	// We must recreate this string EXACTLY as the client does.
 	message := fmt.Sprintf("{\"deviceId\":\"%s\",\"devicePublicKey\":\"%s\"}", body.DeviceID, body.DevicePublicKey)
 
 	valid, err := utils.VerifySignature(body.DevicePublicKey, message, body.Signature)
@@ -93,15 +137,26 @@ func (r *Router) registerDevice(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// 3. Update/Create Device in DB
+	// 3. Determine Initial Status
+	finalStatus := models.DeviceStatusPending
+
+	// Check Invite Token if present
+	if body.InviteToken != "" {
+		cfg, _ := config.Load()
+		claims, err := utils.ValidateToken(body.InviteToken, cfg.JWTSecret)
+		if err == nil {
+			if typeVal, ok := claims["type"].(string); ok && typeVal == "invite" {
+				finalStatus = models.DeviceStatusActive
+			}
+		}
+	}
+
+	// 4. Update/Create Device in DB
 	var device models.RegisteredDevice
 	result := r.db.First(&device, "device_id = ?", body.DeviceID)
 
-	var finalStatus models.DeviceStatus
-
 	if result.Error != nil {
-		// Create new device (Pending by default)
-		finalStatus = models.DeviceStatusPending
+		// Create new device
 		newDevice := models.RegisteredDevice{
 			DeviceID:   body.DeviceID,
 			Name:       body.DeviceName,
@@ -115,16 +170,21 @@ func (r *Router) registerDevice(w http.ResponseWriter, req *http.Request) {
 		}
 	} else {
 		// Update existing device
-		// We DO NOT change the status here. If it was blocked, it stays blocked.
-		// We update keys and name in case they changed (re-install app).
-		finalStatus = device.Status
+		// Only update status if it was pending and we have a valid token
+		// Do NOT unblock blocked devices automatically
+		if device.Status == models.DeviceStatusPending && finalStatus == models.DeviceStatusActive {
+			device.Status = models.DeviceStatusActive
+		}
+
 		device.PublicKey = body.DevicePublicKey
 		device.Name = body.DeviceName
 		device.LastSeenAt = time.Now()
 		r.db.Save(&device)
+
+		finalStatus = device.Status
 	}
 
-	// 4. Generate JWT Token if ACTIVE
+	// 5. Generate JWT Token if ACTIVE
 	var accessToken string
 	if finalStatus == models.DeviceStatusActive {
 		cfg, _ := config.Load()
@@ -144,11 +204,11 @@ func (r *Router) registerDevice(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	// 5. Respond
+	// 6. Respond
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"status":  finalStatus,
-		"token":   accessToken, // Will be empty if not active
+		"token":   accessToken,
 		"message": "Device handshake complete",
 	})
 }

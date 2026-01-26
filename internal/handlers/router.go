@@ -8,27 +8,27 @@ import (
 	"os"
 	"strings"
 
+	"github.com/gorilla/mux"
 	"github.com/xelth-com/eckwmsgo/internal/ai"
 	"github.com/xelth-com/eckwmsgo/internal/database"
 	"github.com/xelth-com/eckwmsgo/internal/middleware"
 	"github.com/xelth-com/eckwmsgo/internal/models"
-	odooService "github.com/xelth-com/eckwmsgo/internal/services/odoo"
 	deliveryService "github.com/xelth-com/eckwmsgo/internal/services/delivery"
+	odooService "github.com/xelth-com/eckwmsgo/internal/services/odoo"
 	"github.com/xelth-com/eckwmsgo/internal/sync"
 	"github.com/xelth-com/eckwmsgo/internal/websocket"
 	"github.com/xelth-com/eckwmsgo/web"
-	"github.com/gorilla/mux"
 )
 
 // Router wraps the mux router and database
 type Router struct {
 	*mux.Router
-	db               *database.DB
-	hub              *websocket.Hub
-	odooService      interface{} // Set via SetOdooService for Odoo sync routes
-	deliveryService  *deliveryService.Service // Set via SetDeliveryService for delivery routes
-	syncEngine       *sync.SyncEngine // Set via SetSyncEngine for mesh sync routes
-	aiClient         *ai.GeminiClient // Set via SetAIClient for AI features
+	db              *database.DB
+	hub             *websocket.Hub
+	odooService     interface{}              // Set via SetOdooService for Odoo sync routes
+	deliveryService *deliveryService.Service // Set via SetDeliveryService for delivery routes
+	syncEngine      *sync.SyncEngine         // Set via SetSyncEngine for mesh sync routes
+	aiClient        *ai.GeminiClient         // Set via SetAIClient for AI features
 }
 
 // NewRouter creates a new HTTP router with all routes
@@ -85,9 +85,9 @@ func NewRouter(db *database.DB) *Router {
 	// These define their own subrouters. Since they are specific PathPrefixes,
 	// they should be registered before the generic /api catch-all.
 	// r.registerRMARoutes(urlPrefix) // TODO: Implement RMA handlers
+	r.registerRackRoutes(urlPrefix)   // Must be before warehouse to avoid /racks being caught
 	r.registerWarehouseRoutes(urlPrefix)
 	r.registerItemsRoutes(urlPrefix)
-	r.registerRackRoutes(urlPrefix)
 	r.registerSetupRoutes(urlPrefix) // Protected parts of setup
 	r.registerPrintRoutes(urlPrefix)
 	r.registerAIRoutes(urlPrefix, db)
@@ -254,7 +254,7 @@ func (r *Router) healthCheck(w http.ResponseWriter, req *http.Request) {
 // getStatus returns the current status
 func (r *Router) getStatus(w http.ResponseWriter, req *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]string{
-		"status": "running",
+		"status":  "running",
 		"version": "1.0.0",
 	})
 }
@@ -310,12 +310,15 @@ func (r *Router) registerWarehouseRoutes(prefix string) {
 		wh.Use(middleware.AuthMiddleware)
 		wh.HandleFunc("", r.listWarehouses).Methods("GET")
 		wh.HandleFunc("", r.createWarehouse).Methods("POST")
-		wh.HandleFunc("/{id}", r.getWarehouse).Methods("GET")
 
-		// Racks (nested under warehouse)
+		// Racks (must be before /{id} to prevent /racks being caught as an id)
+		wh.HandleFunc("/racks", r.listRacks).Methods("GET")
 		wh.HandleFunc("/racks", r.createRack).Methods("POST")
 		wh.HandleFunc("/racks/{id}", r.updateRack).Methods("PUT")
 		wh.HandleFunc("/racks/{id}", r.deleteRack).Methods("DELETE")
+
+		// Single warehouse (after /racks)
+		wh.HandleFunc("/{id}", r.getWarehouse).Methods("GET")
 	}
 }
 
@@ -430,6 +433,7 @@ func (r *Router) registerRackRoutes(prefix string) {
 	for _, p := range paths {
 		racks := r.PathPrefix(p).Subrouter()
 		racks.Use(middleware.AuthMiddleware)
+		racks.HandleFunc("", r.listRacks).Methods("GET")
 		racks.HandleFunc("", r.createRack).Methods("POST")
 		racks.HandleFunc("/{id}", r.updateRack).Methods("PUT")
 		racks.HandleFunc("/{id}", r.deleteRack).Methods("DELETE")
@@ -633,8 +637,8 @@ func (r *Router) createShipment(w http.ResponseWriter, req *http.Request) {
 	}
 
 	var reqBody struct {
-		PickingID     int64  `json:"picking_id"`
-		ProviderCode  string `json:"provider_code"` // e.g., "opal", "dhl"
+		PickingID    int64  `json:"picking_id"`
+		ProviderCode string `json:"provider_code"` // e.g., "opal", "dhl"
 	}
 
 	if err := json.NewDecoder(req.Body).Decode(&reqBody); err != nil {

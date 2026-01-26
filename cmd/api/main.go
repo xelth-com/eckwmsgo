@@ -82,6 +82,8 @@ func main() {
 		&models.AIAuditLog{},
 		&models.AIRateLimit{},
 		&models.ProductAlias{},
+		// Warehouse Visual Blueprint
+		&models.WarehouseRack{},
 	)
 	if err != nil {
 		log.Printf("⚠️ Migration warning: %v\n", err)
