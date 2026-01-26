@@ -53,3 +53,26 @@ func (r *Router) updateDeviceStatus(w http.ResponseWriter, req *http.Request) {
 
 	respondJSON(w, http.StatusOK, device)
 }
+
+// DeleteDevice soft-deletes a device (sets DeletedAt timestamp for mesh sync)
+func (r *Router) deleteDevice(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	id := vars["id"]
+
+	var device models.RegisteredDevice
+	if err := r.db.Where("\"deviceId\" = ?", id).First(&device).Error; err != nil {
+		respondError(w, http.StatusNotFound, "Device not found")
+		return
+	}
+
+	// Soft delete (sets DeletedAt timestamp) - will sync to other nodes
+	if err := r.db.Delete(&device).Error; err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to delete device")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]string{
+		"message": "Device deleted successfully",
+		"id":      id,
+	})
+}

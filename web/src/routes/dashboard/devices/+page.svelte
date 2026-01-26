@@ -30,6 +30,19 @@
 		}
 	}
 
+	async function deleteDevice(deviceId) {
+		if (!confirm('Are you sure you want to delete this device? This will sync to all nodes.')) {
+			return;
+		}
+		try {
+			await api.delete(`/api/admin/devices/${deviceId}`);
+			toastStore.add('Device deleted', 'success');
+			await loadDevices();
+		} catch (e) {
+			toastStore.add(e.message, 'error');
+		}
+	}
+
 	async function loadQr(type = 'standard') {
 		if (showQr && qrType === type) {
 			showQr = false;
@@ -128,6 +141,11 @@
 										on:click={() => updateStatus(device.deviceId, 'blocked')}>⛔</button
 									>
 								{/if}
+								<button
+									class="btn-icon delete"
+									title="Delete (syncs to all nodes)"
+									on:click={() => deleteDevice(device.deviceId)}>🗑️</button
+								>
 							</td>
 						</tr>
 					{/each}
@@ -279,6 +297,13 @@
 	}
 	.btn-icon:hover {
 		transform: scale(1.2);
+	}
+	.btn-icon.delete {
+		opacity: 0.5;
+	}
+	.btn-icon.delete:hover {
+		opacity: 1;
+		color: #dc3545;
 	}
 
 	.empty,
