@@ -411,25 +411,47 @@ func (se *SyncEngine) pushShipmentsToNode(node *mesh.NodeInfo) error {
 	// Get shipments updated since last sync
 	var shipments []models.StockPickingDelivery
 	query := se.db.DB
-	// FIX: Check if LastSyncAt is not nil before using it
-	if syncMeta.LastSyncAt != nil && !syncMeta.LastSyncAt.IsZero() {
-		query = query.Where("updated_at > ?", syncMeta.LastSyncAt)
+	syncTime := time.Time{}
+	if syncMeta.LastSyncAt != nil {
+		syncTime = *syncMeta.LastSyncAt
 	}
+	query = query.Where("updated_at > ?", syncTime)
+
+	log.Printf("📦 Mesh Push: Querying shipments since %v", syncTime)
+
 	if err := query.Find(&shipments).Error; err == nil && len(shipments) > 0 {
+		log.Printf("📦 Mesh Push: Found %d shipments (since %v)", len(shipments), syncTime)
+		for i, ship := range shipments {
+			log.Printf("  Shipment[%d]: ID=%d, Tracking=%s, Status=%s, UpdatedAt=%v",
+				i, ship.ID, ship.TrackingNumber, ship.Status, ship.UpdatedAt)
+		}
 		data.Shipments = shipments
-		log.Printf("Mesh Sync: Found %d shipments to push", len(shipments))
+	} else {
+		log.Printf("⚠️  Mesh Push: Error finding shipments: %v", err)
 	}
 
 	// Get tracking entries created since last sync
 	var tracking []models.DeliveryTracking
 	trackQuery := se.db.DB
-	// FIX: Check if LastSyncAt is not nil before using it
-	if syncMeta.LastSyncAt != nil && !syncMeta.LastSyncAt.IsZero() {
-		trackQuery = trackQuery.Where("created_at > ?", syncMeta.LastSyncAt)
+	trackTime := time.Time{}
+	if syncMeta.LastSyncAt != nil {
+		trackTime = *syncMeta.LastSyncAt
 	}
+	trackQuery = trackQuery.Where("created_at > ?", trackTime)
+
+	log.Printf("📦 Mesh Push: Querying tracking since %v", trackTime)
+
 	if err := trackQuery.Find(&tracking).Error; err == nil && len(tracking) > 0 {
+		log.Printf("📦 Mesh Push: Found %d tracking entries (since %v)", len(tracking), trackTime)
+		for i, t := range tracking {
+			log.Printf("  Tracking[%d]: ID=%d, PickingDeliveryID=%d, Status=%s, CreatedAt=%v",
+				i, t.ID, t.PickingDeliveryID, t.Status, t.CreatedAt)
+		}
 		data.Tracking = tracking
-		log.Printf("Mesh Sync: Found %d tracking entries to push", len(tracking))
+	} else if err != nil {
+		log.Printf("⚠️ Mesh Push: Error finding tracking: %v", err)
+	} else {
+		log.Printf("Mesh Push: No new tracking found for %s", node.InstanceID)
 	}
 
 	// Skip if nothing to push
