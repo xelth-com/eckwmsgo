@@ -85,7 +85,7 @@ func NewRouter(db *database.DB) *Router {
 	// These define their own subrouters. Since they are specific PathPrefixes,
 	// they should be registered before the generic /api catch-all.
 	// r.registerRMARoutes(urlPrefix) // TODO: Implement RMA handlers
-	r.registerRackRoutes(urlPrefix)   // Must be before warehouse to avoid /racks being caught
+	r.registerRackRoutes(urlPrefix) // Must be before warehouse to avoid /racks being caught
 	r.registerWarehouseRoutes(urlPrefix)
 	r.registerItemsRoutes(urlPrefix)
 	r.registerSetupRoutes(urlPrefix) // Protected parts of setup
@@ -311,14 +311,18 @@ func (r *Router) registerWarehouseRoutes(prefix string) {
 		wh.HandleFunc("", r.listWarehouses).Methods("GET")
 		wh.HandleFunc("", r.createWarehouse).Methods("POST")
 
+		// Location search (New)
+		wh.HandleFunc("/locations/search", r.searchLocations).Methods("GET")
+
 		// Racks (must be before /{id} to prevent /racks being caught as an id)
 		wh.HandleFunc("/racks", r.listRacks).Methods("GET")
 		wh.HandleFunc("/racks", r.createRack).Methods("POST")
 		wh.HandleFunc("/racks/{id}", r.updateRack).Methods("PUT")
 		wh.HandleFunc("/racks/{id}", r.deleteRack).Methods("DELETE")
 
-		// Single warehouse (after /racks)
+		// Single warehouse and map
 		wh.HandleFunc("/{id}", r.getWarehouse).Methods("GET")
+		wh.HandleFunc("/{id}/map", r.getWarehouseMap).Methods("GET") // New Map Endpoint
 	}
 }
 

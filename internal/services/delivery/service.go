@@ -214,13 +214,13 @@ func (s *Service) buildDeliveryRequest(picking *models.StockPicking) (*delivery.
 			Country: s.config.Warehouse.Country,
 		},
 		ReceiverAddress: delivery.Address{
-			Name1:   partner.Name,
-			Street:  partner.Street,
-			Zip:     partner.Zip,
-			City:    partner.City,
-			Country: s.config.Warehouse.Country, // TODO: Map partner.CountryID to ISO code
-			PhoneNumber: partner.Phone,
-			Email:   partner.Email,
+			Name1:       partner.Name,
+			Street:      string(partner.Street),
+			Zip:         string(partner.Zip),
+			City:        string(partner.City),
+			Country:     s.config.Warehouse.Country, // TODO: Map partner.CountryID to ISO code
+			PhoneNumber: string(partner.Phone),
+			Email:       string(partner.Email),
 		},
 		Parcels: []delivery.Package{
 			{
@@ -322,7 +322,7 @@ func (s *Service) ListShipments(state string, limit int) ([]models.StockPickingD
 // GetShipment returns a shipment by ID
 func (s *Service) GetShipment(id int64) (*models.StockPickingDelivery, error) {
 	var shipment models.StockPickingDelivery
-	if err := s.db.Preload("Picking").Preload("Carrier").First(& shipment, id).Error; err != nil {
+	if err := s.db.Preload("Picking").Preload("Carrier").First(&shipment, id).Error; err != nil {
 		return nil, err
 	}
 	return &shipment, nil
@@ -427,43 +427,43 @@ func (s *Service) ImportOpalOrders(ctx context.Context) error {
 
 		// Build raw response JSON with all the scraped data
 		rawData := map[string]interface{}{
-			"ocu_number":        order.TrackingNumber,
-			"hwb_number":        order.HwbNumber,
-			"product_type":      order.ProductType,
-			"reference":         order.Reference,
-			"created_at":        order.CreatedAt,
-			"created_by":        order.CreatedBy,
-			"pickup_name":       order.PickupName,
-			"pickup_name2":      order.PickupName2,
-			"pickup_contact":    order.PickupContact,
-			"pickup_phone":      order.PickupPhone,
-			"pickup_email":      order.PickupEmail,
-			"pickup_street":     order.PickupStreet,
-			"pickup_city":       order.PickupCity,
-			"pickup_zip":        order.PickupZip,
-			"pickup_country":    order.PickupCountry,
-			"pickup_note":       order.PickupNote,
-			"pickup_date":       order.PickupDate,
-			"pickup_time":       fmt.Sprintf("%s-%s", order.PickupTimeFrom, order.PickupTimeTo),
-			"pickup_vehicle":    order.PickupVehicle,
-			"delivery_name":     order.DeliveryName,
-			"delivery_name2":    order.DeliveryName2,
-			"delivery_contact":  order.DeliveryContact,
-			"delivery_phone":    order.DeliveryPhone,
-			"delivery_email":    order.DeliveryEmail,
-			"delivery_street":   order.DeliveryStreet,
-			"delivery_city":     order.DeliveryCity,
-			"delivery_zip":      order.DeliveryZip,
-			"delivery_country":  order.DeliveryCountry,
-			"delivery_note":     order.DeliveryNote,
-			"delivery_date":     order.DeliveryDate,
-			"delivery_time":     fmt.Sprintf("%s-%s", order.DeliveryTimeFrom, order.DeliveryTimeTo),
-			"description":       order.Description,
-			"dimensions":        order.Dimensions,
-			"status":            order.Status,
-			"status_date":       order.StatusDate,
-			"status_time":       order.StatusTime,
-			"receiver":          order.Receiver,
+			"ocu_number":       order.TrackingNumber,
+			"hwb_number":       order.HwbNumber,
+			"product_type":     order.ProductType,
+			"reference":        order.Reference,
+			"created_at":       order.CreatedAt,
+			"created_by":       order.CreatedBy,
+			"pickup_name":      order.PickupName,
+			"pickup_name2":     order.PickupName2,
+			"pickup_contact":   order.PickupContact,
+			"pickup_phone":     order.PickupPhone,
+			"pickup_email":     order.PickupEmail,
+			"pickup_street":    order.PickupStreet,
+			"pickup_city":      order.PickupCity,
+			"pickup_zip":       order.PickupZip,
+			"pickup_country":   order.PickupCountry,
+			"pickup_note":      order.PickupNote,
+			"pickup_date":      order.PickupDate,
+			"pickup_time":      fmt.Sprintf("%s-%s", order.PickupTimeFrom, order.PickupTimeTo),
+			"pickup_vehicle":   order.PickupVehicle,
+			"delivery_name":    order.DeliveryName,
+			"delivery_name2":   order.DeliveryName2,
+			"delivery_contact": order.DeliveryContact,
+			"delivery_phone":   order.DeliveryPhone,
+			"delivery_email":   order.DeliveryEmail,
+			"delivery_street":  order.DeliveryStreet,
+			"delivery_city":    order.DeliveryCity,
+			"delivery_zip":     order.DeliveryZip,
+			"delivery_country": order.DeliveryCountry,
+			"delivery_note":    order.DeliveryNote,
+			"delivery_date":    order.DeliveryDate,
+			"delivery_time":    fmt.Sprintf("%s-%s", order.DeliveryTimeFrom, order.DeliveryTimeTo),
+			"description":      order.Description,
+			"dimensions":       order.Dimensions,
+			"status":           order.Status,
+			"status_date":      order.StatusDate,
+			"status_time":      order.StatusTime,
+			"receiver":         order.Receiver,
 		}
 		if order.PackageCount != nil {
 			rawData["package_count"] = *order.PackageCount

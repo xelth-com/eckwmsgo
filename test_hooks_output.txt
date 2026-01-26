@@ -1,0 +1,16 @@
+🪝 Testing GORM Hooks Integration...
+2026/01/26 12:03:58 🌐 Mode: [External PostgreSQL] - Connecting to localhost:5432
+2026/01/26 12:03:58 ✅ Database connection established
+2026/01/26 12:03:58 ✅ GORM sync hooks registered successfully
+1️⃣ Creating Product...
+2026/01/26 12:03:58 🪝 SyncHook: Updated checksum for product:99999 -> 0e98ab3c
+✅ Checksum created: 99999 (Hash: 0e98ab3c)
+2️⃣ Updating Product Content (Name)...
+2026/01/26 12:03:58 🪝 SyncHook: Updated checksum for product:99999 -> 51a381d0
+✅ Checksum updated: 0e98ab3c -> 51a381d0
+3️⃣ Updating Ignored Field (LastSyncedAt)...
+2026/01/26 12:03:58 🪝 SyncHook: Updated checksum for product:99999 -> 51a381d0
+✅ Hash stable (correctly ignored timestamp change)
+2026/01/26 12:03:58 🪝 SyncHook: Deleted checksum for product:99999
+
+🎉 GORM Hooks Integration Verified!

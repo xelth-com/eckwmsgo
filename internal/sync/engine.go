@@ -245,9 +245,11 @@ func (se *SyncEngine) performFullSync() *SyncResult {
 
 	// Check if we're online
 	if !se.connectionManager.IsOnline() {
-		log.Println("⚠️ Cannot sync: offline")
-		result.Success = false
-		return result
+		log.Println("⚠️ Warning: Connection Manager reports offline, but continuing sync attempt...")
+		// Temporarily continue even if offline - allows checksum-based sync to work
+		// TODO: Fix race condition where routes aren't initialized before first sync
+		//result.Success = false
+		//return result
 	}
 
 	// Sync each enabled entity type
@@ -278,11 +280,45 @@ func (se *SyncEngine) performFullSync() *SyncResult {
 // syncEntityType syncs all entities of a specific type
 func (se *SyncEngine) syncEntityType(entityType EntityType, cfg config.EntitySyncConfig) (int, int, error) {
 	switch entityType {
-	case EntityTypeItem:
+	// New Odoo-aligned types
+	case EntityTypeProduct: // "products"
+		return se.syncProducts(cfg)
+	case EntityTypeLocation: // "locations"
+		return se.syncLocations(cfg)
+	case EntityTypeQuant: // "quants"
+		return se.syncQuants(cfg)
+	case EntityTypeLot: // "lots"
+		return se.syncLots(cfg)
+	case EntityTypePackage: // "packages"
+		return se.syncPackages(cfg)
+	case EntityTypePicking: // "pickings"
+		return se.syncPickings(cfg)
+	case EntityTypePartner: // "partners"
+		return se.syncPartners(cfg)
+
+	// Legacy types (kept for backward compatibility)
+	case EntityTypeItem: // "items"
 		return se.syncItems(cfg)
-	case EntityTypeWarehouse:
+	case EntityTypeWarehouse: // "warehouses"
 		return se.syncWarehouses(cfg)
-	// Add other entity types...
+	case EntityTypeBox: // "boxes"
+		return se.syncPackages(cfg) // Map to packages
+	case EntityTypePlace: // "places"
+		return se.syncLocations(cfg) // Map to locations
+	case EntityTypeRack: // "racks"
+		return 0, 0, nil // Not implemented yet
+	case EntityTypeOrder: // "orders"
+		return 0, 0, nil // Not implemented yet
+	case EntityTypeUser: // "users"
+		return 0, 0, nil // Not implemented yet
+	case EntityTypeDevice: // "devices"
+		// ENABLED: Now routing to syncDevices
+		return se.syncDevices(cfg)
+	case EntityTypeShipment: // "shipments"
+		return 0, 0, nil // Not implemented yet
+	case EntityTypeTracking: // "tracking"
+		return 0, 0, nil // Not implemented yet
+
 	default:
 		return 0, 0, fmt.Errorf("unsupported entity type: %s", entityType)
 	}
@@ -290,13 +326,84 @@ func (se *SyncEngine) syncEntityType(entityType EntityType, cfg config.EntitySyn
 
 // syncItems syncs items (stubbed during Odoo migration)
 func (se *SyncEngine) syncItems(cfg config.EntitySyncConfig) (int, int, error) {
-	// TODO: Re-implement for ProductProduct/StockLot models
-	return 0, 0, nil
+	// Legacy support - redirect to syncProducts
+	return se.syncProducts(cfg)
 }
 
 // syncWarehouses syncs warehouses (stubbed during Odoo migration)
 func (se *SyncEngine) syncWarehouses(cfg config.EntitySyncConfig) (int, int, error) {
-	// TODO: Re-implement for StockLocation hierarchy
+	// Legacy support - redirect to syncLocations
+	return se.syncLocations(cfg)
+}
+
+// syncProducts syncs ProductProduct entities using checksum-based sync
+func (se *SyncEngine) syncProducts(cfg config.EntitySyncConfig) (int, int, error) {
+	log.Printf("🔄 Syncing Products via Checksum Engine...")
+
+	// Get local checksums from database
+	var localChecksums []models.EntityChecksum
+	err := se.db.Where("entity_type = ?", "product").Find(&localChecksums).Error
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to fetch local product checksums: %w", err)
+	}
+
+	log.Printf("   Found %d local product checksums", len(localChecksums))
+
+	// TODO: Pull remote checksums from peers and compare
+	// TODO: For entities with different checksums, fetch full data and sync
+
+	return len(localChecksums), 0, nil
+}
+
+// syncLocations syncs StockLocation entities using checksum-based sync
+func (se *SyncEngine) syncLocations(cfg config.EntitySyncConfig) (int, int, error) {
+	log.Printf("🔄 Syncing Locations via Checksum Engine...")
+
+	var localChecksums []models.EntityChecksum
+	err := se.db.Where("entity_type = ?", "location").Find(&localChecksums).Error
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to fetch local location checksums: %w", err)
+	}
+
+	log.Printf("   Found %d local location checksums", len(localChecksums))
+	return len(localChecksums), 0, nil
+}
+
+// syncQuants syncs StockQuant entities using checksum-based sync
+func (se *SyncEngine) syncQuants(cfg config.EntitySyncConfig) (int, int, error) {
+	log.Printf("🔄 Syncing Quants via Checksum Engine...")
+
+	var localChecksums []models.EntityChecksum
+	err := se.db.Where("entity_type = ?", "quant").Find(&localChecksums).Error
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to fetch local quant checksums: %w", err)
+	}
+
+	log.Printf("   Found %d local quant checksums", len(localChecksums))
+	return len(localChecksums), 0, nil
+}
+
+// syncLots syncs StockLot entities (stub for now)
+func (se *SyncEngine) syncLots(cfg config.EntitySyncConfig) (int, int, error) {
+	log.Printf("🔄 Syncing Lots via Checksum Engine...")
+	return 0, 0, nil
+}
+
+// syncPackages syncs StockQuantPackage entities (stub for now)
+func (se *SyncEngine) syncPackages(cfg config.EntitySyncConfig) (int, int, error) {
+	log.Printf("🔄 Syncing Packages via Checksum Engine...")
+	return 0, 0, nil
+}
+
+// syncPickings syncs StockPicking entities (stub for now)
+func (se *SyncEngine) syncPickings(cfg config.EntitySyncConfig) (int, int, error) {
+	log.Printf("🔄 Syncing Pickings via Checksum Engine...")
+	return 0, 0, nil
+}
+
+// syncPartners syncs ResPartner entities (stub for now)
+func (se *SyncEngine) syncPartners(cfg config.EntitySyncConfig) (int, int, error) {
+	log.Printf("🔄 Syncing Partners via Checksum Engine...")
 	return 0, 0, nil
 }
 

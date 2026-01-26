@@ -1,0 +1,16 @@
+@echo off
+echo [1/4] 🛑 Killing process on port 3210...
+for /f "tokens=5" %%a in ('netstat -aon ^| find ":3210" ^| find "LISTENING"') do taskkill /f /pid %%a >nul 2>&1
+
+echo [2/4] 🚀 Starting Server...
+start /B go run cmd/api/main.go > server_output.txt 2>&1
+
+echo [3/4] ⏳ Waiting 10s for startup...
+timeout /t 10 /nobreak >nul
+
+echo [4/4] ⚡ Triggering Mesh Sync...
+curl -X POST http://localhost:3210/api/mesh/trigger
+
+echo.
+echo [LOGS] Checking output for Mesh Push activity...
+findstr "Mesh" server_output.txt

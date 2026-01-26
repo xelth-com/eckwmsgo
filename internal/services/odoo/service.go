@@ -2,10 +2,12 @@ package odoo
 
 import (
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/xelth-com/eckwmsgo/internal/database"
 	"github.com/xelth-com/eckwmsgo/internal/models"
+	"github.com/xelth-com/eckwmsgo/internal/sync"
 	"gorm.io/gorm/clause"
 )
 
@@ -34,6 +36,29 @@ func NewSyncService(db *database.DB, cfg Config) *SyncService {
 		cfg:    cfg,
 		stop:   make(chan struct{}),
 	}
+}
+
+func (s *SyncService) updateChecksum(entity interface{}, entityType, entityID string) {
+	calc := sync.NewChecksumCalculator("odoo-sync")
+	hash, err := calc.ComputeChecksum(entity)
+	if err != nil {
+		log.Printf("⚠️ Failed to compute checksum for %s:%s: %v", entityType, entityID, err)
+		return
+	}
+
+	checksum := models.EntityChecksum{
+		EntityType:     entityType,
+		EntityID:       entityID,
+		ContentHash:    hash,
+		FullHash:       hash,
+		LastUpdated:    time.Now().UTC(),
+		SourceInstance: "odoo",
+	}
+
+	s.db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "entity_type"}, {Name: "entity_id"}},
+		UpdateAll: true,
+	}).Create(&checksum)
 }
 
 // Start begins the background synchronization loop
@@ -149,6 +174,7 @@ func (s *SyncService) syncProducts() {
 		}).Create(&p).Error; err != nil {
 			log.Printf("Failed to save product %d: %v", p.ID, err)
 		} else {
+			s.updateChecksum(p, "product", strconv.FormatInt(p.ID, 10))
 			count++
 		}
 	}
@@ -192,6 +218,7 @@ func (s *SyncService) syncPartners() {
 		}).Create(&partner).Error; err != nil {
 			log.Printf("Failed to save partner %d: %v", partner.ID, err)
 		} else {
+			s.updateChecksum(partner, "partner", strconv.FormatInt(partner.ID, 10))
 			count++
 		}
 	}
@@ -232,6 +259,7 @@ func (s *SyncService) syncLocations() {
 		}).Create(&l).Error; err != nil {
 			log.Printf("Failed to save location %d: %v", l.ID, err)
 		} else {
+			s.updateChecksum(l, "location", strconv.FormatInt(l.ID, 10))
 			count++
 		}
 	}
@@ -267,6 +295,7 @@ func (s *SyncService) syncLots() {
 		}).Create(&lot).Error; err != nil {
 			log.Printf("Failed to save lot %d: %v", lot.ID, err)
 		} else {
+			s.updateChecksum(lot, "lot", strconv.FormatInt(lot.ID, 10))
 			count++
 		}
 	}
@@ -302,6 +331,7 @@ func (s *SyncService) syncPackages() {
 		}).Create(&pkg).Error; err != nil {
 			log.Printf("Failed to save package %d: %v", pkg.ID, err)
 		} else {
+			s.updateChecksum(pkg, "package", strconv.FormatInt(pkg.ID, 10))
 			count++
 		}
 	}
@@ -339,6 +369,7 @@ func (s *SyncService) syncQuants() {
 		}).Create(&q).Error; err != nil {
 			log.Printf("Failed to save quant %d: %v", q.ID, err)
 		} else {
+			s.updateChecksum(q, "quant", strconv.FormatInt(q.ID, 10))
 			count++
 		}
 	}
@@ -387,6 +418,7 @@ func (s *SyncService) syncPickings() {
 		}).Create(&p).Error; err != nil {
 			log.Printf("Failed to save picking %d: %v", p.ID, err)
 		} else {
+			s.updateChecksum(p, "picking", strconv.FormatInt(p.ID, 10))
 			count++
 		}
 	}
@@ -423,6 +455,7 @@ func (s *SyncService) syncMoveLines() {
 		}).Create(&ml).Error; err != nil {
 			log.Printf("Failed to save move line %d: %v", ml.ID, err)
 		} else {
+			s.updateChecksum(ml, "move_line", strconv.FormatInt(ml.ID, 10))
 			count++
 		}
 	}

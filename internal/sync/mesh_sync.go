@@ -22,17 +22,17 @@ type MeshSyncRequest struct {
 
 // MeshSyncResponse represents the response from a mesh sync request
 type MeshSyncResponse struct {
-	Products  []models.ProductProduct      `json:"products,omitempty"`
-	Locations []models.StockLocation       `json:"locations,omitempty"`
-	Quants    []models.StockQuant          `json:"quants,omitempty"`
-	Lots      []models.StockLot            `json:"lots,omitempty"`
-	Packages  []models.StockQuantPackage   `json:"packages,omitempty"`
-	Pickings  []models.StockPicking        `json:"pickings,omitempty"`
-	Partners  []models.ResPartner          `json:"partners,omitempty"`
+	Products  []models.ProductProduct       `json:"products,omitempty"`
+	Locations []models.StockLocation        `json:"locations,omitempty"`
+	Quants    []models.StockQuant           `json:"quants,omitempty"`
+	Lots      []models.StockLot             `json:"lots,omitempty"`
+	Packages  []models.StockQuantPackage    `json:"packages,omitempty"`
+	Pickings  []models.StockPicking         `json:"pickings,omitempty"`
+	Partners  []models.ResPartner           `json:"partners,omitempty"`
 	Shipments []models.StockPickingDelivery `json:"shipments,omitempty"`
-	Tracking  []models.DeliveryTracking    `json:"tracking,omitempty"`
-	SyncTime  time.Time                    `json:"sync_time"`
-	NodeID    string                       `json:"node_id"`
+	Tracking  []models.DeliveryTracking     `json:"tracking,omitempty"`
+	SyncTime  time.Time                     `json:"sync_time"`
+	NodeID    string                        `json:"node_id"`
 }
 
 // SyncWithRelay synchronizes data with mesh nodes
@@ -89,7 +89,7 @@ func (se *SyncEngine) pullFromNode(node *mesh.NodeInfo) error {
 
 	// Build request
 	req := MeshSyncRequest{
-		EntityTypes: []string{"products", "locations", "quants", "lots", "packages", "partners", "shipments", "tracking"},
+		EntityTypes: []string{"products", "locations", "quants", "lots", "packages", "partners", "devices", "shipments", "tracking"},
 		Limit:       1000,
 	}
 	if syncMeta.LastSyncAt != nil && !syncMeta.LastSyncAt.IsZero() {
@@ -410,24 +410,48 @@ func (se *SyncEngine) pushShipmentsToNode(node *mesh.NodeInfo) error {
 
 	// Get shipments updated since last sync
 	var shipments []models.StockPickingDelivery
-	query := se.db.DB
-	if !syncMeta.LastSyncAt.IsZero() {
-		query = query.Where("updated_at > ?", syncMeta.LastSyncAt)
+	syncTime := time.Time{}
+	if syncMeta.LastSyncAt != nil {
+		syncTime = *syncMeta.LastSyncAt
 	}
-	if err := query.Find(&shipments).Error; err == nil && len(shipments) > 0 {
+
+	log.Printf("📦 Mesh Push: Querying shipments since %v", syncTime)
+
+	query := se.db.DB.Model(&models.StockPickingDelivery{}).Where("updated_at > ?", syncTime)
+	if err := query.Find(&shipments).Error; err != nil {
+		log.Printf("❌ Mesh Push: Error querying shipments: %v", err)
+	} else if len(shipments) > 0 {
+		log.Printf("📦 Mesh Push: Found %d shipments (since %v)", len(shipments), syncTime)
+		for i, ship := range shipments {
+			log.Printf("  Shipment[%d]: ID=%d, Tracking=%s, Status=%s, UpdatedAt=%v",
+				i, ship.ID, ship.TrackingNumber, ship.Status, ship.UpdatedAt)
+		}
 		data.Shipments = shipments
-		log.Printf("Mesh Sync: Found %d shipments to push", len(shipments))
+	} else {
+		log.Printf("📦 Mesh Push: No new shipments found for %s (checked since %v)", node.InstanceID, syncTime)
 	}
 
 	// Get tracking entries created since last sync
 	var tracking []models.DeliveryTracking
-	trackQuery := se.db.DB
-	if !syncMeta.LastSyncAt.IsZero() {
-		trackQuery = trackQuery.Where("created_at > ?", syncMeta.LastSyncAt)
+	trackTime := time.Time{}
+	if syncMeta.LastSyncAt != nil {
+		trackTime = *syncMeta.LastSyncAt
 	}
-	if err := trackQuery.Find(&tracking).Error; err == nil && len(tracking) > 0 {
+
+	log.Printf("📦 Mesh Push: Querying tracking since %v", trackTime)
+
+	trackQuery := se.db.DB.Model(&models.DeliveryTracking{}).Where("created_at > ?", trackTime)
+	if err := trackQuery.Find(&tracking).Error; err != nil {
+		log.Printf("❌ Mesh Push: Error querying tracking: %v", err)
+	} else if len(tracking) > 0 {
+		log.Printf("📦 Mesh Push: Found %d tracking entries (since %v)", len(tracking), trackTime)
+		for i, t := range tracking {
+			log.Printf("  Tracking[%d]: ID=%d, PickingDeliveryID=%d, Status=%s, CreatedAt=%v",
+				i, t.ID, t.PickingDeliveryID, t.Status, t.CreatedAt)
+		}
 		data.Tracking = tracking
-		log.Printf("Mesh Sync: Found %d tracking entries to push", len(tracking))
+	} else {
+		log.Printf("📦 Mesh Push: No new tracking found for %s (checked since %v)", node.InstanceID, trackTime)
 	}
 
 	// Skip if nothing to push

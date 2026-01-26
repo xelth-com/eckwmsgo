@@ -248,7 +248,7 @@ func (r *Router) processBoxScan(code string) (ScanResponse, error) {
 		pkgType = models.StockPackageType{
 			ID:        localID, // Temp local ID
 			Name:      typeName,
-			Barcode:   data.Type,
+			Barcode:   models.OdooString(data.Type),
 			Length:    data.Length,
 			Width:     data.Width,
 			Height:    data.Height,
@@ -296,8 +296,8 @@ func (r *Router) processItemScan(code string) (ScanResponse, error) {
 		product = models.ProductProduct{
 			ID:          localID,
 			Name:        "Unknown Product (" + data.RefID + ")",
-			Barcode:     data.RefID,
-			DefaultCode: "STUB-" + data.RefID,
+			Barcode:     models.OdooString(data.RefID),
+			DefaultCode: models.OdooString("STUB-" + data.RefID),
 			Active:      true,
 			Type:        "product",
 		}
@@ -318,7 +318,7 @@ func (r *Router) processItemScan(code string) (ScanResponse, error) {
 			ID:         time.Now().UnixNano(),
 			Name:       data.Serial,
 			ProductID:  product.ID,
-			Ref:        code, // Store full smart code for reference
+			Ref:        models.OdooString(code), // Store full smart code for reference
 			CreateDate: time.Now(),
 		}
 		if err := r.db.Create(&lot).Error; err != nil {

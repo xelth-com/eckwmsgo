@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/xelth-com/eckwmsgo/internal/models"
@@ -97,6 +98,94 @@ func (r *Router) listRacks(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	respondJSON(w, http.StatusOK, racks)
+}
+
+// searchLocations searches for locations by name (for autocomplete)
+func (r *Router) searchLocations(w http.ResponseWriter, req *http.Request) {
+	query := req.URL.Query().Get("q")
+	if len(query) < 2 {
+		respondJSON(w, http.StatusOK, []models.StockLocation{})
+		return
+	}
+
+	var locations []models.StockLocation
+	search := "%" + strings.ToLower(query) + "%"
+	err := r.db.Where("LOWER(complete_name) LIKE ? OR LOWER(barcode) LIKE ?", search, search).
+		Limit(20).
+		Find(&locations).Error
+
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Search failed")
+		return
+	}
+	respondJSON(w, http.StatusOK, locations)
+}
+
+// getWarehouseMap returns a map data for Android (optimized)
+func (r *Router) getWarehouseMap(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	id, _ := strconv.ParseInt(vars["id"], 10, 64)
+
+	type MapRack struct {
+		ID              int64  `json:"id"`
+		Name            string `json:"name"`
+		X               int    `json:"x"`
+		Y               int    `json:"y"`
+		Width           int    `json:"width"`
+		Height          int    `json:"height"`
+		Rotation        int    `json:"rotation"`
+		LocationID      *int64 `json:"location_id,omitempty"`
+		LocationBarcode string `json:"location_barcode,omitempty"`
+	}
+
+	// Get Warehouse Info
+	var warehouse models.StockLocation
+	if err := r.db.First(&warehouse, id).Error; err != nil {
+		respondError(w, http.StatusNotFound, "Warehouse not found")
+		return
+	}
+
+	// Get Racks with linked locations
+	var racks []models.WarehouseRack
+	if err := r.db.Preload("MappedLocation").Where("warehouse_id = ?", id).Find(&racks).Error; err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to fetch racks")
+		return
+	}
+
+	// Construct simplified response for Mobile
+	mobileRacks := make([]MapRack, len(racks))
+	for i, rack := range racks {
+		mr := MapRack{
+			ID:       rack.ID,
+			Name:     rack.Name,
+			X:        rack.PosX,
+			Y:        rack.PosY,
+			Rotation: rack.Rotation,
+			// Calculate effective dimensions if not set
+			Width:  rack.VisualWidth,
+			Height: rack.VisualHeight,
+		}
+
+		if mr.Width == 0 {
+			mr.Width = rack.Columns * 50 // Default grid size
+		}
+		if mr.Height == 0 {
+			mr.Height = rack.Rows * 50
+		}
+
+		if rack.MappedLocation != nil {
+			mr.LocationID = &rack.MappedLocation.ID
+			mr.LocationBarcode = string(rack.MappedLocation.Barcode)
+		}
+
+		mobileRacks[i] = mr
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"id":    warehouse.ID,
+		"name":  warehouse.Name,
+		"racks": mobileRacks,
+	})
 }
 
 // createRack creates or updates a rack (upsert logic)
