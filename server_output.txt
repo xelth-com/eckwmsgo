@@ -1,0 +1,22 @@
+2026/01/26 10:04:48 🆔 Server Instance ID: 36563884-3fb2-4cf0-82bd-f16ef6941ab2
+2026/01/26 10:04:48 🌐 Mode: [External PostgreSQL] - Connecting to localhost:5432
+2026/01/26 10:04:48 ✅ Database connection established
+2026/01/26 10:04:48 🚀 Synchronizing database schema...
+2026/01/26 10:04:50 ✅ Schema synchronized successfully
+2026/01/26 10:04:50 🔄 Initializing Mesh Sync Engine...
+[Discovery] Skipping report: INSTANCE_ID, GLOBAL_SERVER_URL or API_KEY not set
+2026/01/26 10:04:50 🔗 Adding web sync route: https://pda.repair/E
+2026/01/26 10:04:50 🔄 Sync Engine starting...
+2026/01/26 10:04:50 ✅ Sync Engine started
+2026/01/26 10:04:50 ✅ Sync Engine: Started successfully
+2026/01/26 10:04:50 📡 Odoo Sync Service started
+2026/01/26 10:04:50 📦 Initializing Delivery System...
+2026/01/26 10:04:50 ✅ Delivery: OPAL provider registered
+2026/01/26 10:04:50 ✅ Delivery: DHL provider registered
+2026/01/26 10:04:50 ✅ Delivery: Background worker started
+2026/01/26 10:04:50 🧠 Initializing Gemini AI (Primary: gemini-3-flash-preview, Fallback: gemini-2.5-flash)...
+2026/01/26 10:04:50 ✅ AI Client initialized
+2026/01/26 10:04:50 ✅ Delivery: OPAL import scheduler started (hourly)
+2026/01/26 10:04:50 🚀 Server (peer) starting on port 3210 [Prefix: '/E']
+2026/01/26 10:04:50 Failed to start server: listen tcp :3210: bind: Only one usage of each socket address (protocol/network address/port) is normally permitted.
+exit status 1
