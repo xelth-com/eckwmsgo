@@ -411,7 +411,8 @@ func (se *SyncEngine) pushShipmentsToNode(node *mesh.NodeInfo) error {
 	// Get shipments updated since last sync
 	var shipments []models.StockPickingDelivery
 	query := se.db.DB
-	if !syncMeta.LastSyncAt.IsZero() {
+	// FIX: Check if LastSyncAt is not nil before using it
+	if syncMeta.LastSyncAt != nil && !syncMeta.LastSyncAt.IsZero() {
 		query = query.Where("updated_at > ?", syncMeta.LastSyncAt)
 	}
 	if err := query.Find(&shipments).Error; err == nil && len(shipments) > 0 {
@@ -422,7 +423,8 @@ func (se *SyncEngine) pushShipmentsToNode(node *mesh.NodeInfo) error {
 	// Get tracking entries created since last sync
 	var tracking []models.DeliveryTracking
 	trackQuery := se.db.DB
-	if !syncMeta.LastSyncAt.IsZero() {
+	// FIX: Check if LastSyncAt is not nil before using it
+	if syncMeta.LastSyncAt != nil && !syncMeta.LastSyncAt.IsZero() {
 		trackQuery = trackQuery.Where("created_at > ?", syncMeta.LastSyncAt)
 	}
 	if err := trackQuery.Find(&tracking).Error; err == nil && len(tracking) > 0 {

@@ -312,7 +312,8 @@ func (se *SyncEngine) syncEntityType(entityType EntityType, cfg config.EntitySyn
 	case EntityTypeUser: // "users"
 		return 0, 0, nil // Not implemented yet
 	case EntityTypeDevice: // "devices"
-		return 0, 0, nil // Not implemented yet
+		// ENABLED: Now routing to syncDevices
+		return se.syncDevices(cfg)
 	case EntityTypeShipment: // "shipments"
 		return 0, 0, nil // Not implemented yet
 	case EntityTypeTracking: // "tracking"

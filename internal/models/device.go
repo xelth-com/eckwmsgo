@@ -31,3 +31,13 @@ type RegisteredDevice struct {
 func (RegisteredDevice) TableName() string {
 	return "registered_devices"
 }
+
+// GetEntityID implements SyncableEntity interface for Checksum Engine
+func (d RegisteredDevice) GetEntityID() string {
+	return d.DeviceID
+}
+
+// GetEntityType implements SyncableEntity interface for Checksum Engine
+func (d RegisteredDevice) GetEntityType() string {
+	return "device"
+}
