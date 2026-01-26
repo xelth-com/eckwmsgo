@@ -31,6 +31,7 @@ type MeshSyncResponse struct {
 	Partners  []models.ResPartner           `json:"partners,omitempty"`
 	Shipments []models.StockPickingDelivery `json:"shipments,omitempty"`
 	Tracking  []models.DeliveryTracking     `json:"tracking,omitempty"`
+	Devices   []models.RegisteredDevice     `json:"devices,omitempty"`
 	SyncTime  time.Time                     `json:"sync_time"`
 	NodeID    string                        `json:"node_id"`
 }
