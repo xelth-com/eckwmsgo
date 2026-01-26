@@ -40,7 +40,7 @@ func (r *Router) updateDeviceStatus(w http.ResponseWriter, req *http.Request) {
 	}
 
 	var device models.RegisteredDevice
-	if err := r.db.First(&device, "device_id = ?", id).Error; err != nil {
+	if err := r.db.Where("\"deviceId\" = ?", id).First(&device).Error; err != nil {
 		respondError(w, http.StatusNotFound, "Device not found")
 		return
 	}
