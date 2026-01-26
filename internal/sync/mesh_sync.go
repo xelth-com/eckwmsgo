@@ -455,9 +455,32 @@ func (se *SyncEngine) pushShipmentsToNode(node *mesh.NodeInfo) error {
 		log.Printf("📦 Mesh Push: No new tracking found for %s (checked since %v)", node.InstanceID, trackTime)
 	}
 
+	// Get devices updated since last sync
+	var devices []models.RegisteredDevice
+	deviceTime := time.Time{}
+	if syncMeta.LastSyncAt != nil {
+		deviceTime = *syncMeta.LastSyncAt
+	}
+
+	log.Printf("📱 Mesh Push: Querying devices since %v", deviceTime)
+
+	deviceQuery := se.db.DB.Model(&models.RegisteredDevice{}).Where("updated_at > ?", deviceTime)
+	if err := deviceQuery.Find(&devices).Error; err != nil {
+		log.Printf("❌ Mesh Push: Error querying devices: %v", err)
+	} else if len(devices) > 0 {
+		log.Printf("📱 Mesh Push: Found %d devices (since %v)", len(devices), deviceTime)
+		for i, d := range devices {
+			log.Printf("  Device[%d]: ID=%s, Name=%s, Status=%s, UpdatedAt=%v",
+				i, d.DeviceID, d.Name, d.Status, d.UpdatedAt)
+		}
+		data.Devices = devices
+	} else {
+		log.Printf("📱 Mesh Push: No new devices found for %s (checked since %v)", node.InstanceID, deviceTime)
+	}
+
 	// Skip if nothing to push
-	if len(data.Shipments) == 0 && len(data.Tracking) == 0 {
-		log.Printf("Mesh Sync: No shipments to push to %s", node.InstanceID)
+	if len(data.Shipments) == 0 && len(data.Tracking) == 0 && len(data.Devices) == 0 {
+		log.Printf("Mesh Sync: No data to push to %s", node.InstanceID)
 		return nil
 	}
 
