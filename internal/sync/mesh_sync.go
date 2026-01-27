@@ -479,8 +479,46 @@ func (se *SyncEngine) pushShipmentsToNode(node *mesh.NodeInfo) error {
 		log.Printf("📱 Mesh Push: No new devices found for %s (checked since %v)", node.InstanceID, deviceTime)
 	}
 
+	// Get products updated since last sync
+	var products []models.ProductProduct
+	prodTime := time.Time{}
+	if syncMeta.LastSyncAt != nil {
+		prodTime = *syncMeta.LastSyncAt
+	}
+
+	log.Printf("📦 Mesh Push: Querying products since %v", prodTime)
+
+	prodQuery := se.db.DB.Model(&models.ProductProduct{}).Where("updated_at > ?", prodTime)
+	if err := prodQuery.Find(&products).Error; err != nil {
+		log.Printf("❌ Mesh Push: Error querying products: %v", err)
+	} else if len(products) > 0 {
+		log.Printf("📦 Mesh Push: Found %d products (since %v)", len(products), prodTime)
+		data.Products = products
+	} else {
+		log.Printf("📦 Mesh Push: No new products found for %s (checked since %v)", node.InstanceID, prodTime)
+	}
+
+	// Get locations updated since last sync
+	var locations []models.StockLocation
+	locTime := time.Time{}
+	if syncMeta.LastSyncAt != nil {
+		locTime = *syncMeta.LastSyncAt
+	}
+
+	log.Printf("📦 Mesh Push: Querying locations since %v", locTime)
+
+	locQuery := se.db.DB.Model(&models.StockLocation{}).Where("updated_at > ?", locTime)
+	if err := locQuery.Find(&locations).Error; err != nil {
+		log.Printf("❌ Mesh Push: Error querying locations: %v", err)
+	} else if len(locations) > 0 {
+		log.Printf("📦 Mesh Push: Found %d locations (since %v)", len(locations), locTime)
+		data.Locations = locations
+	} else {
+		log.Printf("📦 Mesh Push: No new locations found for %s (checked since %v)", node.InstanceID, locTime)
+	}
+
 	// Skip if nothing to push
-	if len(data.Shipments) == 0 && len(data.Tracking) == 0 && len(data.Devices) == 0 {
+	if len(data.Shipments) == 0 && len(data.Tracking) == 0 && len(data.Devices) == 0 && len(data.Products) == 0 && len(data.Locations) == 0 {
 		log.Printf("Mesh Sync: No data to push to %s", node.InstanceID)
 		return nil
 	}
