@@ -16,16 +16,16 @@ const (
 )
 
 // RegisteredDevice represents a PDA/Scanner that has initiated a handshake
-// NOTE: Production DB uses camelCase columns (deviceId, publicKey, lastSeenAt, etc.)
+// Convention: Go PascalCase -> DB snake_case (GORM auto) -> JSON camelCase
 type RegisteredDevice struct {
-	DeviceID   string         `gorm:"column:deviceId;primaryKey" json:"deviceId"`
-	Name       string         `gorm:"column:name" json:"name"`
-	PublicKey  string         `gorm:"column:publicKey;not null" json:"publicKey"`
-	Status     DeviceStatus   `gorm:"column:status;default:'pending'" json:"status"`
-	LastSeenAt time.Time      `gorm:"column:lastSeenAt" json:"lastSeenAt"`
-	CreatedAt  time.Time      `gorm:"column:createdAt" json:"createdAt"`
-	UpdatedAt  time.Time      `gorm:"column:updatedAt" json:"updatedAt"`
-	DeletedAt  gorm.DeletedAt `gorm:"column:deleted_at;index" json:"-"`
+	DeviceID   string         `gorm:"primaryKey" json:"deviceId"`
+	Name       string         `json:"name"`
+	PublicKey  string         `gorm:"not null" json:"publicKey"`
+	Status     DeviceStatus   `gorm:"default:'pending'" json:"status"`
+	LastSeenAt time.Time      `json:"lastSeenAt"`
+	CreatedAt  time.Time      `json:"createdAt"`
+	UpdatedAt  time.Time      `json:"updatedAt"`
+	DeletedAt  gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 // TableName specifies the table name for RegisteredDevice
