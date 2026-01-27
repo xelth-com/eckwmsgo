@@ -479,7 +479,7 @@ func (sh *SyncHandler) MeshPush(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		// Use Unscoped to update DeletedAt field on soft-deleted devices
-		if err := db.Unscoped().Where("device_id = ?", device.DeviceID).Assign(device).FirstOrCreate(&models.RegisteredDevice{}).Error; err != nil {
+		if err := db.Unscoped().Where("\"deviceId\" = ?", device.DeviceID).Assign(device).FirstOrCreate(&models.RegisteredDevice{}).Error; err != nil {
 			log.Printf("❌ Mesh Push: Failed to upsert device %s: %v", device.DeviceID, err)
 			failCount++
 		} else {
