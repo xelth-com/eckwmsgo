@@ -383,6 +383,17 @@ func (s *Service) ImportOpalOrders(ctx context.Context) error {
 		fmt.Printf("[OPAL Import] "+format+"\n", args...)
 	}
 
+	// Create sync history record
+	history := models.SyncHistory{
+		Provider:  "opal",
+		Status:    "running",
+		StartedAt: time.Now(),
+	}
+	if err := s.db.Create(&history).Error; err != nil {
+		fmt.Printf("Warning: Failed to create sync history: %v\n", err)
+	}
+
+	startTime := time.Now()
 	log("Starting OPAL order import...")
 
 	// Get the OPAL provider from registry
@@ -390,19 +401,24 @@ func (s *Service) ImportOpalOrders(ctx context.Context) error {
 	// That's expected - such nodes receive shipment data via Mesh Sync instead.
 	providerInt, err := s.registry.Get("opal")
 	if err != nil {
+		s.updateSyncHistoryError(&history, err)
 		return fmt.Errorf("OPAL provider not configured on this node (sync-only mode): %w", err)
 	}
 
 	// Type assert to get access to FetchRecentOrders
 	opalProvider, ok := providerInt.(*opal.Provider)
 	if !ok {
-		return fmt.Errorf("provider is not OPAL")
+		err := fmt.Errorf("provider is not OPAL")
+		s.updateSyncHistoryError(&history, err)
+		return err
 	}
 
 	// Fetch orders from OPAL
 	orders, err := opalProvider.FetchRecentOrders(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to fetch OPAL orders: %w", err)
+		err := fmt.Errorf("failed to fetch OPAL orders: %w", err)
+		s.updateSyncHistoryError(&history, err)
+		return err
 	}
 
 	log("Fetched %d orders from OPAL", len(orders))
@@ -576,7 +592,35 @@ func (s *Service) ImportOpalOrders(ctx context.Context) error {
 	}
 
 	log("OPAL import completed: %d created, %d updated, %d skipped", created, updated, skipped)
+
+	// Update sync history
+	completedAt := time.Now()
+	duration := int(time.Since(startTime).Milliseconds())
+	history.CompletedAt = &completedAt
+	history.Duration = duration
+	history.Status = "success"
+	history.Created = created
+	history.Updated = updated
+	history.Skipped = skipped
+	if err := s.db.Save(&history).Error; err != nil {
+		fmt.Printf("Warning: Failed to update sync history: %v\n", err)
+	}
+
 	return nil
+}
+
+// updateSyncHistoryError is a helper to mark sync as failed
+func (s *Service) updateSyncHistoryError(history *models.SyncHistory, err error) {
+	completedAt := time.Now()
+	history.CompletedAt = &completedAt
+	history.Status = "error"
+	history.Errors = 1
+	if err != nil {
+		history.ErrorDetail = err.Error()
+	}
+	if saveErr := s.db.Save(history).Error; saveErr != nil {
+		fmt.Printf("Warning: Failed to update sync history: %v\n", saveErr)
+	}
 }
 
 // ImportDhlOrders fetches orders from DHL and updates the database

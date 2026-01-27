@@ -5,9 +5,10 @@ import { toastStore } from '$lib/stores/toastStore.js';
 
 let pickings = [];
 let shipments = [];
+let syncHistory = [];
 let loading = true;
 let error = null;
-let activeTab = 'pickings'; // 'pickings' or 'shipments'
+let activeTab = 'pickings'; // 'pickings', 'shipments', or 'sync'
 let processingPickings = new Set();
 let isSyncingOpal = false; // State for OPAL sync
 let isSyncingDhl = false; // State for DHL sync
@@ -22,14 +23,16 @@ async function loadData() {
     loading = true;
     error = null;
     try {
-        // Load pickings, shipments, and provider config in parallel
-        const [pickingsData, shipmentsData, configData] = await Promise.all([
+        // Load pickings, shipments, sync history, and provider config in parallel
+        const [pickingsData, shipmentsData, syncHistoryData, configData] = await Promise.all([
             api.get('/api/odoo/pickings?state=assigned'),
             api.get('/api/delivery/shipments'),
+            api.get('/api/delivery/sync/history'),
             api.get('/api/delivery/config')
         ]);
         pickings = pickingsData || [];
         shipments = shipmentsData || [];
+        syncHistory = syncHistoryData || [];
         if (configData) providersConfig = configData;
     } catch (e) {
         console.error(e);
@@ -212,6 +215,13 @@ function formatAddress(data, prefix) {
             on:click={() => activeTab = 'shipments'}
         >
             🚚 Shipments ({shipments.length})
+        </button>
+        <button
+            class="tab"
+            class:active={activeTab === 'sync'}
+            on:click={() => activeTab = 'sync'}
+        >
+            🔄 Синхронизовано
         </button>
     </div>
 
@@ -513,6 +523,65 @@ function formatAddress(data, prefix) {
                                             </td>
                                         </tr>
                                     {/if}
+                                {/each}
+                            </tbody>
+                        </table>
+                    </div>
+                {/if}
+            </div>
+        {:else if activeTab === 'sync'}
+            <div class="sync-section">
+                <p class="section-desc">
+                    История синхронизаций с внешними сервисами (OPAL, DHL, Odoo).
+                    Автоматическая синхронизация выполняется каждый час с 8:00 до 18:00.
+                </p>
+
+                {#if syncHistory.length === 0}
+                    <div class="empty-state">
+                        <p>📭 История пуста</p>
+                        <small>Синхронизации будут появляться автоматически</small>
+                    </div>
+                {:else}
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Время</th>
+                                    <th>Драйвер</th>
+                                    <th>Статус</th>
+                                    <th>Создано</th>
+                                    <th>Обновлено</th>
+                                    <th>Пропущено</th>
+                                    <th>Длительность</th>
+                                    <th>Детали</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {#each syncHistory as sync}
+                                    <tr>
+                                        <td class="sync-time">{formatDate(sync.startedAt)}</td>
+                                        <td>
+                                            <span class="provider-badge" class:opal={sync.provider === 'opal'} class:dhl={sync.provider === 'dhl'}>
+                                                {sync.provider.toUpperCase()}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="sync-badge" class:success={sync.status === 'success'} class:error={sync.status === 'error'} class:running={sync.status === 'running'}>
+                                                {sync.status === 'success' ? '✅ Успешно' : sync.status === 'error' ? '❌ Ошибка' : '⏳ В процессе'}
+                                            </span>
+                                        </td>
+                                        <td class="stat-cell">{sync.created || 0}</td>
+                                        <td class="stat-cell">{sync.updated || 0}</td>
+                                        <td class="stat-cell muted">{sync.skipped || 0}</td>
+                                        <td class="duration-cell">{sync.duration ? (sync.duration / 1000).toFixed(1) + 's' : '-'}</td>
+                                        <td>
+                                            {#if sync.errorDetail}
+                                                <span class="error-detail" title={sync.errorDetail}>⚠️ {sync.errorDetail.substring(0, 50)}{sync.errorDetail.length > 50 ? '...' : ''}</span>
+                                            {:else}
+                                                <span class="muted">-</span>
+                                            {/if}
+                                        </td>
+                                    </tr>
                                 {/each}
                             </tbody>
                         </table>
@@ -976,5 +1045,55 @@ tbody tr:hover {
 .detail-item.note span {
     color: #ffc107;
     font-style: italic;
+}
+
+/* Sync history styles */
+.sync-section {
+    padding: 0;
+}
+
+.sync-time {
+    font-family: monospace;
+    color: #aaa;
+    font-size: 0.9rem;
+}
+
+.sync-badge {
+    display: inline-block;
+    padding: 0.3rem 0.8rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: white;
+}
+
+.sync-badge.success {
+    background: #28a745;
+}
+
+.sync-badge.error {
+    background: #dc3545;
+}
+
+.sync-badge.running {
+    background: #17a2b8;
+}
+
+.stat-cell {
+    font-family: monospace;
+    text-align: center;
+    color: #4a69bd;
+    font-weight: 600;
+}
+
+.duration-cell {
+    font-family: monospace;
+    color: #888;
+}
+
+.error-detail {
+    color: #ff6b6b;
+    font-size: 0.85rem;
+    cursor: help;
 }
 </style>

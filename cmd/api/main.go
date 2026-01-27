@@ -85,6 +85,9 @@ func main() {
 		// Documents (New)
 		&models.Document{},
 
+		// Sync History (New)
+		&models.SyncHistory{},
+
 		// AI System Models
 		&models.AIAgent{},
 		&models.AIPermission{},
@@ -238,33 +241,40 @@ func main() {
 		log.Println("⚠️ GEMINI_API_KEY not found. AI features will be disabled.")
 	}
 
-	// Start OPAL import scheduler (every hour)
+	// Start OPAL import scheduler (every hour, 8AM-6PM)
 	go func() {
 		// Wait for system startup
 		time.Sleep(1 * time.Minute)
 
-		// Run initial import
-		log.Println("⏰ Running initial OPAL import...")
-		if err := delSvc.ImportOpalOrders(context.Background()); err != nil {
-			log.Printf("❌ OPAL Import (initial) failed: %v", err)
-		} else {
-			log.Println("✅ OPAL Import (initial) completed")
+		// Run initial import if within business hours
+		now := time.Now()
+		if now.Hour() >= 8 && now.Hour() < 18 {
+			log.Println("⏰ Running initial OPAL import...")
+			if err := delSvc.ImportOpalOrders(context.Background()); err != nil {
+				log.Printf("❌ OPAL Import (initial) failed: %v", err)
+			} else {
+				log.Println("✅ OPAL Import (initial) completed")
+			}
 		}
 
-		// Schedule regular imports
+		// Schedule regular imports (every hour, only during business hours)
 		opalTicker := time.NewTicker(1 * time.Hour)
 		for range opalTicker.C {
-			log.Println("⏰ Starting scheduled OPAL import...")
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-			if err := delSvc.ImportOpalOrders(ctx); err != nil {
-				log.Printf("❌ OPAL Import failed: %v", err)
-			} else {
-				log.Println("✅ OPAL Import completed")
+			now := time.Now()
+			// Only sync between 8 AM and 6 PM
+			if now.Hour() >= 8 && now.Hour() < 18 {
+				log.Println("⏰ Starting scheduled OPAL import...")
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+				if err := delSvc.ImportOpalOrders(ctx); err != nil {
+					log.Printf("❌ OPAL Import failed: %v", err)
+				} else {
+					log.Println("✅ OPAL Import completed")
+				}
+				cancel()
 			}
-			cancel()
 		}
 	}()
-	log.Println("✅ Delivery: OPAL import scheduler started (hourly)")
+	log.Println("✅ Delivery: OPAL import scheduler started (hourly, 8AM-6PM)")
 
 	// 7. Start server with graceful shutdown
 	port := os.Getenv("PORT")
