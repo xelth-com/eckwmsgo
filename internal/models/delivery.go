@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -45,6 +46,16 @@ type StockPickingDelivery struct {
 
 func (StockPickingDelivery) TableName() string { return "stock_picking_delivery" }
 
+// GetEntityID implements SyncableEntity interface
+func (s StockPickingDelivery) GetEntityID() string {
+	return fmt.Sprintf("%d", s.ID)
+}
+
+// GetEntityType implements SyncableEntity interface
+func (s StockPickingDelivery) GetEntityType() string {
+	return "shipment"
+}
+
 // Delivery status constants
 const (
 	DeliveryStatusDraft     = "draft"     // Not yet processed
@@ -71,3 +82,13 @@ type DeliveryTracking struct {
 }
 
 func (DeliveryTracking) TableName() string { return "delivery_tracking" }
+
+// GetEntityID implements SyncableEntity interface
+func (t DeliveryTracking) GetEntityID() string {
+	return fmt.Sprintf("%d", t.ID)
+}
+
+// GetEntityType implements SyncableEntity interface
+func (t DeliveryTracking) GetEntityType() string {
+	return "tracking"
+}
