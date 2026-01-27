@@ -317,8 +317,8 @@ function formatAddress(data, prefix) {
                                             <span class="provider-badge" class:opal={provider === 'opal'} class:dhl={provider === 'dhl'}>
                                                 {provider.toUpperCase()}
                                             </span>
-                                            {#if shipment.tracking_number}
-                                                <span class="tracking-number">{shipment.tracking_number}</span>
+                                            {#if shipment.trackingNumber || details?.ocu_number || details?.tracking_number}
+                                                <span class="tracking-number">{shipment.trackingNumber || details?.ocu_number || details?.tracking_number}</span>
                                                 {#if details?.hwb_number}
                                                     <span class="hwb-number">HWB: {details.hwb_number}</span>
                                                 {/if}
