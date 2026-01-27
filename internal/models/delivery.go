@@ -25,13 +25,13 @@ type StockPickingDelivery struct {
 	PickingID      *int64     `gorm:"uniqueIndex" json:"pickingId"`                 // Pointer to allow null (orphaned shipments from OPAL import)
 	CarrierID      *int64     `gorm:"index" json:"carrierId"`                       // Foreign key to delivery_carrier
 	TrackingNumber string     `gorm:"index" json:"trackingNumber"`
-	CarrierPrice   float64    `json:"carrier_price"`
+	CarrierPrice   float64    `json:"carrierPrice"`
 	Currency       string     `gorm:"default:EUR" json:"currency"`
 	Status         string     `gorm:"index;default:draft" json:"status"` // draft, pending, shipped, delivered, error
 	ErrorMessage   string     `gorm:"type:text" json:"errorMessage"`    // Error details if status = error
-	LabelURL       string     `json:"label_url"`                         // URL to shipping label
+	LabelURL       string     `json:"labelUrl"`                         // URL to shipping label
 	LabelData      []byte     `gorm:"type:bytea" json:"-"`               // Binary label data (PDF)
-	RawResponse    string     `gorm:"type:text" json:"raw_response"`     // JSON response from provider
+	RawResponse    string     `gorm:"type:text" json:"rawResponse"`     // JSON response from provider
 	CreatedAt      time.Time  `json:"createdAt"`
 	UpdatedAt      time.Time  `json:"updatedAt"`
 	ShippedAt      *time.Time `json:"shippedAt"`      // When shipment was created

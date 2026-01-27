@@ -263,7 +263,7 @@ Copy this to ChatGPT/Claude for analysis
             class:active={activeTab === 'sync'}
             on:click={() => activeTab = 'sync'}
         >
-            🔄 Синхронизовано
+            🔄 Sync History
         </button>
     </div>
 
@@ -574,14 +574,14 @@ Copy this to ChatGPT/Claude for analysis
         {:else if activeTab === 'sync'}
             <div class="sync-section">
                 <p class="section-desc">
-                    История синхронизаций с внешними сервисами (OPAL, DHL, Odoo).
-                    Автоматическая синхронизация выполняется каждый час с 8:00 до 18:00.
+                    Synchronization history with external services (OPAL, DHL, Odoo).
+                    OPAL syncs every hour (on the hour), DHL syncs at :30 past the hour. Active 8 AM - 6 PM.
                 </p>
 
                 {#if syncHistory.length === 0}
                     <div class="empty-state">
-                        <p>📭 История пуста</p>
-                        <small>Синхронизации будут появляться автоматически</small>
+                        <p>📭 No sync history yet</p>
+                        <small>Synchronizations will appear automatically</small>
                     </div>
                 {:else}
                     <div class="table-container">
@@ -589,14 +589,14 @@ Copy this to ChatGPT/Claude for analysis
                             <thead>
                                 <tr>
                                     <th></th>
-                                    <th>Время</th>
-                                    <th>Драйвер</th>
-                                    <th>Статус</th>
-                                    <th>Создано</th>
-                                    <th>Обновлено</th>
-                                    <th>Пропущено</th>
-                                    <th>Длительность</th>
-                                    <th>Действия</th>
+                                    <th>Time</th>
+                                    <th>Provider</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th>Updated</th>
+                                    <th>Skipped</th>
+                                    <th>Duration</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -617,7 +617,7 @@ Copy this to ChatGPT/Claude for analysis
                                         </td>
                                         <td>
                                             <span class="sync-badge" class:success={sync.status === 'success'} class:error={sync.status === 'error'} class:running={sync.status === 'running'}>
-                                                {sync.status === 'success' ? '✅ Успешно' : sync.status === 'error' ? '❌ Ошибка' : '⏳ В процессе'}
+                                                {sync.status === 'success' ? '✅ Success' : sync.status === 'error' ? '❌ Error' : '⏳ Running'}
                                             </span>
                                         </td>
                                         <td class="stat-cell">{sync.created || 0}</td>
@@ -639,17 +639,17 @@ Copy this to ChatGPT/Claude for analysis
                                             <td colspan="9">
                                                 <div class="debug-details">
                                                     <div class="debug-section">
-                                                        <h4>⚠️ Ошибка</h4>
+                                                        <h4>⚠️ Error</h4>
                                                         <pre class="error-message">{sync.errorDetail || 'No error detail'}</pre>
                                                     </div>
 
                                                     {#if sync.debugInfo}
                                                         <div class="debug-section">
-                                                            <h4>🔍 Отладочная информация</h4>
+                                                            <h4>🔍 Debug Information</h4>
                                                             <div class="debug-grid">
                                                                 {#if sync.debugInfo.error_category}
                                                                     <div class="debug-item">
-                                                                        <label>Категория:</label>
+                                                                        <label>Category:</label>
                                                                         <span class="category-badge" class:playwright={sync.debugInfo.error_category === 'playwright_scraper'}>
                                                                             {sync.debugInfo.error_category}
                                                                         </span>
@@ -657,19 +657,19 @@ Copy this to ChatGPT/Claude for analysis
                                                                 {/if}
                                                                 {#if sync.debugInfo.likely_cause}
                                                                     <div class="debug-item">
-                                                                        <label>Вероятная причина:</label>
+                                                                        <label>Likely Cause:</label>
                                                                         <span class="highlight">{sync.debugInfo.likely_cause}</span>
                                                                     </div>
                                                                 {/if}
                                                                 {#if sync.debugInfo.ai_analysis_hint}
                                                                     <div class="debug-item">
-                                                                        <label>💡 Подсказка для AI:</label>
+                                                                        <label>💡 AI Hint:</label>
                                                                         <span class="ai-hint">{sync.debugInfo.ai_analysis_hint}</span>
                                                                     </div>
                                                                 {/if}
                                                                 {#if sync.debugInfo.step}
                                                                     <div class="debug-item">
-                                                                        <label>Этап:</label>
+                                                                        <label>Step:</label>
                                                                         <span>{sync.debugInfo.step}</span>
                                                                     </div>
                                                                 {/if}

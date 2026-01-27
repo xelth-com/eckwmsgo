@@ -276,6 +276,41 @@ func main() {
 	}()
 	log.Println("✅ Delivery: OPAL import scheduler started (hourly, 8AM-6PM)")
 
+	// Start DHL import scheduler (every hour at :30, offset from OPAL, 8AM-6PM)
+	go func() {
+		// Wait for system startup + 30 minutes offset from OPAL
+		time.Sleep(1*time.Minute + 30*time.Second)
+
+		// Run initial import if within business hours
+		now := time.Now()
+		if now.Hour() >= 8 && now.Hour() < 18 {
+			log.Println("⏰ Running initial DHL import...")
+			if err := delSvc.ImportDhlOrders(context.Background()); err != nil {
+				log.Printf("❌ DHL Import (initial) failed: %v", err)
+			} else {
+				log.Println("✅ DHL Import (initial) completed")
+			}
+		}
+
+		// Schedule regular imports (every hour at :30, only during business hours)
+		dhlTicker := time.NewTicker(1 * time.Hour)
+		for range dhlTicker.C {
+			now := time.Now()
+			// Only sync between 8 AM and 6 PM
+			if now.Hour() >= 8 && now.Hour() < 18 {
+				log.Println("⏰ Starting scheduled DHL import...")
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+				if err := delSvc.ImportDhlOrders(ctx); err != nil {
+					log.Printf("❌ DHL Import failed: %v", err)
+				} else {
+					log.Println("✅ DHL Import completed")
+				}
+				cancel()
+			}
+		}
+	}()
+	log.Println("✅ Delivery: DHL import scheduler started (hourly at :30, 8AM-6PM)")
+
 	// 7. Start server with graceful shutdown
 	port := os.Getenv("PORT")
 	if port == "" {

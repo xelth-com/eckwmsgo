@@ -737,6 +737,17 @@ func (s *Service) ImportDhlOrders(ctx context.Context) error {
 		fmt.Printf("[DHL Import] "+format+"\n", args...)
 	}
 
+	// Create sync history record
+	history := models.SyncHistory{
+		Provider:  "dhl",
+		Status:    "running",
+		StartedAt: time.Now(),
+	}
+	if err := s.db.Create(&history).Error; err != nil {
+		fmt.Printf("Warning: Failed to create sync history: %v\n", err)
+	}
+
+	startTime := time.Now()
 	log("Starting DHL order import...")
 
 	// Get the DHL provider from registry
@@ -744,19 +755,32 @@ func (s *Service) ImportDhlOrders(ctx context.Context) error {
 	// That's expected - such nodes receive shipment data via Mesh Sync instead.
 	providerInt, err := s.registry.Get("dhl")
 	if err != nil {
+		s.updateSyncHistoryErrorWithContext(&history, err, map[string]interface{}{
+			"step":     "get_provider",
+			"provider": "dhl",
+		})
 		return fmt.Errorf("DHL provider not configured on this node (sync-only mode): %w", err)
 	}
 
 	// Type assert to get access to FetchRecentShipments
 	dhlProvider, ok := providerInt.(*dhl.Provider)
 	if !ok {
-		return fmt.Errorf("provider is not DHL")
+		err := fmt.Errorf("provider is not DHL")
+		s.updateSyncHistoryErrorWithContext(&history, err, map[string]interface{}{
+			"step": "type_assertion",
+		})
+		return err
 	}
 
 	// Fetch shipments from DHL (last 14 days)
 	shipments, err := dhlProvider.FetchRecentShipments(ctx, 14)
 	if err != nil {
-		return fmt.Errorf("failed to fetch DHL shipments: %w", err)
+		wrappedErr := fmt.Errorf("failed to fetch DHL shipments: %w", err)
+		s.updateSyncHistoryErrorWithContext(&history, wrappedErr, map[string]interface{}{
+			"step":           "fetch_shipments",
+			"original_error": err.Error(),
+		})
+		return wrappedErr
 	}
 
 	log("Fetched %d shipments from DHL", len(shipments))
@@ -890,5 +914,19 @@ func (s *Service) ImportDhlOrders(ctx context.Context) error {
 	}
 
 	log("DHL import completed: %d created, %d updated, %d skipped", created, updated, skipped)
+
+	// Update sync history
+	completedAt := time.Now()
+	duration := int(time.Since(startTime).Milliseconds())
+	history.CompletedAt = &completedAt
+	history.Duration = duration
+	history.Status = "success"
+	history.Created = created
+	history.Updated = updated
+	history.Skipped = skipped
+	if err := s.db.Save(&history).Error; err != nil {
+		fmt.Printf("Warning: Failed to update sync history: %v\n", err)
+	}
+
 	return nil
 }
