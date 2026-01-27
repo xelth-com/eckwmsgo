@@ -5,10 +5,10 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gorilla/mux"
 	"github.com/xelth-com/eckwmsgo/internal/database"
 	"github.com/xelth-com/eckwmsgo/internal/models"
 	"github.com/xelth-com/eckwmsgo/internal/sync"
-	"github.com/gorilla/mux"
 )
 
 // SyncHandler handles synchronization requests
@@ -442,7 +442,7 @@ func (sh *SyncHandler) MeshPush(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		// Use Unscoped to update DeletedAt field on soft-deleted devices
-		if err := tx.Unscoped().Where("\"deviceId\" = ?", device.DeviceID).Assign(device).FirstOrCreate(&models.RegisteredDevice{}).Error; err != nil {
+		if err := tx.Unscoped().Where("device_id = ?", device.DeviceID).Assign(device).FirstOrCreate(&models.RegisteredDevice{}).Error; err != nil {
 			log.Printf("❌ Mesh Push: Failed to upsert device %s: %v", device.DeviceID, err)
 		}
 	}

@@ -12,17 +12,17 @@ type StockLocation struct {
 	CompleteName string     `gorm:"index" json:"complete_name" xmlrpc:"complete_name"`
 	Barcode      OdooString `gorm:"uniqueIndex" json:"barcode" xmlrpc:"barcode"` // 'p' code (Fixed type)
 	Usage        string     `json:"usage" xmlrpc:"usage"`
-	LocationID   *int64     `json:"location_id" xmlrpc:"location_id"`
+	LocationID   *int64     `json:"locationId" xmlrpc:"location_id"`
 	Active       bool       `gorm:"default:true" json:"active" xmlrpc:"active"`
 
 	// Sync Meta
-	LastSyncedAt time.Time `json:"last_synced_at"`
+	LastSyncedAt time.Time `json:"lastSyncedAt"`
 
 	Parent   *StockLocation  `gorm:"foreignKey:LocationID" json:"parent,omitempty"`
 	Children []StockLocation `gorm:"foreignKey:LocationID" json:"children,omitempty"`
 
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 func (StockLocation) TableName() string { return "stock_location" }
@@ -37,7 +37,7 @@ func (l StockLocation) GetEntityType() string { return "location" }
 type StockLot struct {
 	ID         int64      `gorm:"primaryKey;autoIncrement:false" json:"id" xmlrpc:"id"`
 	Name       string     `gorm:"uniqueIndex" json:"name" xmlrpc:"name"` // 'i' code serial part
-	ProductID  int64      `gorm:"index" json:"product_id" xmlrpc:"product_id"`
+	ProductID  int64      `gorm:"index" json:"productId" xmlrpc:"product_id"`
 	Ref        OdooString `json:"ref" xmlrpc:"ref"` // Internal reference (Fixed type)
 	CreateDate time.Time  `json:"create_date" xmlrpc:"create_date"`
 }
@@ -61,8 +61,8 @@ func (StockPackageType) TableName() string { return "stock_package_type" }
 type StockQuantPackage struct {
 	ID            int64     `gorm:"primaryKey;autoIncrement:false" json:"id" xmlrpc:"id"`
 	Name          string    `gorm:"uniqueIndex" json:"name" xmlrpc:"name"` // 'b' code
-	PackageTypeID *int64    `gorm:"index" json:"package_type_id" xmlrpc:"package_type_id"`
-	LocationID    *int64    `json:"location_id" xmlrpc:"location_id"`
+	PackageTypeID *int64    `gorm:"index" json:"packageTypeId" xmlrpc:"package_type_id"`
+	LocationID    *int64    `json:"locationId" xmlrpc:"location_id"`
 	PackDate      time.Time `json:"pack_date"`
 
 	PackageType *StockPackageType `gorm:"foreignKey:PackageTypeID"`
@@ -73,10 +73,10 @@ func (StockQuantPackage) TableName() string { return "stock_quant_package" }
 // StockQuant (Inventory)
 type StockQuant struct {
 	ID          int64   `gorm:"primaryKey;autoIncrement:false" json:"id" xmlrpc:"id"`
-	ProductID   int64   `gorm:"index" json:"product_id" xmlrpc:"product_id"`
-	LocationID  int64   `gorm:"index" json:"location_id" xmlrpc:"location_id"`
-	LotID       *int64  `gorm:"index" json:"lot_id" xmlrpc:"lot_id"`
-	PackageID   *int64  `gorm:"index" json:"package_id" xmlrpc:"package_id"`
+	ProductID   int64   `gorm:"index" json:"productId" xmlrpc:"product_id"`
+	LocationID  int64   `gorm:"index" json:"locationId" xmlrpc:"location_id"`
+	LotID       *int64  `gorm:"index" json:"lotId" xmlrpc:"lot_id"`
+	PackageID   *int64  `gorm:"index" json:"packageId" xmlrpc:"package_id"`
 	Quantity    float64 `json:"quantity" xmlrpc:"quantity"`
 	ReservedQty float64 `json:"reserved_quantity" xmlrpc:"reserved_quantity"`
 }
@@ -94,13 +94,13 @@ type StockPicking struct {
 	ID             int64      `gorm:"primaryKey;autoIncrement:false" json:"id" xmlrpc:"id"`
 	Name           string     `gorm:"uniqueIndex" json:"name" xmlrpc:"name"`
 	State          string     `gorm:"index" json:"state" xmlrpc:"state"` // draft, waiting, confirmed, assigned, done, cancel
-	LocationID     int64      `json:"location_id" xmlrpc:"location_id"`
-	LocationDestID int64      `json:"location_dest_id" xmlrpc:"location_dest_id"`
-	ScheduledDate  time.Time  `json:"scheduled_date" xmlrpc:"scheduled_date"`
+	LocationID     int64      `json:"locationId" xmlrpc:"location_id"`
+	LocationDestID int64      `json:"locationDestId" xmlrpc:"location_dest_id"`
+	ScheduledDate  time.Time  `json:"scheduledDate" xmlrpc:"scheduled_date"`
 	Origin         OdooString `json:"origin" xmlrpc:"origin"`                   // Source document (e.g., SO001) (Fixed type)
 	Priority       string     `json:"priority" xmlrpc:"priority"`               // 0=Normal, 1=Urgent
-	PickingTypeID  *int64     `json:"picking_type_id" xmlrpc:"picking_type_id"` // Operation type
-	PartnerID      *int64     `json:"partner_id" xmlrpc:"partner_id"`           // Customer/Supplier
+	PickingTypeID  *int64     `json:"pickingTypeId" xmlrpc:"picking_type_id"` // Operation type
+	PartnerID      *int64     `json:"partnerId" xmlrpc:"partner_id"`           // Customer/Supplier
 	DateDone       *time.Time `json:"date_done" xmlrpc:"date_done"`             // Completion date
 }
 
@@ -109,14 +109,14 @@ func (StockPicking) TableName() string { return "stock_picking" }
 // StockMoveLine (Move Detail)
 type StockMoveLine struct {
 	ID              int64      `gorm:"primaryKey;autoIncrement:false" json:"id" xmlrpc:"id"`
-	PickingID       int64      `gorm:"index" json:"picking_id" xmlrpc:"picking_id"`
-	ProductID       int64      `gorm:"index" json:"product_id" xmlrpc:"product_id"`
+	PickingID       int64      `gorm:"index" json:"pickingId" xmlrpc:"picking_id"`
+	ProductID       int64      `gorm:"index" json:"productId" xmlrpc:"product_id"`
 	QtyDone         float64    `json:"qty_done" xmlrpc:"quantity"` // Odoo 19 uses 'quantity'
-	LocationID      int64      `json:"location_id" xmlrpc:"location_id"`
-	LocationDestID  int64      `json:"location_dest_id" xmlrpc:"location_dest_id"`
-	PackageID       *int64     `json:"package_id" xmlrpc:"package_id"`
-	ResultPackageID *int64     `json:"result_package_id" xmlrpc:"result_package_id"`
-	LotID           *int64     `json:"lot_id" xmlrpc:"lot_id"`
+	LocationID      int64      `json:"locationId" xmlrpc:"location_id"`
+	LocationDestID  int64      `json:"locationDestId" xmlrpc:"location_dest_id"`
+	PackageID       *int64     `json:"packageId" xmlrpc:"package_id"`
+	ResultPackageID *int64     `json:"resultPackageId" xmlrpc:"result_package_id"`
+	LotID           *int64     `json:"lotId" xmlrpc:"lot_id"`
 	State           string     `gorm:"index" json:"state" xmlrpc:"state"` // draft, waiting, confirmed, assigned, done, cancel
 	Reference       OdooString `json:"reference" xmlrpc:"reference"`      // (Fixed type)
 }

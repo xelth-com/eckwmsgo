@@ -11,8 +11,8 @@ import (
 type OrderType string
 
 const (
-	OrderTypeRMA    OrderType = "rma"     // Return Merchandise Authorization
-	OrderTypeRepair OrderType = "repair"   // Internal repair order
+	OrderTypeRMA    OrderType = "rma"    // Return Merchandise Authorization
+	OrderTypeRepair OrderType = "repair" // Internal repair order
 )
 
 // OrderStatus defines possible order statuses
@@ -27,59 +27,59 @@ const (
 
 // Order represents a unified order/request table for RMA and repairs
 type Order struct {
-	ID                uint           `gorm:"primaryKey" json:"id"`
-	OrderNumber       string         `gorm:"uniqueIndex;not null" json:"order_number"`
+	ID          uint   `gorm:"primaryKey" json:"id"`
+	OrderNumber string `gorm:"uniqueIndex;not null" json:"order_number"`
 
 	// Order classification
-	OrderType         OrderType      `gorm:"not null;index" json:"order_type"` // rma | repair
+	OrderType OrderType `gorm:"not null;index" json:"order_type"` // rma | repair
 
 	// Customer information (for RMA)
-	CustomerName      string         `gorm:"index" json:"customer_name"`
-	CustomerEmail     string         `json:"customer_email"`
-	CustomerPhone     string         `json:"customer_phone"`
+	CustomerName  string `gorm:"index" json:"customer_name"`
+	CustomerEmail string `json:"customer_email"`
+	CustomerPhone string `json:"customer_phone"`
 
 	// Item information
-	ItemID            *uint          `gorm:"index" json:"item_id,omitempty"`
-	ProductSKU        string         `gorm:"index" json:"product_sku"`
-	ProductName       string         `json:"product_name"`
-	SerialNumber      string         `gorm:"index" json:"serial_number"`
-	PurchaseDate      *time.Time     `json:"purchase_date,omitempty"`
+	ItemID       *uint      `gorm:"index" json:"itemId,omitempty"`
+	ProductSKU   string     `gorm:"index" json:"product_sku"`
+	ProductName  string     `json:"product_name"`
+	SerialNumber string     `gorm:"index" json:"serial_number"`
+	PurchaseDate *time.Time `json:"purchase_date,omitempty"`
 
 	// Problem/Issue description
-	IssueDescription  string         `gorm:"type:text" json:"issue_description"`
-	DiagnosisNotes    string         `gorm:"type:text" json:"diagnosis_notes"`
+	IssueDescription string `gorm:"type:text" json:"issue_description"`
+	DiagnosisNotes   string `gorm:"type:text" json:"diagnosis_notes"`
 
 	// Assignment
-	AssignedTo        *uint          `gorm:"index" json:"assigned_to,omitempty"` // User who handles the order
+	AssignedTo *uint `gorm:"index" json:"assignedTo,omitempty"` // User who handles the order
 
 	// Status and priority
-	Status            OrderStatus    `gorm:"default:pending;index" json:"status"`
-	Priority          string         `gorm:"default:normal" json:"priority"` // low | normal | high | urgent
+	Status   OrderStatus `gorm:"default:pending;index" json:"status"`
+	Priority string      `gorm:"default:normal" json:"priority"` // low | normal | high | urgent
 
 	// Repair-specific fields
-	RepairNotes       string         `gorm:"type:text" json:"repair_notes"`
-	PartsUsed         datatypes.JSON `json:"parts_used"`
-	LaborHours        float64        `json:"labor_hours"`
-	TotalCost         float64        `json:"total_cost"`
+	RepairNotes string         `gorm:"type:text" json:"repair_notes"`
+	PartsUsed   datatypes.JSON `json:"parts_used"`
+	LaborHours  float64        `json:"labor_hours"`
+	TotalCost   float64        `json:"total_cost"`
 
 	// Resolution
-	Resolution        string         `gorm:"type:text" json:"resolution"`
-	Notes             string         `gorm:"type:text" json:"notes"`
-	Metadata          datatypes.JSON `json:"metadata"`
+	Resolution string         `gorm:"type:text" json:"resolution"`
+	Notes      string         `gorm:"type:text" json:"notes"`
+	Metadata   datatypes.JSON `json:"metadata"`
 
 	// RMA-specific fields
-	RMAReason         string         `gorm:"column:rma_reason" json:"rma_reason"` // return reason
-	IsRefundRequested bool           `gorm:"default:false" json:"is_refund_requested"`
+	RMAReason         string `gorm:"" json:"rmaReason"` // return reason
+	IsRefundRequested bool   `gorm:"default:false" json:"isRefundRequested"`
 
 	// Timestamps
-	StartedAt         *time.Time     `json:"started_at,omitempty"`
-	CompletedAt       *time.Time     `json:"completed_at,omitempty"`
-	CreatedAt         time.Time      `json:"created_at"`
-	UpdatedAt         time.Time      `json:"updated_at"`
-	DeletedAt         gorm.DeletedAt `gorm:"index" json:"-"`
+	StartedAt   *time.Time     `json:"startedAt,omitempty"`
+	CompletedAt *time.Time     `json:"completedAt,omitempty"`
+	CreatedAt   time.Time      `json:"createdAt"`
+	UpdatedAt   time.Time      `json:"updatedAt"`
+	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
 
 	// Relations
-	AssignedUser      *UserAuth      `gorm:"foreignKey:AssignedTo" json:"assigned_user,omitempty"`
+	AssignedUser *UserAuth `gorm:"foreignKey:AssignedTo" json:"assigned_user,omitempty"`
 	// Item relation removed - use ItemID to link to ProductProduct/StockLot via sync logic
 }
 

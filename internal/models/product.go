@@ -21,7 +21,7 @@ type ProductProduct struct {
 	Volume        float64    `json:"volume" xmlrpc:"volume"`
 	WriteDate     time.Time  `json:"write_date" xmlrpc:"write_date"`
 
-	LastSyncedAt time.Time      `json:"last_synced_at"`
+	LastSyncedAt time.Time      `json:"lastSyncedAt"`
 	RawData      datatypes.JSON `gorm:"type:jsonb" json:"raw_data"`
 
 	StockLots []StockLot `gorm:"foreignKey:ProductID" json:"lots,omitempty"`

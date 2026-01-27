@@ -7,7 +7,7 @@ import (
 )
 
 // UserAuth represents a user in the system
-// Refactored to map Go fields (PascalCase) to Legacy DB columns (camelCase)
+// Standardized: Go (PascalCase) -> DB (snake_case) -> JSON (camelCase)
 type UserAuth struct {
 	ID                  string     `gorm:"primaryKey;type:uuid;default:gen_random_uuid()" json:"id"`
 	Username            string     `gorm:"unique;not null" json:"username"`
@@ -15,16 +15,16 @@ type UserAuth struct {
 	Email               string     `gorm:"unique;not null" json:"email"`
 	Name                string     `json:"name,omitempty"`
 	Role                string     `gorm:"default:'user'" json:"role"`
-	UserType            string     `gorm:"column:userType;default:'individual'" json:"userType"`
+	UserType            string     `gorm:"default:'individual'" json:"userType"`
 	Company             string     `json:"company,omitempty"`
-	GoogleID            *string    `gorm:"column:googleId" json:"googleId,omitempty"`
-	IsActive            bool       `gorm:"column:isActive;default:true" json:"isActive"`
-	LastLogin           *time.Time `gorm:"column:lastLogin" json:"lastLogin,omitempty"`
-	FailedLoginAttempts int        `gorm:"column:failedLoginAttempts;default:0" json:"-"`
-	PreferredLanguage   string     `gorm:"column:preferredLanguage;default:'en'" json:"preferredLanguage"`
+	GoogleID            *string    `json:"googleId,omitempty"`
+	IsActive            bool       `gorm:"default:true" json:"isActive"`
+	LastLogin           *time.Time `json:"lastLogin,omitempty"`
+	FailedLoginAttempts int        `gorm:"default:0" json:"-"`
+	PreferredLanguage   string     `gorm:"default:'en'" json:"preferredLanguage"`
 
-	CreatedAt time.Time      `gorm:"column:createdAt" json:"createdAt"`
-	UpdatedAt time.Time      `gorm:"column:updatedAt" json:"updatedAt"`
+	CreatedAt time.Time      `json:"createdAt"`
+	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 

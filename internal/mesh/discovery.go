@@ -52,7 +52,8 @@ func StartDiscovery(cfg *config.Config) {
 				req.Header.Set("Authorization", "Bearer "+token)
 				req.Header.Set("Content-Type", "application/json")
 
-				client := &http.Client{Timeout: 5 * time.Second}
+				// Use IPv4-only client to fix connection issues
+				client := NewHTTPClient()
 				resp, err := client.Do(req)
 
 				if err == nil && resp.StatusCode == 200 {
