@@ -19,6 +19,7 @@ type SyncHistory struct {
 	Skipped     int            `gorm:"column:skipped;default:0" json:"skipped"`   // records skipped
 	Errors      int            `gorm:"column:errors;default:0" json:"errors"`     // error count
 	ErrorDetail string         `gorm:"column:error_detail;type:text" json:"errorDetail"`
+	DebugInfo   JSONB          `gorm:"column:debug_info;type:jsonb" json:"debugInfo"` // Full error context for AI analysis
 	CreatedAt   time.Time      `gorm:"column:created_at" json:"-"`
 	UpdatedAt   time.Time      `gorm:"column:updated_at" json:"-"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`

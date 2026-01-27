@@ -13,6 +13,7 @@ let processingPickings = new Set();
 let isSyncingOpal = false; // State for OPAL sync
 let isSyncingDhl = false; // State for DHL sync
 let expandedShipments = new Set(); // Track which shipments are expanded
+let expandedSyncLogs = new Set(); // Track which sync logs are expanded
 let providersConfig = { opal: false, dhl: false }; // Provider availability
 
 onMount(async () => {
@@ -182,6 +183,47 @@ function formatAddress(data, prefix) {
         [data[`${prefix}_zip`], data[`${prefix}_city`]].filter(Boolean).join(' ')
     ].filter(Boolean);
     return parts.join(', ') || '-';
+}
+
+function toggleSyncDetails(id) {
+    if (expandedSyncLogs.has(id)) {
+        expandedSyncLogs.delete(id);
+    } else {
+        expandedSyncLogs.add(id);
+    }
+    expandedSyncLogs = expandedSyncLogs; // Trigger reactivity
+}
+
+async function copyDebugInfo(sync) {
+    const debugText = `
+# Sync Error Debug Info
+Provider: ${sync.provider}
+Time: ${formatDate(sync.startedAt)}
+Status: ${sync.status}
+Duration: ${sync.duration ? (sync.duration / 1000).toFixed(1) + 's' : 'N/A'}
+
+## Error Message
+${sync.errorDetail || 'No error detail'}
+
+## Debug Information
+${sync.debugInfo ? JSON.stringify(sync.debugInfo, null, 2) : 'No debug info available'}
+
+## Statistics
+- Created: ${sync.created || 0}
+- Updated: ${sync.updated || 0}
+- Skipped: ${sync.skipped || 0}
+- Errors: ${sync.errors || 0}
+
+---
+Copy this to ChatGPT/Claude for analysis
+`.trim();
+
+    try {
+        await navigator.clipboard.writeText(debugText);
+        toastStore.add('Debug info copied to clipboard!', 'success');
+    } catch (err) {
+        toastStore.add('Failed to copy: ' + err.message, 'error');
+    }
 }
 </script>
 
@@ -546,6 +588,7 @@ function formatAddress(data, prefix) {
                         <table>
                             <thead>
                                 <tr>
+                                    <th></th>
                                     <th>Время</th>
                                     <th>Драйвер</th>
                                     <th>Статус</th>
@@ -553,12 +596,19 @@ function formatAddress(data, prefix) {
                                     <th>Обновлено</th>
                                     <th>Пропущено</th>
                                     <th>Длительность</th>
-                                    <th>Детали</th>
+                                    <th>Действия</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {#each syncHistory as sync}
-                                    <tr>
+                                    <tr class="sync-row" class:expanded={expandedSyncLogs.has(sync.id)} class:has-error={sync.status === 'error'} on:click={() => sync.status === 'error' ? toggleSyncDetails(sync.id) : null}>
+                                        <td class="expand-cell">
+                                            {#if sync.status === 'error'}
+                                                <span class="expand-icon">{expandedSyncLogs.has(sync.id) ? '▼' : '▶'}</span>
+                                            {:else}
+                                                <span class="muted">-</span>
+                                            {/if}
+                                        </td>
                                         <td class="sync-time">{formatDate(sync.startedAt)}</td>
                                         <td>
                                             <span class="provider-badge" class:opal={sync.provider === 'opal'} class:dhl={sync.provider === 'dhl'}>
@@ -574,14 +624,74 @@ function formatAddress(data, prefix) {
                                         <td class="stat-cell">{sync.updated || 0}</td>
                                         <td class="stat-cell muted">{sync.skipped || 0}</td>
                                         <td class="duration-cell">{sync.duration ? (sync.duration / 1000).toFixed(1) + 's' : '-'}</td>
-                                        <td>
-                                            {#if sync.errorDetail}
-                                                <span class="error-detail" title={sync.errorDetail}>⚠️ {sync.errorDetail.substring(0, 50)}{sync.errorDetail.length > 50 ? '...' : ''}</span>
+                                        <td on:click|stopPropagation>
+                                            {#if sync.status === 'error' && (sync.errorDetail || sync.debugInfo)}
+                                                <button class="action-btn copy-btn" on:click={() => copyDebugInfo(sync)} title="Copy debug info for AI">
+                                                    🤖 Copy for AI
+                                                </button>
                                             {:else}
                                                 <span class="muted">-</span>
                                             {/if}
                                         </td>
                                     </tr>
+                                    {#if expandedSyncLogs.has(sync.id) && sync.status === 'error'}
+                                        <tr class="debug-row">
+                                            <td colspan="9">
+                                                <div class="debug-details">
+                                                    <div class="debug-section">
+                                                        <h4>⚠️ Ошибка</h4>
+                                                        <pre class="error-message">{sync.errorDetail || 'No error detail'}</pre>
+                                                    </div>
+
+                                                    {#if sync.debugInfo}
+                                                        <div class="debug-section">
+                                                            <h4>🔍 Отладочная информация</h4>
+                                                            <div class="debug-grid">
+                                                                {#if sync.debugInfo.error_category}
+                                                                    <div class="debug-item">
+                                                                        <label>Категория:</label>
+                                                                        <span class="category-badge" class:playwright={sync.debugInfo.error_category === 'playwright_scraper'}>
+                                                                            {sync.debugInfo.error_category}
+                                                                        </span>
+                                                                    </div>
+                                                                {/if}
+                                                                {#if sync.debugInfo.likely_cause}
+                                                                    <div class="debug-item">
+                                                                        <label>Вероятная причина:</label>
+                                                                        <span class="highlight">{sync.debugInfo.likely_cause}</span>
+                                                                    </div>
+                                                                {/if}
+                                                                {#if sync.debugInfo.ai_analysis_hint}
+                                                                    <div class="debug-item">
+                                                                        <label>💡 Подсказка для AI:</label>
+                                                                        <span class="ai-hint">{sync.debugInfo.ai_analysis_hint}</span>
+                                                                    </div>
+                                                                {/if}
+                                                                {#if sync.debugInfo.step}
+                                                                    <div class="debug-item">
+                                                                        <label>Этап:</label>
+                                                                        <span>{sync.debugInfo.step}</span>
+                                                                    </div>
+                                                                {/if}
+                                                            </div>
+
+                                                            {#if sync.debugInfo.playwright_stderr}
+                                                                <div class="stderr-section">
+                                                                    <h5>📋 Playwright Output (stderr):</h5>
+                                                                    <pre class="stderr-output">{sync.debugInfo.playwright_stderr}</pre>
+                                                                </div>
+                                                            {/if}
+
+                                                            <details class="raw-json">
+                                                                <summary>🔧 Raw Debug JSON</summary>
+                                                                <pre>{JSON.stringify(sync.debugInfo, null, 2)}</pre>
+                                                            </details>
+                                                        </div>
+                                                    {/if}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {/if}
                                 {/each}
                             </tbody>
                         </table>
@@ -1095,5 +1205,176 @@ tbody tr:hover {
     color: #ff6b6b;
     font-size: 0.85rem;
     cursor: help;
+}
+
+.sync-row {
+    transition: background 0.2s;
+}
+
+.sync-row.has-error {
+    cursor: pointer;
+}
+
+.sync-row.has-error:hover {
+    background: #2a2a2a;
+}
+
+.sync-row.expanded {
+    background: #252525;
+    border-bottom: none;
+}
+
+.copy-btn {
+    background: #1a472a;
+    color: #4ade80;
+    border: 1px solid #22c55e;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+}
+
+.copy-btn:hover {
+    background: #166534;
+}
+
+/* Debug details row */
+.debug-row {
+    background: #1a1a1a;
+}
+
+.debug-row td {
+    padding: 0;
+    border-bottom: 2px solid #333;
+}
+
+.debug-details {
+    padding: 1.5rem;
+}
+
+.debug-section {
+    background: #252525;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.debug-section h4 {
+    margin: 0 0 1rem 0;
+    color: #fff;
+    font-size: 0.95rem;
+    border-bottom: 1px solid #333;
+    padding-bottom: 0.5rem;
+}
+
+.debug-section h5 {
+    margin: 1rem 0 0.5rem 0;
+    color: #aaa;
+    font-size: 0.85rem;
+}
+
+.error-message {
+    background: #2a1a1a;
+    color: #ff6b6b;
+    padding: 1rem;
+    border-radius: 4px;
+    border-left: 3px solid #dc3545;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.debug-grid {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.debug-item {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.debug-item label {
+    color: #888;
+    min-width: 150px;
+    flex-shrink: 0;
+}
+
+.debug-item span {
+    color: #e0e0e0;
+}
+
+.debug-item .highlight {
+    color: #ffc107;
+    font-weight: 600;
+}
+
+.debug-item .ai-hint {
+    color: #4ade80;
+    font-style: italic;
+}
+
+.category-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    background: #2a2a2a;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.category-badge.playwright {
+    background: #422006;
+    color: #fbbf24;
+}
+
+.stderr-section {
+    margin-top: 1rem;
+}
+
+.stderr-output {
+    background: #1a1a1a;
+    color: #aaa;
+    padding: 1rem;
+    border-radius: 4px;
+    border: 1px solid #333;
+    overflow-x: auto;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.raw-json {
+    margin-top: 1rem;
+}
+
+.raw-json summary {
+    cursor: pointer;
+    color: #888;
+    font-size: 0.85rem;
+    padding: 0.5rem;
+    background: #2a2a2a;
+    border-radius: 4px;
+    user-select: none;
+}
+
+.raw-json summary:hover {
+    color: #aaa;
+    background: #333;
+}
+
+.raw-json pre {
+    background: #1a1a1a;
+    color: #4a69bd;
+    padding: 1rem;
+    border-radius: 4px;
+    border: 1px solid #333;
+    overflow-x: auto;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    margin-top: 0.5rem;
 }
 </style>
