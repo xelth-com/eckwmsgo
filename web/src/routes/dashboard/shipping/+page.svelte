@@ -359,7 +359,7 @@ Copy this to ChatGPT/Claude for analysis
                             </thead>
                             <tbody>
                                 {#each shipments as shipment}
-                                    {@const details = parseRawResponse(shipment.raw_response)}
+                                    {@const details = parseRawResponse(shipment.rawResponse)}
                                     {@const provider = getProvider(details)}
                                     <tr class="shipment-row" class:expanded={expandedShipments.has(shipment.id)} on:click={() => toggleShipmentDetails(shipment.id)}>
                                         <td class="expand-cell">
