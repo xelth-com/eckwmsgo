@@ -332,7 +332,7 @@ Copy this to ChatGPT/Claude for analysis
                     </div>
                 {/if}
             </div>
-        {:else}
+        {:else if activeTab === 'shipments'}
             <div class="shipments-section">
                 <p class="section-desc">
                     Active and past shipments created through the delivery system.
