@@ -71,10 +71,10 @@
                     {#each rmas as rma}
                         <!-- svelte-ignore a11y-click-events-have-key-events -->
                         <tr on:click={() => openRMA(rma.id)}>
-                            <td class="code">{rma.rma_number}</td>
-                            <td>{rma.customer_name}</td>
-                            <td class="code-sm">{rma.product_sku}</td>
-                            <td>{formatDate(rma.created_at)}</td>
+                            <td class="code">{rma.rmaNumber}</td>
+                            <td>{rma.customerName}</td>
+                            <td class="code-sm">{rma.productSku}</td>
+                            <td>{formatDate(rma.createdAt)}</td>
                             <td>
                                 <span class="status-badge {rma.status.toLowerCase()}">
                                     {rma.status}

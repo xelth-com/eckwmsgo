@@ -51,8 +51,8 @@ async function createShipment(pickingId) {
 
     try {
         await api.post('/api/delivery/shipments', {
-            picking_id: pickingId,
-            provider_code: 'opal'
+            pickingId: pickingId,
+            providerCode: 'opal'
         });
 
         // Reload data to show new shipment

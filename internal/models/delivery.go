@@ -9,7 +9,7 @@ import (
 type DeliveryCarrier struct {
 	ID           int64     `gorm:"primaryKey;autoIncrement" json:"id"`
 	Name         string    `gorm:"not null" json:"name"`                // e.g., "OPAL Express"
-	ProviderCode string    `gorm:"uniqueIndex;not null" json:"provider_code"` // e.g., "opal", "dhl", "ups"
+	ProviderCode string    `gorm:"uniqueIndex;not null" json:"providerCode"` // e.g., "opal", "dhl", "ups"
 	Active       bool      `gorm:"default:true" json:"active"`
 	ConfigJSON   string    `gorm:"type:text" json:"configJson"` // JSON-encoded provider-specific config
 	CreatedAt    time.Time `json:"createdAt"`

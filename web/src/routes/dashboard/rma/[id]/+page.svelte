@@ -11,12 +11,12 @@
 
     // Form Data
     let formData = {
-        rma_number: '',
-        customer_name: '',
-        customer_email: '',
-        product_sku: '',
-        product_name: '',
-        issue_description: '',
+        rmaNumber: '',
+        customerName: '',
+        customerEmail: '',
+        productSku: '',
+        productName: '',
+        issueDescription: '',
         status: 'pending',
         priority: 'normal'
     };
@@ -26,7 +26,7 @@
             await loadRMA();
         } else {
             // Generate temp ID for display or handle via backend
-            formData.rma_number = 'AUTO-GEN';
+            formData.rmaNumber = 'AUTO-GEN';
         }
     });
 
@@ -47,13 +47,13 @@
             if (isNew) {
                 // Auto-gen handled by backend if empty, or we pass specific format
                 // Simple validation
-                if (!formData.customer_name || !formData.product_sku) {
+                if (!formData.customerName || !formData.productSku) {
                     toastStore.add('Customer Name and Product SKU are required', 'warning');
                     return;
                 }
 
-                // If rma_number is placeholder, clear it so backend generates it
-                if(formData.rma_number === 'AUTO-GEN') delete formData.rma_number;
+                // If rmaNumber is placeholder, clear it so backend generates it
+                if(formData.rmaNumber === 'AUTO-GEN') delete formData.rmaNumber;
 
                 await api.post('/rma', formData);
                 toastStore.add('RMA Created Successfully', 'success');
@@ -88,7 +88,7 @@
     <div class="header">
         <button class="back-btn" on:click={goBack}>← Back</button>
         <div class="title-row">
-            <h1>{isNew ? 'New RMA Request' : `RMA ${formData.rma_number}`}</h1>
+            <h1>{isNew ? 'New RMA Request' : `RMA ${formData.rmaNumber}`}</h1>
             {#if !isNew}
                 <button class="delete-btn" on:click={deleteRMA}>Delete</button>
             {/if}
@@ -104,11 +104,11 @@
                 <h2>Customer Information</h2>
                 <div class="field">
                     <label>Customer Name *</label>
-                    <input type="text" bind:value={formData.customer_name} required />
+                    <input type="text" bind:value={formData.customerName} required />
                 </div>
                 <div class="field">
                     <label>Email</label>
-                    <input type="email" bind:value={formData.customer_email} />
+                    <input type="email" bind:value={formData.customerEmail} />
                 </div>
             </div>
 
@@ -117,18 +117,18 @@
                 <h2>Product Details</h2>
                 <div class="field">
                     <label>Product SKU *</label>
-                    <input type="text" bind:value={formData.product_sku} required class="code-input" />
+                    <input type="text" bind:value={formData.productSku} required class="code-input" />
                 </div>
                 <div class="field">
                     <label>Product Name</label>
-                    <input type="text" bind:value={formData.product_name} />
+                    <input type="text" bind:value={formData.productName} />
                 </div>
             </div>
 
             <!-- Issue -->
             <div class="section full">
                 <h2>Issue Description</h2>
-                <textarea bind:value={formData.issue_description} rows="4"></textarea>
+                <textarea bind:value={formData.issueDescription} rows="4"></textarea>
             </div>
 
             <!-- Status (Only for edit) -->
