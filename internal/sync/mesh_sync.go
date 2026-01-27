@@ -488,7 +488,8 @@ func (se *SyncEngine) pushShipmentsToNode(node *mesh.NodeInfo) error {
 
 	log.Printf("📦 Mesh Push: Querying products since %v", prodTime)
 
-	prodQuery := se.db.DB.Model(&models.ProductProduct{}).Where("updated_at > ?", prodTime)
+	// ProductProduct uses write_date from Odoo
+	prodQuery := se.db.DB.Model(&models.ProductProduct{}).Where("write_date > ?", prodTime)
 	if err := prodQuery.Find(&products).Error; err != nil {
 		log.Printf("❌ Mesh Push: Error querying products: %v", err)
 	} else if len(products) > 0 {
