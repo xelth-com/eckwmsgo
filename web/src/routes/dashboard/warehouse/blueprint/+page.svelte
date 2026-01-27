@@ -16,9 +16,9 @@
         name: '',
         columns: 1,
         rows: 1,
-        start_index: '',
-        visual_width: 0,
-        visual_height: 0,
+        startIndex: '',
+        visualWidth: 0,
+        visualHeight: 0,
         rotation: 0
     };
 
@@ -60,9 +60,9 @@
             name: rack.name || '',
             columns: rack.columns || 1,
             rows: rack.rows || 1,
-            start_index: rack.start_index || '',
-            visual_width: rack.visual_width || 0,
-            visual_height: rack.visual_height || 0,
+            startIndex: rack.startIndex || '',
+            visualWidth: rack.visualWidth || 0,
+            visualHeight: rack.visualHeight || 0,
             rotation: rack.rotation || 0
         };
     }
@@ -73,9 +73,9 @@
             name: '',
             columns: 1,
             rows: 1,
-            start_index: '',
-            visual_width: 0,
-            visual_height: 0,
+            startIndex: '',
+            visualWidth: 0,
+            visualHeight: 0,
             rotation: 0
         };
     }
@@ -91,11 +91,11 @@
             name: formData.name,
             columns: parseInt(formData.columns),
             rows: parseInt(formData.rows),
-            start_index: formData.start_index === '' ? -1 : parseInt(formData.start_index),
-            visual_width: parseInt(formData.visual_width) || 0,
-            visual_height: parseInt(formData.visual_height) || 0,
+            startIndex: formData.startIndex === '' ? -1 : parseInt(formData.startIndex),
+            visualWidth: parseInt(formData.visualWidth) || 0,
+            visualHeight: parseInt(formData.visualHeight) || 0,
             rotation: parseInt(formData.rotation) || 0,
-            warehouse_id: selectedWarehouseId,
+            warehouseId: selectedWarehouseId,
             posX: selectedRack?.posX || 0,
             posY: selectedRack?.posY || 0
         };
@@ -182,8 +182,8 @@
 
     // Calculate rack display size
     function getRackSize(rack) {
-        let w = rack.visual_width > 0 ? rack.visual_width : rack.columns * 50;
-        let h = rack.visual_height > 0 ? rack.visual_height : rack.rows * 50;
+        let w = rack.visualWidth > 0 ? rack.visualWidth : rack.columns * 50;
+        let h = rack.visualHeight > 0 ? rack.visualHeight : rack.rows * 50;
         return { w, h };
     }
 
@@ -258,17 +258,17 @@
 
                     <div class="form-group">
                         <label>Start ID</label>
-                        <input type="number" bind:value={formData.start_index} placeholder="Auto">
+                        <input type="number" bind:value={formData.startIndex} placeholder="Auto">
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
                             <label>Visual Width (px)</label>
-                            <input type="number" bind:value={formData.visual_width} placeholder="Auto">
+                            <input type="number" bind:value={formData.visualWidth} placeholder="Auto">
                         </div>
                         <div class="form-group">
                             <label>Visual Height (px)</label>
-                            <input type="number" bind:value={formData.visual_height} placeholder="Auto">
+                            <input type="number" bind:value={formData.visualHeight} placeholder="Auto">
                         </div>
                     </div>
 

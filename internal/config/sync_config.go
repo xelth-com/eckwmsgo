@@ -298,7 +298,7 @@ func getDefaultEntityConfigs() map[string]EntitySyncConfig {
 		},
 		"shipments": {
 			Enabled:      true, // ENABLED
-			Strategy:     "time_window",
+			Strategy:     "checksum", // Changed from time_window for robust sync
 			HistoryDepth: 30,
 			MaxRecords:   0,
 			SyncInterval: 60,
@@ -306,7 +306,7 @@ func getDefaultEntityConfigs() map[string]EntitySyncConfig {
 		},
 		"tracking": {
 			Enabled:      true, // ENABLED
-			Strategy:     "time_window",
+			Strategy:     "checksum", // Changed from time_window for robust sync
 			HistoryDepth: 30,
 			MaxRecords:   0,
 			SyncInterval: 60,

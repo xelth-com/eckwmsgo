@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -9,7 +10,7 @@ import (
 type DeliveryCarrier struct {
 	ID           int64     `gorm:"primaryKey;autoIncrement" json:"id"`
 	Name         string    `gorm:"not null" json:"name"`                // e.g., "OPAL Express"
-	ProviderCode string    `gorm:"uniqueIndex;not null" json:"provider_code"` // e.g., "opal", "dhl", "ups"
+	ProviderCode string    `gorm:"uniqueIndex;not null" json:"providerCode"` // e.g., "opal", "dhl", "ups"
 	Active       bool      `gorm:"default:true" json:"active"`
 	ConfigJSON   string    `gorm:"type:text" json:"configJson"` // JSON-encoded provider-specific config
 	CreatedAt    time.Time `json:"createdAt"`
@@ -25,13 +26,13 @@ type StockPickingDelivery struct {
 	PickingID      *int64     `gorm:"uniqueIndex" json:"pickingId"`                 // Pointer to allow null (orphaned shipments from OPAL import)
 	CarrierID      *int64     `gorm:"index" json:"carrierId"`                       // Foreign key to delivery_carrier
 	TrackingNumber string     `gorm:"index" json:"trackingNumber"`
-	CarrierPrice   float64    `json:"carrier_price"`
+	CarrierPrice   float64    `json:"carrierPrice"`
 	Currency       string     `gorm:"default:EUR" json:"currency"`
 	Status         string     `gorm:"index;default:draft" json:"status"` // draft, pending, shipped, delivered, error
 	ErrorMessage   string     `gorm:"type:text" json:"errorMessage"`    // Error details if status = error
-	LabelURL       string     `json:"label_url"`                         // URL to shipping label
+	LabelURL       string     `json:"labelUrl"`                         // URL to shipping label
 	LabelData      []byte     `gorm:"type:bytea" json:"-"`               // Binary label data (PDF)
-	RawResponse    string     `gorm:"type:text" json:"raw_response"`     // JSON response from provider
+	RawResponse    string     `gorm:"type:text" json:"rawResponse"`     // JSON response from provider
 	CreatedAt      time.Time  `json:"createdAt"`
 	UpdatedAt      time.Time  `json:"updatedAt"`
 	ShippedAt      *time.Time `json:"shippedAt"`      // When shipment was created
@@ -44,6 +45,16 @@ type StockPickingDelivery struct {
 }
 
 func (StockPickingDelivery) TableName() string { return "stock_picking_delivery" }
+
+// GetEntityID implements SyncableEntity interface
+func (s StockPickingDelivery) GetEntityID() string {
+	return fmt.Sprintf("%d", s.ID)
+}
+
+// GetEntityType implements SyncableEntity interface
+func (s StockPickingDelivery) GetEntityType() string {
+	return "shipment"
+}
 
 // Delivery status constants
 const (
@@ -71,3 +82,13 @@ type DeliveryTracking struct {
 }
 
 func (DeliveryTracking) TableName() string { return "delivery_tracking" }
+
+// GetEntityID implements SyncableEntity interface
+func (t DeliveryTracking) GetEntityID() string {
+	return fmt.Sprintf("%d", t.ID)
+}
+
+// GetEntityType implements SyncableEntity interface
+func (t DeliveryTracking) GetEntityType() string {
+	return "tracking"
+}

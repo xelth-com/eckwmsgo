@@ -109,6 +109,10 @@ func NewRouter(db *database.DB) *Router {
 		// Universal Scan Endpoint
 		api.HandleFunc("/scan", r.handleScan).Methods("POST")
 
+		// Documents API (New)
+		api.HandleFunc("/documents", r.createDocument).Methods("POST")
+		api.HandleFunc("/documents", r.listDocuments).Methods("GET")
+
 		// AI Feedback Endpoint
 		api.HandleFunc("/ai/respond", r.handleAiRespond).Methods("POST")
 	}
@@ -614,6 +618,9 @@ func (r *Router) registerDeliveryRoutes(prefix string, svc *deliveryService.Serv
 		// Import from DHL
 		delivery.HandleFunc("/import/dhl", r.triggerDhlImport).Methods("POST")
 
+		// Sync history
+		delivery.HandleFunc("/sync/history", r.getSyncHistory).Methods("GET")
+
 		// Carrier management
 		delivery.HandleFunc("/carriers", r.listCarriers).Methods("GET")
 		delivery.HandleFunc("/carriers", r.createCarrier).Methods("POST")
@@ -816,6 +823,16 @@ func (r *Router) toggleCarrier(w http.ResponseWriter, req *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, map[string]string{"status": "toggled"})
+}
+
+func (r *Router) getSyncHistory(w http.ResponseWriter, req *http.Request) {
+	var history []models.SyncHistory
+	// Get last 100 sync records, ordered by newest first
+	if err := r.db.Order("started_at DESC").Limit(100).Find(&history).Error; err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to fetch sync history")
+		return
+	}
+	respondJSON(w, http.StatusOK, history)
 }
 
 // SetSyncEngine sets the sync engine and registers mesh sync routes

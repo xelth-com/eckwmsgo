@@ -5,13 +5,15 @@ import { toastStore } from '$lib/stores/toastStore.js';
 
 let pickings = [];
 let shipments = [];
+let syncHistory = [];
 let loading = true;
 let error = null;
-let activeTab = 'pickings'; // 'pickings' or 'shipments'
+let activeTab = 'pickings'; // 'pickings', 'shipments', or 'sync'
 let processingPickings = new Set();
 let isSyncingOpal = false; // State for OPAL sync
 let isSyncingDhl = false; // State for DHL sync
 let expandedShipments = new Set(); // Track which shipments are expanded
+let expandedSyncLogs = new Set(); // Track which sync logs are expanded
 let providersConfig = { opal: false, dhl: false }; // Provider availability
 
 onMount(async () => {
@@ -22,14 +24,16 @@ async function loadData() {
     loading = true;
     error = null;
     try {
-        // Load pickings, shipments, and provider config in parallel
-        const [pickingsData, shipmentsData, configData] = await Promise.all([
+        // Load pickings, shipments, sync history, and provider config in parallel
+        const [pickingsData, shipmentsData, syncHistoryData, configData] = await Promise.all([
             api.get('/api/odoo/pickings?state=assigned'),
             api.get('/api/delivery/shipments'),
+            api.get('/api/delivery/sync/history'),
             api.get('/api/delivery/config')
         ]);
         pickings = pickingsData || [];
         shipments = shipmentsData || [];
+        syncHistory = syncHistoryData || [];
         if (configData) providersConfig = configData;
     } catch (e) {
         console.error(e);
@@ -47,8 +51,8 @@ async function createShipment(pickingId) {
 
     try {
         await api.post('/api/delivery/shipments', {
-            picking_id: pickingId,
-            provider_code: 'opal'
+            pickingId: pickingId,
+            providerCode: 'opal'
         });
 
         // Reload data to show new shipment
@@ -180,6 +184,47 @@ function formatAddress(data, prefix) {
     ].filter(Boolean);
     return parts.join(', ') || '-';
 }
+
+function toggleSyncDetails(id) {
+    if (expandedSyncLogs.has(id)) {
+        expandedSyncLogs.delete(id);
+    } else {
+        expandedSyncLogs.add(id);
+    }
+    expandedSyncLogs = expandedSyncLogs; // Trigger reactivity
+}
+
+async function copyDebugInfo(sync) {
+    const debugText = `
+# Sync Error Debug Info
+Provider: ${sync.provider}
+Time: ${formatDate(sync.startedAt)}
+Status: ${sync.status}
+Duration: ${sync.duration ? (sync.duration / 1000).toFixed(1) + 's' : 'N/A'}
+
+## Error Message
+${sync.errorDetail || 'No error detail'}
+
+## Debug Information
+${sync.debugInfo ? JSON.stringify(sync.debugInfo, null, 2) : 'No debug info available'}
+
+## Statistics
+- Created: ${sync.created || 0}
+- Updated: ${sync.updated || 0}
+- Skipped: ${sync.skipped || 0}
+- Errors: ${sync.errors || 0}
+
+---
+Copy this to ChatGPT/Claude for analysis
+`.trim();
+
+    try {
+        await navigator.clipboard.writeText(debugText);
+        toastStore.add('Debug info copied to clipboard!', 'success');
+    } catch (err) {
+        toastStore.add('Failed to copy: ' + err.message, 'error');
+    }
+}
 </script>
 
 <div class="shipping-page">
@@ -212,6 +257,13 @@ function formatAddress(data, prefix) {
             on:click={() => activeTab = 'shipments'}
         >
             🚚 Shipments ({shipments.length})
+        </button>
+        <button
+            class="tab"
+            class:active={activeTab === 'sync'}
+            on:click={() => activeTab = 'sync'}
+        >
+            🔄 Sync History
         </button>
     </div>
 
@@ -280,7 +332,7 @@ function formatAddress(data, prefix) {
                     </div>
                 {/if}
             </div>
-        {:else}
+        {:else if activeTab === 'shipments'}
             <div class="shipments-section">
                 <p class="section-desc">
                     Active and past shipments created through the delivery system.
@@ -307,7 +359,7 @@ function formatAddress(data, prefix) {
                             </thead>
                             <tbody>
                                 {#each shipments as shipment}
-                                    {@const details = parseRawResponse(shipment.raw_response)}
+                                    {@const details = parseRawResponse(shipment.rawResponse)}
                                     {@const provider = getProvider(details)}
                                     <tr class="shipment-row" class:expanded={expandedShipments.has(shipment.id)} on:click={() => toggleShipmentDetails(shipment.id)}>
                                         <td class="expand-cell">
@@ -317,8 +369,8 @@ function formatAddress(data, prefix) {
                                             <span class="provider-badge" class:opal={provider === 'opal'} class:dhl={provider === 'dhl'}>
                                                 {provider.toUpperCase()}
                                             </span>
-                                            {#if shipment.tracking_number}
-                                                <span class="tracking-number">{shipment.tracking_number}</span>
+                                            {#if shipment.trackingNumber || details?.ocu_number || details?.tracking_number}
+                                                <span class="tracking-number">{shipment.trackingNumber || details?.ocu_number || details?.tracking_number}</span>
                                                 {#if details?.hwb_number}
                                                     <span class="hwb-number">HWB: {details.hwb_number}</span>
                                                 {/if}
@@ -486,7 +538,7 @@ function formatAddress(data, prefix) {
                                                         <div class="detail-section">
                                                             <h4>📊 Status</h4>
                                                             <div class="detail-item">
-                                                                <label>OPAL Status:</label>
+                                                                <label>{provider.toUpperCase()} Status:</label>
                                                                 <span class="status-value">{details.status || '-'}</span>
                                                             </div>
                                                             {#if details.status_date}
@@ -509,6 +561,133 @@ function formatAddress(data, prefix) {
                                                             {/if}
                                                         </div>
                                                     </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {/if}
+                                {/each}
+                            </tbody>
+                        </table>
+                    </div>
+                {/if}
+            </div>
+        {:else if activeTab === 'sync'}
+            <div class="sync-section">
+                <p class="section-desc">
+                    Synchronization history with external services (OPAL, DHL, Odoo).
+                    OPAL syncs every hour (on the hour), DHL syncs at :30 past the hour. Active 8 AM - 6 PM.
+                </p>
+
+                {#if syncHistory.length === 0}
+                    <div class="empty-state">
+                        <p>📭 No sync history yet</p>
+                        <small>Synchronizations will appear automatically</small>
+                    </div>
+                {:else}
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>Time</th>
+                                    <th>Provider</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th>Updated</th>
+                                    <th>Skipped</th>
+                                    <th>Duration</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {#each syncHistory as sync}
+                                    <tr class="sync-row" class:expanded={expandedSyncLogs.has(sync.id)} class:has-error={sync.status === 'error'} on:click={() => sync.status === 'error' ? toggleSyncDetails(sync.id) : null}>
+                                        <td class="expand-cell">
+                                            {#if sync.status === 'error'}
+                                                <span class="expand-icon">{expandedSyncLogs.has(sync.id) ? '▼' : '▶'}</span>
+                                            {:else}
+                                                <span class="muted">-</span>
+                                            {/if}
+                                        </td>
+                                        <td class="sync-time">{formatDate(sync.startedAt)}</td>
+                                        <td>
+                                            <span class="provider-badge" class:opal={sync.provider === 'opal'} class:dhl={sync.provider === 'dhl'}>
+                                                {sync.provider.toUpperCase()}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="sync-badge" class:success={sync.status === 'success'} class:error={sync.status === 'error'} class:running={sync.status === 'running'}>
+                                                {sync.status === 'success' ? '✅ Success' : sync.status === 'error' ? '❌ Error' : '⏳ Running'}
+                                            </span>
+                                        </td>
+                                        <td class="stat-cell">{sync.created || 0}</td>
+                                        <td class="stat-cell">{sync.updated || 0}</td>
+                                        <td class="stat-cell muted">{sync.skipped || 0}</td>
+                                        <td class="duration-cell">{sync.duration ? (sync.duration / 1000).toFixed(1) + 's' : '-'}</td>
+                                        <td on:click|stopPropagation>
+                                            {#if sync.status === 'error' && (sync.errorDetail || sync.debugInfo)}
+                                                <button class="action-btn copy-btn" on:click={() => copyDebugInfo(sync)} title="Copy debug info for AI">
+                                                    🤖 Copy for AI
+                                                </button>
+                                            {:else}
+                                                <span class="muted">-</span>
+                                            {/if}
+                                        </td>
+                                    </tr>
+                                    {#if expandedSyncLogs.has(sync.id) && sync.status === 'error'}
+                                        <tr class="debug-row">
+                                            <td colspan="9">
+                                                <div class="debug-details">
+                                                    <div class="debug-section">
+                                                        <h4>⚠️ Error</h4>
+                                                        <pre class="error-message">{sync.errorDetail || 'No error detail'}</pre>
+                                                    </div>
+
+                                                    {#if sync.debugInfo}
+                                                        <div class="debug-section">
+                                                            <h4>🔍 Debug Information</h4>
+                                                            <div class="debug-grid">
+                                                                {#if sync.debugInfo.error_category}
+                                                                    <div class="debug-item">
+                                                                        <label>Category:</label>
+                                                                        <span class="category-badge" class:playwright={sync.debugInfo.error_category === 'playwright_scraper'}>
+                                                                            {sync.debugInfo.error_category}
+                                                                        </span>
+                                                                    </div>
+                                                                {/if}
+                                                                {#if sync.debugInfo.likely_cause}
+                                                                    <div class="debug-item">
+                                                                        <label>Likely Cause:</label>
+                                                                        <span class="highlight">{sync.debugInfo.likely_cause}</span>
+                                                                    </div>
+                                                                {/if}
+                                                                {#if sync.debugInfo.ai_analysis_hint}
+                                                                    <div class="debug-item">
+                                                                        <label>💡 AI Hint:</label>
+                                                                        <span class="ai-hint">{sync.debugInfo.ai_analysis_hint}</span>
+                                                                    </div>
+                                                                {/if}
+                                                                {#if sync.debugInfo.step}
+                                                                    <div class="debug-item">
+                                                                        <label>Step:</label>
+                                                                        <span>{sync.debugInfo.step}</span>
+                                                                    </div>
+                                                                {/if}
+                                                            </div>
+
+                                                            {#if sync.debugInfo.playwright_stderr}
+                                                                <div class="stderr-section">
+                                                                    <h5>📋 Playwright Output (stderr):</h5>
+                                                                    <pre class="stderr-output">{sync.debugInfo.playwright_stderr}</pre>
+                                                                </div>
+                                                            {/if}
+
+                                                            <details class="raw-json">
+                                                                <summary>🔧 Raw Debug JSON</summary>
+                                                                <pre>{JSON.stringify(sync.debugInfo, null, 2)}</pre>
+                                                            </details>
+                                                        </div>
+                                                    {/if}
                                                 </div>
                                             </td>
                                         </tr>
@@ -976,5 +1155,226 @@ tbody tr:hover {
 .detail-item.note span {
     color: #ffc107;
     font-style: italic;
+}
+
+/* Sync history styles */
+.sync-section {
+    padding: 0;
+}
+
+.sync-time {
+    font-family: monospace;
+    color: #aaa;
+    font-size: 0.9rem;
+}
+
+.sync-badge {
+    display: inline-block;
+    padding: 0.3rem 0.8rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: white;
+}
+
+.sync-badge.success {
+    background: #28a745;
+}
+
+.sync-badge.error {
+    background: #dc3545;
+}
+
+.sync-badge.running {
+    background: #17a2b8;
+}
+
+.stat-cell {
+    font-family: monospace;
+    text-align: center;
+    color: #4a69bd;
+    font-weight: 600;
+}
+
+.duration-cell {
+    font-family: monospace;
+    color: #888;
+}
+
+.error-detail {
+    color: #ff6b6b;
+    font-size: 0.85rem;
+    cursor: help;
+}
+
+.sync-row {
+    transition: background 0.2s;
+}
+
+.sync-row.has-error {
+    cursor: pointer;
+}
+
+.sync-row.has-error:hover {
+    background: #2a2a2a;
+}
+
+.sync-row.expanded {
+    background: #252525;
+    border-bottom: none;
+}
+
+.copy-btn {
+    background: #1a472a;
+    color: #4ade80;
+    border: 1px solid #22c55e;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+}
+
+.copy-btn:hover {
+    background: #166534;
+}
+
+/* Debug details row */
+.debug-row {
+    background: #1a1a1a;
+}
+
+.debug-row td {
+    padding: 0;
+    border-bottom: 2px solid #333;
+}
+
+.debug-details {
+    padding: 1.5rem;
+}
+
+.debug-section {
+    background: #252525;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.debug-section h4 {
+    margin: 0 0 1rem 0;
+    color: #fff;
+    font-size: 0.95rem;
+    border-bottom: 1px solid #333;
+    padding-bottom: 0.5rem;
+}
+
+.debug-section h5 {
+    margin: 1rem 0 0.5rem 0;
+    color: #aaa;
+    font-size: 0.85rem;
+}
+
+.error-message {
+    background: #2a1a1a;
+    color: #ff6b6b;
+    padding: 1rem;
+    border-radius: 4px;
+    border-left: 3px solid #dc3545;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.debug-grid {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.debug-item {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.debug-item label {
+    color: #888;
+    min-width: 150px;
+    flex-shrink: 0;
+}
+
+.debug-item span {
+    color: #e0e0e0;
+}
+
+.debug-item .highlight {
+    color: #ffc107;
+    font-weight: 600;
+}
+
+.debug-item .ai-hint {
+    color: #4ade80;
+    font-style: italic;
+}
+
+.category-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    background: #2a2a2a;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.category-badge.playwright {
+    background: #422006;
+    color: #fbbf24;
+}
+
+.stderr-section {
+    margin-top: 1rem;
+}
+
+.stderr-output {
+    background: #1a1a1a;
+    color: #aaa;
+    padding: 1rem;
+    border-radius: 4px;
+    border: 1px solid #333;
+    overflow-x: auto;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.raw-json {
+    margin-top: 1rem;
+}
+
+.raw-json summary {
+    cursor: pointer;
+    color: #888;
+    font-size: 0.85rem;
+    padding: 0.5rem;
+    background: #2a2a2a;
+    border-radius: 4px;
+    user-select: none;
+}
+
+.raw-json summary:hover {
+    color: #aaa;
+    background: #333;
+}
+
+.raw-json pre {
+    background: #1a1a1a;
+    color: #4a69bd;
+    padding: 1rem;
+    border-radius: 4px;
+    border: 1px solid #333;
+    overflow-x: auto;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    margin-top: 0.5rem;
 }
 </style>

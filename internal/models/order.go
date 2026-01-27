@@ -28,26 +28,26 @@ const (
 // Order represents a unified order/request table for RMA and repairs
 type Order struct {
 	ID          uint   `gorm:"primaryKey" json:"id"`
-	OrderNumber string `gorm:"uniqueIndex;not null" json:"order_number"`
+	OrderNumber string `gorm:"uniqueIndex;not null" json:"orderNumber"`
 
 	// Order classification
-	OrderType OrderType `gorm:"not null;index" json:"order_type"` // rma | repair
+	OrderType OrderType `gorm:"not null;index" json:"orderType"` // rma | repair
 
 	// Customer information (for RMA)
-	CustomerName  string `gorm:"index" json:"customer_name"`
-	CustomerEmail string `json:"customer_email"`
-	CustomerPhone string `json:"customer_phone"`
+	CustomerName  string `gorm:"index" json:"customerName"`
+	CustomerEmail string `json:"customerEmail"`
+	CustomerPhone string `json:"customerPhone"`
 
 	// Item information
 	ItemID       *uint      `gorm:"index" json:"itemId,omitempty"`
-	ProductSKU   string     `gorm:"index" json:"product_sku"`
-	ProductName  string     `json:"product_name"`
-	SerialNumber string     `gorm:"index" json:"serial_number"`
-	PurchaseDate *time.Time `json:"purchase_date,omitempty"`
+	ProductSKU   string     `gorm:"index" json:"productSku"`
+	ProductName  string     `json:"productName"`
+	SerialNumber string     `gorm:"index" json:"serialNumber"`
+	PurchaseDate *time.Time `json:"purchaseDate,omitempty"`
 
 	// Problem/Issue description
-	IssueDescription string `gorm:"type:text" json:"issue_description"`
-	DiagnosisNotes   string `gorm:"type:text" json:"diagnosis_notes"`
+	IssueDescription string `gorm:"type:text" json:"issueDescription"`
+	DiagnosisNotes   string `gorm:"type:text" json:"diagnosisNotes"`
 
 	// Assignment
 	AssignedTo *uint `gorm:"index" json:"assignedTo,omitempty"` // User who handles the order
@@ -57,10 +57,10 @@ type Order struct {
 	Priority string      `gorm:"default:normal" json:"priority"` // low | normal | high | urgent
 
 	// Repair-specific fields
-	RepairNotes string         `gorm:"type:text" json:"repair_notes"`
-	PartsUsed   datatypes.JSON `json:"parts_used"`
-	LaborHours  float64        `json:"labor_hours"`
-	TotalCost   float64        `json:"total_cost"`
+	RepairNotes string         `gorm:"type:text" json:"repairNotes"`
+	PartsUsed   datatypes.JSON `json:"partsUsed"`
+	LaborHours  float64        `json:"laborHours"`
+	TotalCost   float64        `json:"totalCost"`
 
 	// Resolution
 	Resolution string         `gorm:"type:text" json:"resolution"`

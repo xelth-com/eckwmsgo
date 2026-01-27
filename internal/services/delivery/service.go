@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/xelth-com/eckwmsgo/internal/config"
@@ -383,6 +384,17 @@ func (s *Service) ImportOpalOrders(ctx context.Context) error {
 		fmt.Printf("[OPAL Import] "+format+"\n", args...)
 	}
 
+	// Create sync history record
+	history := models.SyncHistory{
+		Provider:  "opal",
+		Status:    "running",
+		StartedAt: time.Now(),
+	}
+	if err := s.db.Create(&history).Error; err != nil {
+		fmt.Printf("Warning: Failed to create sync history: %v\n", err)
+	}
+
+	startTime := time.Now()
 	log("Starting OPAL order import...")
 
 	// Get the OPAL provider from registry
@@ -390,19 +402,33 @@ func (s *Service) ImportOpalOrders(ctx context.Context) error {
 	// That's expected - such nodes receive shipment data via Mesh Sync instead.
 	providerInt, err := s.registry.Get("opal")
 	if err != nil {
+		s.updateSyncHistoryErrorWithContext(&history, err, map[string]interface{}{
+			"step": "get_provider",
+			"provider": "opal",
+		})
 		return fmt.Errorf("OPAL provider not configured on this node (sync-only mode): %w", err)
 	}
 
 	// Type assert to get access to FetchRecentOrders
 	opalProvider, ok := providerInt.(*opal.Provider)
 	if !ok {
-		return fmt.Errorf("provider is not OPAL")
+		err := fmt.Errorf("provider is not OPAL")
+		s.updateSyncHistoryErrorWithContext(&history, err, map[string]interface{}{
+			"step": "type_assertion",
+		})
+		return err
 	}
 
 	// Fetch orders from OPAL
 	orders, err := opalProvider.FetchRecentOrders(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to fetch OPAL orders: %w", err)
+		wrappedErr := fmt.Errorf("failed to fetch OPAL orders: %w", err)
+		// Save detailed error with context
+		s.updateSyncHistoryErrorWithContext(&history, wrappedErr, map[string]interface{}{
+			"step":          "fetch_orders",
+			"original_error": err.Error(),
+		})
+		return wrappedErr
 	}
 
 	log("Fetched %d orders from OPAL", len(orders))
@@ -576,7 +602,133 @@ func (s *Service) ImportOpalOrders(ctx context.Context) error {
 	}
 
 	log("OPAL import completed: %d created, %d updated, %d skipped", created, updated, skipped)
+
+	// Update sync history
+	completedAt := time.Now()
+	duration := int(time.Since(startTime).Milliseconds())
+	history.CompletedAt = &completedAt
+	history.Duration = duration
+	history.Status = "success"
+	history.Created = created
+	history.Updated = updated
+	history.Skipped = skipped
+	if err := s.db.Save(&history).Error; err != nil {
+		fmt.Printf("Warning: Failed to update sync history: %v\n", err)
+	}
+
 	return nil
+}
+
+// updateSyncHistoryErrorWithContext is a helper to mark sync as failed with detailed debug info and context
+func (s *Service) updateSyncHistoryErrorWithContext(history *models.SyncHistory, err error, context map[string]interface{}) {
+	completedAt := time.Now()
+	history.CompletedAt = &completedAt
+	history.Status = "error"
+	history.Errors = 1
+	if err != nil {
+		history.ErrorDetail = err.Error()
+
+		// Start with provided context
+		debugInfo := make(map[string]interface{})
+		for k, v := range context {
+			debugInfo[k] = v
+		}
+
+		// Add standard debug fields
+		debugInfo["error_message"] = err.Error()
+		debugInfo["timestamp"] = time.Now().Format(time.RFC3339)
+		debugInfo["provider"] = history.Provider
+
+		errorStr := err.Error()
+		if len(errorStr) > 100 {
+			debugInfo["full_error"] = errorStr
+			debugInfo["error_type"] = "detailed"
+		}
+
+		// Categorize error for AI analysis
+		if strings.Contains(errorStr, "playwright") ||
+		   strings.Contains(errorStr, "selector") ||
+		   strings.Contains(errorStr, "timeout") ||
+		   strings.Contains(errorStr, "navigation") ||
+		   strings.Contains(errorStr, "Stderr") {
+			debugInfo["error_category"] = "playwright_scraper"
+			debugInfo["likely_cause"] = "Frontend changed - selectors may need updating"
+			debugInfo["ai_analysis_hint"] = "Check Playwright selectors and page structure changes"
+		} else if strings.Contains(errorStr, "connection") ||
+		          strings.Contains(errorStr, "network") {
+			debugInfo["error_category"] = "network"
+			debugInfo["likely_cause"] = "Network connectivity issue"
+			debugInfo["ai_analysis_hint"] = "Check network connectivity and API availability"
+		} else if strings.Contains(errorStr, "parse") ||
+		          strings.Contains(errorStr, "JSON") ||
+		          strings.Contains(errorStr, "unmarshal") {
+			debugInfo["error_category"] = "parsing"
+			debugInfo["likely_cause"] = "Data format changed"
+			debugInfo["ai_analysis_hint"] = "Check response structure and parsing logic"
+		} else {
+			debugInfo["error_category"] = "other"
+		}
+
+		// Extract stderr if present (Playwright output)
+		if strings.Contains(errorStr, "Stderr:") {
+			parts := strings.Split(errorStr, "Stderr:")
+			if len(parts) > 1 {
+				debugInfo["playwright_stderr"] = strings.TrimSpace(parts[1])
+			}
+		}
+
+		history.DebugInfo = debugInfo
+	}
+	if saveErr := s.db.Save(history).Error; saveErr != nil {
+		fmt.Printf("Warning: Failed to update sync history: %v\n", saveErr)
+	}
+}
+
+// updateSyncHistoryError is a helper to mark sync as failed with detailed debug info
+func (s *Service) updateSyncHistoryError(history *models.SyncHistory, err error) {
+	s.updateSyncHistoryErrorWithContext(history, err, nil)
+	completedAt := time.Now()
+	history.CompletedAt = &completedAt
+	history.Status = "error"
+	history.Errors = 1
+	if err != nil {
+		history.ErrorDetail = err.Error()
+
+		// Save detailed debug info for AI analysis
+		debugInfo := map[string]interface{}{
+			"error_message": err.Error(),
+			"timestamp":     time.Now().Format(time.RFC3339),
+			"provider":      history.Provider,
+		}
+
+		// Try to extract more context if available
+		errorStr := err.Error()
+		if len(errorStr) > 100 {
+			// Store full error message for detailed analysis
+			debugInfo["full_error"] = errorStr
+			debugInfo["error_type"] = "detailed"
+		}
+
+		// Check if this is a Playwright/scraper error
+		if strings.Contains(errorStr, "playwright") ||
+		   strings.Contains(errorStr, "selector") ||
+		   strings.Contains(errorStr, "timeout") ||
+		   strings.Contains(errorStr, "navigation") {
+			debugInfo["error_category"] = "playwright_scraper"
+			debugInfo["likely_cause"] = "Frontend changed - selectors may need updating"
+		} else if strings.Contains(errorStr, "connection") ||
+		          strings.Contains(errorStr, "network") {
+			debugInfo["error_category"] = "network"
+			debugInfo["likely_cause"] = "Network connectivity issue"
+		} else {
+			debugInfo["error_category"] = "other"
+		}
+
+		history.DebugInfo = debugInfo
+	}
+	if saveErr := s.db.Save(history).Error; saveErr != nil {
+		fmt.Printf("Warning: Failed to update sync history: %v\n", saveErr)
+	}
 }
 
 // ImportDhlOrders fetches orders from DHL and updates the database
@@ -585,6 +737,17 @@ func (s *Service) ImportDhlOrders(ctx context.Context) error {
 		fmt.Printf("[DHL Import] "+format+"\n", args...)
 	}
 
+	// Create sync history record
+	history := models.SyncHistory{
+		Provider:  "dhl",
+		Status:    "running",
+		StartedAt: time.Now(),
+	}
+	if err := s.db.Create(&history).Error; err != nil {
+		fmt.Printf("Warning: Failed to create sync history: %v\n", err)
+	}
+
+	startTime := time.Now()
 	log("Starting DHL order import...")
 
 	// Get the DHL provider from registry
@@ -592,19 +755,32 @@ func (s *Service) ImportDhlOrders(ctx context.Context) error {
 	// That's expected - such nodes receive shipment data via Mesh Sync instead.
 	providerInt, err := s.registry.Get("dhl")
 	if err != nil {
+		s.updateSyncHistoryErrorWithContext(&history, err, map[string]interface{}{
+			"step":     "get_provider",
+			"provider": "dhl",
+		})
 		return fmt.Errorf("DHL provider not configured on this node (sync-only mode): %w", err)
 	}
 
 	// Type assert to get access to FetchRecentShipments
 	dhlProvider, ok := providerInt.(*dhl.Provider)
 	if !ok {
-		return fmt.Errorf("provider is not DHL")
+		err := fmt.Errorf("provider is not DHL")
+		s.updateSyncHistoryErrorWithContext(&history, err, map[string]interface{}{
+			"step": "type_assertion",
+		})
+		return err
 	}
 
 	// Fetch shipments from DHL (last 14 days)
 	shipments, err := dhlProvider.FetchRecentShipments(ctx, 14)
 	if err != nil {
-		return fmt.Errorf("failed to fetch DHL shipments: %w", err)
+		wrappedErr := fmt.Errorf("failed to fetch DHL shipments: %w", err)
+		s.updateSyncHistoryErrorWithContext(&history, wrappedErr, map[string]interface{}{
+			"step":           "fetch_shipments",
+			"original_error": err.Error(),
+		})
+		return wrappedErr
 	}
 
 	log("Fetched %d shipments from DHL", len(shipments))
@@ -662,8 +838,11 @@ func (s *Service) ImportDhlOrders(ctx context.Context) error {
 			"delivery_country": shipment.RecipientCountry,
 
 			// Standardized Pickup/Sender Address (Defaulted from warehouse config)
-			"pickup_name": defaultSender,
-			"pickup_city": s.config.Warehouse.City,
+			"pickup_name":    defaultSender,
+			"pickup_street":  s.config.Warehouse.Street,
+			"pickup_zip":     s.config.Warehouse.Zip,
+			"pickup_city":    s.config.Warehouse.City,
+			"pickup_country": s.config.Warehouse.Country,
 
 			// Description from note field
 			"description": shipment.Note,
@@ -735,5 +914,19 @@ func (s *Service) ImportDhlOrders(ctx context.Context) error {
 	}
 
 	log("DHL import completed: %d created, %d updated, %d skipped", created, updated, skipped)
+
+	// Update sync history
+	completedAt := time.Now()
+	duration := int(time.Since(startTime).Milliseconds())
+	history.CompletedAt = &completedAt
+	history.Duration = duration
+	history.Status = "success"
+	history.Created = created
+	history.Updated = updated
+	history.Skipped = skipped
+	if err := s.db.Save(&history).Error; err != nil {
+		fmt.Printf("Warning: Failed to update sync history: %v\n", err)
+	}
+
 	return nil
 }

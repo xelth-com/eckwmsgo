@@ -56,8 +56,8 @@
     }
 
     function getRackStyle(rack) {
-        const width = (rack.visual_width > 0 ? rack.visual_width : rack.columns * GRID_SIZE);
-        const height = (rack.visual_height > 0 ? rack.visual_height : rack.rows * GRID_SIZE);
+        const width = (rack.visualWidth > 0 ? rack.visualWidth : rack.columns * GRID_SIZE);
+        const height = (rack.visualHeight > 0 ? rack.visualHeight : rack.rows * GRID_SIZE);
 
         return `
             left: ${rack.posX || 0}px;
@@ -185,13 +185,13 @@
 
         try {
             const newRack = await api.post('/api/warehouse/racks', {
-                warehouse_id: parseInt(whId),
+                warehouseId: parseInt(whId),
                 name: name,
                 columns: 1,
                 rows: 1,
                 posX: 50,
                 posY: 50,
-                start_index: 0 // Backend handles auto-increment logic ideally, or 0
+                startIndex: 0 // Backend handles auto-increment logic ideally, or 0
             });
             racks = [...racks, newRack];
             selectRack(newRack);
