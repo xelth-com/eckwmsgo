@@ -312,6 +312,14 @@ func getDefaultEntityConfigs() map[string]EntitySyncConfig {
 			SyncInterval: 60,
 			Priority:     8,
 		},
+		"sync_history": {
+			Enabled:      true,           // ENABLED - sync logs between servers
+			Strategy:     "time_window",  // Simple time-based sync for logs
+			HistoryDepth: 7,              // Last 7 days
+			MaxRecords:   30,             // Only last 30 records
+			SyncInterval: 300,            // Every 5 minutes (not critical)
+			Priority:     3,              // Low priority (just logs)
+		},
 	}
 }
 
