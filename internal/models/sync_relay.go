@@ -11,10 +11,10 @@ type EncryptedSyncPacket struct {
 	ID uint `gorm:"primaryKey" json:"id"`
 
 	// Routing Metadata (Visible to Relay)
-	EntityType     string `gorm:"index:idx_relay_lookup" json:"entity_type"`
-	EntityID       string `gorm:"index:idx_relay_lookup" json:"entity_id"`
+	EntityType     string `gorm:"index:idx_relay_lookup" json:"entityType"`
+	EntityID       string `gorm:"index:idx_relay_lookup" json:"entityId"`
 	Version        int64  `json:"version"`
-	SourceInstance string `json:"source_instance"`
+	SourceInstance string `json:"sourceInstance"`
 	VectorClock    []byte `gorm:"type:jsonb" json:"vector_clock"` // Raw JSON bytes
 
 	// Security Metadata
@@ -25,8 +25,8 @@ type EncryptedSyncPacket struct {
 	EncryptedPayload []byte `gorm:"type:bytea" json:"encrypted_payload"`
 	Nonce            []byte `gorm:"type:bytea" json:"nonce"`
 
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // TableName specifies the table name

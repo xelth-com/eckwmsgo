@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/xelth-com/eckwmsgo/internal/models"
 	"github.com/gorilla/mux"
+	"github.com/xelth-com/eckwmsgo/internal/models"
 )
 
 // ListDevices returns all registered devices ordered by status (pending first)
@@ -28,11 +28,10 @@ func (r *Router) updateDeviceStatus(w http.ResponseWriter, req *http.Request) {
 		Status string `json:"status"`
 	}
 	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
-		respondError(w, http.StatusBadRequest, "Invalid request")
+		respondError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 
-	// Validate status enum
 	status := models.DeviceStatus(body.Status)
 	if status != models.DeviceStatusActive && status != models.DeviceStatusBlocked && status != models.DeviceStatusPending {
 		respondError(w, http.StatusBadRequest, "Invalid status")
@@ -40,7 +39,7 @@ func (r *Router) updateDeviceStatus(w http.ResponseWriter, req *http.Request) {
 	}
 
 	var device models.RegisteredDevice
-	if err := r.db.Where("\"deviceId\" = ?", id).First(&device).Error; err != nil {
+	if err := r.db.Where("device_id = ?", id).First(&device).Error; err != nil {
 		respondError(w, http.StatusNotFound, "Device not found")
 		return
 	}
@@ -60,7 +59,7 @@ func (r *Router) deleteDevice(w http.ResponseWriter, req *http.Request) {
 	id := vars["id"]
 
 	var device models.RegisteredDevice
-	if err := r.db.Where("\"deviceId\" = ?", id).First(&device).Error; err != nil {
+	if err := r.db.Where("device_id = ?", id).First(&device).Error; err != nil {
 		respondError(w, http.StatusNotFound, "Device not found")
 		return
 	}

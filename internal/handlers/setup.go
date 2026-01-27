@@ -155,7 +155,7 @@ func (r *Router) registerDevice(w http.ResponseWriter, req *http.Request) {
 	// 4. Update/Create Device in DB
 	var device models.RegisteredDevice
 	// Use Unscoped to find even soft-deleted devices (for restoration on re-registration)
-	result := r.db.Unscoped().Where("\"deviceId\" = ?", body.DeviceID).First(&device)
+	result := r.db.Unscoped().Where("device_id = ?", body.DeviceID).First(&device)
 
 	if result.Error != nil {
 		// Create new device

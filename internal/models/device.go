@@ -16,12 +16,13 @@ const (
 )
 
 // RegisteredDevice represents a PDA/Scanner that has initiated a handshake
+// Standardized: Go (PascalCase) -> DB (snake_case) -> JSON (camelCase)
 type RegisteredDevice struct {
-	DeviceID   string         `gorm:"column:deviceId;primaryKey" json:"deviceId"`
-	Name       string         `gorm:"column:deviceName" json:"name"`
-	PublicKey  string         `gorm:"column:publicKey;not null" json:"publicKey"` // Base64 encoded Ed25519 public key
+	DeviceID   string         `gorm:"primaryKey" json:"deviceId"`
+	Name       string         `json:"name"`
+	PublicKey  string         `gorm:"not null" json:"publicKey"`
 	Status     DeviceStatus   `gorm:"default:'pending'" json:"status"`
-	LastSeenAt time.Time      `gorm:"column:lastSeenAt" json:"lastSeenAt"`
+	LastSeenAt time.Time      `json:"lastSeenAt"`
 	CreatedAt  time.Time      `json:"createdAt"`
 	UpdatedAt  time.Time      `json:"updatedAt"`
 	DeletedAt  gorm.DeletedAt `gorm:"index" json:"-"`

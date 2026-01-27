@@ -10,11 +10,11 @@ type WarehouseRack struct {
 	Columns     int    `gorm:"not null;default:1" json:"columns"`
 	Rows        int    `gorm:"not null;default:1" json:"rows"`
 	StartIndex  int    `gorm:"not null" json:"start_index"`
-	SortOrder   int    `gorm:"default:0" json:"sort_order"`
-	WarehouseID *int64 `gorm:"index" json:"warehouse_id,omitempty"`
+	SortOrder   int    `gorm:"default:0" json:"sortOrder"`
+	WarehouseID *int64 `gorm:"index" json:"warehouseId,omitempty"`
 
 	// Link to real Odoo Location (e.g., "WH/Stock/Row A")
-	MappedLocationID *int64 `gorm:"index" json:"mapped_location_id,omitempty"`
+	MappedLocationID *int64 `gorm:"index" json:"mappedLocationId,omitempty"`
 
 	// Visual positioning for Blueprint editor
 	PosX         int `gorm:"default:0" json:"posX"`
@@ -23,8 +23,8 @@ type WarehouseRack struct {
 	VisualWidth  int `gorm:"default:0" json:"visual_width"`  // Override width in px
 	VisualHeight int `gorm:"default:0" json:"visual_height"` // Override height in px
 
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 
 	// Relations
 	Warehouse      *StockLocation `gorm:"foreignKey:WarehouseID" json:"warehouse,omitempty"`
