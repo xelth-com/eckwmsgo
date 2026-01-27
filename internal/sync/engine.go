@@ -460,8 +460,12 @@ func (se *SyncEngine) autoSyncLoop() {
 
 				// If we are a peer or edge, also sync with relay
 				role := se.GetRole()
+				log.Printf("🔄 Auto-sync: Current role is %s", role)
 				if role == RolePeer || role == RoleEdge {
+					log.Println("📡 Auto-sync: Queueing relay_sync request")
 					se.syncChan <- SyncRequest{Operation: "relay_sync", Priority: 5}
+				} else {
+					log.Printf("⏭️ Auto-sync: Skipping relay_sync (role %s is not peer/edge)", role)
 				}
 			}
 		case <-se.stopChan:
