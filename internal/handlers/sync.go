@@ -365,15 +365,21 @@ func (sh *SyncHandler) MeshPush(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Mesh Push: Received data from %s (products: %d, locations: %d, quants: %d, shipments: %d, tracking: %d, devices: %d)",
 		data.NodeID, len(data.Products), len(data.Locations), len(data.Quants), len(data.Shipments), len(data.Tracking), len(data.Devices))
 
-	// Apply updates using transaction
-	tx := sh.db.DB.Begin()
+	// Track success/failure counts
+	var successCount, failCount int
+	db := sh.db.DB
 
-	// Upsert products
+	// Upsert products (no transaction - individual operations for resilience)
 	for _, p := range data.Products {
 		if p.ID == 0 {
 			continue
 		}
-		tx.Where("id = ?", p.ID).Assign(p).FirstOrCreate(&models.ProductProduct{})
+		if err := db.Where("id = ?", p.ID).Assign(p).FirstOrCreate(&models.ProductProduct{}).Error; err != nil {
+			log.Printf("❌ Mesh Push: Failed to upsert product %d: %v", p.ID, err)
+			failCount++
+		} else {
+			successCount++
+		}
 	}
 
 	// Upsert locations
@@ -381,7 +387,12 @@ func (sh *SyncHandler) MeshPush(w http.ResponseWriter, r *http.Request) {
 		if l.ID == 0 {
 			continue
 		}
-		tx.Where("id = ?", l.ID).Assign(l).FirstOrCreate(&models.StockLocation{})
+		if err := db.Where("id = ?", l.ID).Assign(l).FirstOrCreate(&models.StockLocation{}).Error; err != nil {
+			log.Printf("❌ Mesh Push: Failed to upsert location %d: %v", l.ID, err)
+			failCount++
+		} else {
+			successCount++
+		}
 	}
 
 	// Upsert quants
@@ -389,7 +400,12 @@ func (sh *SyncHandler) MeshPush(w http.ResponseWriter, r *http.Request) {
 		if q.ID == 0 {
 			continue
 		}
-		tx.Where("id = ?", q.ID).Assign(q).FirstOrCreate(&models.StockQuant{})
+		if err := db.Where("id = ?", q.ID).Assign(q).FirstOrCreate(&models.StockQuant{}).Error; err != nil {
+			log.Printf("❌ Mesh Push: Failed to upsert quant %d: %v", q.ID, err)
+			failCount++
+		} else {
+			successCount++
+		}
 	}
 
 	// Upsert lots
@@ -397,7 +413,12 @@ func (sh *SyncHandler) MeshPush(w http.ResponseWriter, r *http.Request) {
 		if lot.ID == 0 {
 			continue
 		}
-		tx.Where("id = ?", lot.ID).Assign(lot).FirstOrCreate(&models.StockLot{})
+		if err := db.Where("id = ?", lot.ID).Assign(lot).FirstOrCreate(&models.StockLot{}).Error; err != nil {
+			log.Printf("❌ Mesh Push: Failed to upsert lot %d: %v", lot.ID, err)
+			failCount++
+		} else {
+			successCount++
+		}
 	}
 
 	// Upsert packages
@@ -405,7 +426,12 @@ func (sh *SyncHandler) MeshPush(w http.ResponseWriter, r *http.Request) {
 		if pkg.ID == 0 {
 			continue
 		}
-		tx.Where("id = ?", pkg.ID).Assign(pkg).FirstOrCreate(&models.StockQuantPackage{})
+		if err := db.Where("id = ?", pkg.ID).Assign(pkg).FirstOrCreate(&models.StockQuantPackage{}).Error; err != nil {
+			log.Printf("❌ Mesh Push: Failed to upsert package %d: %v", pkg.ID, err)
+			failCount++
+		} else {
+			successCount++
+		}
 	}
 
 	// Upsert partners
@@ -413,7 +439,12 @@ func (sh *SyncHandler) MeshPush(w http.ResponseWriter, r *http.Request) {
 		if partner.ID == 0 {
 			continue
 		}
-		tx.Where("id = ?", partner.ID).Assign(partner).FirstOrCreate(&models.ResPartner{})
+		if err := db.Where("id = ?", partner.ID).Assign(partner).FirstOrCreate(&models.ResPartner{}).Error; err != nil {
+			log.Printf("❌ Mesh Push: Failed to upsert partner %d: %v", partner.ID, err)
+			failCount++
+		} else {
+			successCount++
+		}
 	}
 
 	// Upsert shipments
@@ -421,8 +452,11 @@ func (sh *SyncHandler) MeshPush(w http.ResponseWriter, r *http.Request) {
 		if shipment.ID == 0 {
 			continue
 		}
-		if err := tx.Where("id = ?", shipment.ID).Assign(shipment).FirstOrCreate(&models.StockPickingDelivery{}).Error; err != nil {
+		if err := db.Where("id = ?", shipment.ID).Assign(shipment).FirstOrCreate(&models.StockPickingDelivery{}).Error; err != nil {
 			log.Printf("❌ Mesh Push: Failed to upsert shipment %d: %v", shipment.ID, err)
+			failCount++
+		} else {
+			successCount++
 		}
 	}
 
@@ -431,8 +465,11 @@ func (sh *SyncHandler) MeshPush(w http.ResponseWriter, r *http.Request) {
 		if tracking.ID == 0 {
 			continue
 		}
-		if err := tx.Where("id = ?", tracking.ID).Assign(tracking).FirstOrCreate(&models.DeliveryTracking{}).Error; err != nil {
+		if err := db.Where("id = ?", tracking.ID).Assign(tracking).FirstOrCreate(&models.DeliveryTracking{}).Error; err != nil {
 			log.Printf("❌ Mesh Push: Failed to upsert tracking %d: %v", tracking.ID, err)
+			failCount++
+		} else {
+			successCount++
 		}
 	}
 
@@ -442,20 +479,22 @@ func (sh *SyncHandler) MeshPush(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		// Use Unscoped to update DeletedAt field on soft-deleted devices
-		if err := tx.Unscoped().Where("device_id = ?", device.DeviceID).Assign(device).FirstOrCreate(&models.RegisteredDevice{}).Error; err != nil {
+		if err := db.Unscoped().Where("device_id = ?", device.DeviceID).Assign(device).FirstOrCreate(&models.RegisteredDevice{}).Error; err != nil {
 			log.Printf("❌ Mesh Push: Failed to upsert device %s: %v", device.DeviceID, err)
+			failCount++
+		} else {
+			successCount++
 		}
 	}
 
-	if err := tx.Commit().Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	log.Printf("✅ Mesh Push: Completed - %d succeeded, %d failed", successCount, failCount)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":  "success",
-		"message": "Data received and applied",
+		"status":   "success",
+		"message":  "Data received and applied",
+		"success":  successCount,
+		"failures": failCount,
 	})
 }
 

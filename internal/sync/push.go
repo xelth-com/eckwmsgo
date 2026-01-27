@@ -2,14 +2,15 @@ package sync
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"time"
 
-	"github.com/xelth-com/eckwmsgo/internal/config"
 	"github.com/xelth-com/eckwmsgo/internal/database"
 	"github.com/xelth-com/eckwmsgo/internal/models"
 )
@@ -89,7 +90,9 @@ func PushDeviceToNode(db *database.DB, device models.RegisteredDevice, nodeURL, 
 	log.Printf("✅ Device %s pushed successfully to %s (HTTP %d)", device.DeviceID, pushURL, resp.StatusCode)
 
 	// Update device last_seen_at
-	db.Model(&device).Update("last_seen_at").Error
+	if err := db.Model(&device).Update("last_seen_at", time.Now()).Error; err != nil {
+		log.Printf("⚠️ Failed to update device last_seen_at: %v", err)
+	}
 
 	return nil
 }
