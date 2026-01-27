@@ -109,6 +109,10 @@ func NewRouter(db *database.DB) *Router {
 		// Universal Scan Endpoint
 		api.HandleFunc("/scan", r.handleScan).Methods("POST")
 
+		// Documents API (New)
+		api.HandleFunc("/documents", r.createDocument).Methods("POST")
+		api.HandleFunc("/documents", r.listDocuments).Methods("GET")
+
 		// AI Feedback Endpoint
 		api.HandleFunc("/ai/respond", r.handleAiRespond).Methods("POST")
 	}

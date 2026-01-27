@@ -81,6 +81,10 @@ func main() {
 		&models.SyncQueue{},
 		&models.SyncRoute{},
 		&models.EncryptedSyncPacket{}, // Zero-Knowledge Relay support
+
+		// Documents (New)
+		&models.Document{},
+
 		// AI System Models
 		&models.AIAgent{},
 		&models.AIPermission{},
