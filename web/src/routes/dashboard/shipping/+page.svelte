@@ -538,7 +538,7 @@ Copy this to ChatGPT/Claude for analysis
                                                         <div class="detail-section">
                                                             <h4>📊 Status</h4>
                                                             <div class="detail-item">
-                                                                <label>OPAL Status:</label>
+                                                                <label>{provider.toUpperCase()} Status:</label>
                                                                 <span class="status-value">{details.status || '-'}</span>
                                                             </div>
                                                             {#if details.status_date}

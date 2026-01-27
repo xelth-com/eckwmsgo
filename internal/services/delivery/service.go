@@ -814,8 +814,11 @@ func (s *Service) ImportDhlOrders(ctx context.Context) error {
 			"delivery_country": shipment.RecipientCountry,
 
 			// Standardized Pickup/Sender Address (Defaulted from warehouse config)
-			"pickup_name": defaultSender,
-			"pickup_city": s.config.Warehouse.City,
+			"pickup_name":    defaultSender,
+			"pickup_street":  s.config.Warehouse.Street,
+			"pickup_zip":     s.config.Warehouse.Zip,
+			"pickup_city":    s.config.Warehouse.City,
+			"pickup_country": s.config.Warehouse.Country,
 
 			// Description from note field
 			"description": shipment.Note,
