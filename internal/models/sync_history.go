@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -27,5 +28,15 @@ type SyncHistory struct {
 
 // TableName specifies the table name
 func (SyncHistory) TableName() string {
+	return "sync_history"
+}
+
+// GetEntityID implements SyncableEntity interface
+func (s SyncHistory) GetEntityID() string {
+	return fmt.Sprintf("%d", s.ID)
+}
+
+// GetEntityType implements SyncableEntity interface
+func (s SyncHistory) GetEntityType() string {
 	return "sync_history"
 }
