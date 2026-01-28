@@ -115,6 +115,9 @@ func (se *SyncEngine) pullFromNode(node *mesh.NodeInfo) error {
 	}
 
 	log.Printf("Merkle Pull: Need to pull %d entities from %s", totalNeeded, node.InstanceID)
+	for et, ids := range neededEntities {
+		log.Printf("Merkle Pull: %s needs %d IDs", et, len(ids))
+	}
 
 	// Request specific entities from remote
 	req := MeshSyncRequest{

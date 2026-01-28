@@ -343,7 +343,14 @@ func (sh *SyncHandler) MeshPull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Mesh Pull: Request from peer for entities: %v", req.EntityTypes)
+	// Log EntityIDs if present (Merkle pull)
+	if len(req.EntityIDs) > 0 {
+		for entityType, ids := range req.EntityIDs {
+			log.Printf("Mesh Pull: Merkle request for %s: %d specific IDs", entityType, len(ids))
+		}
+	} else {
+		log.Printf("Mesh Pull: Full request for entities: %v (Since: %v)", req.EntityTypes, req.Since)
+	}
 
 	resp, err := sh.syncEngine.GetDataForPull(&req)
 	if err != nil {
