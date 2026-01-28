@@ -10,6 +10,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/xelth-com/eckwmsgo/internal/ai"
+	"github.com/xelth-com/eckwmsgo/internal/config"
 	"github.com/xelth-com/eckwmsgo/internal/database"
 	"github.com/xelth-com/eckwmsgo/internal/middleware"
 	"github.com/xelth-com/eckwmsgo/internal/models"
@@ -25,6 +26,7 @@ type Router struct {
 	*mux.Router
 	db              *database.DB
 	hub             *websocket.Hub
+	config          *config.Config           // Store config for AI prompt generation
 	odooService     interface{}              // Set via SetOdooService for Odoo sync routes
 	deliveryService *deliveryService.Service // Set via SetDeliveryService for delivery routes
 	syncEngine      *sync.SyncEngine         // Set via SetSyncEngine for mesh sync routes
@@ -32,7 +34,7 @@ type Router struct {
 }
 
 // NewRouter creates a new HTTP router with all routes
-func NewRouter(db *database.DB) *Router {
+func NewRouter(db *database.DB, cfg *config.Config) *Router {
 	// Initialize WebSocket Hub
 	hub := websocket.NewHub()
 	go hub.Run()
@@ -41,6 +43,7 @@ func NewRouter(db *database.DB) *Router {
 		Router: mux.NewRouter(),
 		db:     db,
 		hub:    hub,
+		config: cfg,
 	}
 
 	// Detect path prefix from environment (e.g. "/E")

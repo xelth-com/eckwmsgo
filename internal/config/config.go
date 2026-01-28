@@ -95,9 +95,12 @@ type WarehouseConfig struct {
 
 // AIConfig holds AI service configuration
 type AIConfig struct {
-	GeminiKey     string
-	Model         string
-	ModelFallback string
+	GeminiKey       string
+	Model           string
+	ModelFallback   string
+	CompanyName     string // Client Company
+	ManufacturerURL string // 9eck.com
+	SupportEmail    string // eckwms@xelth.com
 }
 
 // Load loads configuration from environment variables
@@ -193,9 +196,12 @@ func Load() (*Config, error) {
 			Country: getEnv("WAREHOUSE_COUNTRY", "DE"),
 		},
 		AI: AIConfig{
-			GeminiKey:     os.Getenv("GEMINI_API_KEY"),
-			Model:         getEnv("GEMINI_MODEL", "gemini-3-flash-preview"),
-			ModelFallback: getEnv("GEMINI_MODEL_FALLBACK", "gemini-2.5-flash"),
+			GeminiKey:       os.Getenv("GEMINI_API_KEY"),
+			Model:           getEnv("GEMINI_MODEL", "gemini-3-flash-preview"),
+			ModelFallback:   getEnv("GEMINI_MODEL_FALLBACK", "gemini-2.5-flash"),
+			CompanyName:     getEnv("COMPANY_NAME", "InBody Deutschland"),
+			ManufacturerURL: getEnv("MANUFACTURER_URL", "https://9eck.com"),
+			SupportEmail:    getEnv("SUPPORT_EMAIL", "eckwms@xelth.com"),
 		},
 	}, nil
 }

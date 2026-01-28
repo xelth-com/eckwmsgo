@@ -130,7 +130,7 @@ func main() {
 	}
 
 	// 5. Set up HTTP router
-	router := handlers.NewRouter(db)
+	router := handlers.NewRouter(db, cfg)
 
 	// 6. Start Odoo Sync Service (Background)
 	odooService := odoo.NewSyncService(db, odoo.Config{

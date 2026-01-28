@@ -134,8 +134,14 @@ func (r *Router) handleScan(w http.ResponseWriter, req *http.Request) {
 		}
 
 		if r.aiClient != nil {
+			// Build dynamic prompt with config
+			systemPrompt := ai.BuildConsultantPrompt(
+				r.config.AI.CompanyName,
+				r.config.AI.ManufacturerURL,
+				r.config.AI.SupportEmail,
+			)
 			prompt := fmt.Sprintf("Worker scanned unknown code: '%s'. Analyze it.", barcode)
-			fullPrompt := ai.AgentSystemPrompt + "\n\n" + prompt
+			fullPrompt := systemPrompt + "\n\nUSER INPUT: " + prompt
 
 			aiResponseStr, err := r.aiClient.GenerateContent(req.Context(), fullPrompt)
 			if err == nil {
