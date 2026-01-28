@@ -22,18 +22,19 @@ type MeshSyncRequest struct {
 
 // MeshSyncResponse represents the response from a mesh sync request
 type MeshSyncResponse struct {
-	Products  []models.ProductProduct       `json:"products,omitempty"`
-	Locations []models.StockLocation        `json:"locations,omitempty"`
-	Quants    []models.StockQuant           `json:"quants,omitempty"`
-	Lots      []models.StockLot             `json:"lots,omitempty"`
-	Packages  []models.StockQuantPackage    `json:"packages,omitempty"`
-	Pickings  []models.StockPicking         `json:"pickings,omitempty"`
-	Partners  []models.ResPartner           `json:"partners,omitempty"`
-	Shipments []models.StockPickingDelivery `json:"shipments,omitempty"`
-	Tracking  []models.DeliveryTracking     `json:"tracking,omitempty"`
-	Devices   []models.RegisteredDevice     `json:"devices,omitempty"`
-	SyncTime  time.Time                     `json:"sync_time"`
-	NodeID    string                        `json:"node_id"`
+	Products    []models.ProductProduct       `json:"products,omitempty"`
+	Locations   []models.StockLocation        `json:"locations,omitempty"`
+	Quants      []models.StockQuant           `json:"quants,omitempty"`
+	Lots        []models.StockLot             `json:"lots,omitempty"`
+	Packages    []models.StockQuantPackage    `json:"packages,omitempty"`
+	Pickings    []models.StockPicking         `json:"pickings,omitempty"`
+	Partners    []models.ResPartner           `json:"partners,omitempty"`
+	Shipments   []models.StockPickingDelivery `json:"shipments,omitempty"`
+	Tracking    []models.DeliveryTracking     `json:"tracking,omitempty"`
+	Devices     []models.RegisteredDevice     `json:"devices,omitempty"`
+	SyncHistory []models.SyncHistory          `json:"sync_history,omitempty"`
+	SyncTime    time.Time                     `json:"sync_time"`
+	NodeID      string                        `json:"node_id"`
 }
 
 // SyncWithRelay synchronizes data with mesh nodes
@@ -238,6 +239,16 @@ func (se *SyncEngine) applyMeshUpdates(resp *MeshSyncResponse) error {
 		}
 	}
 
+	// Upsert sync history (logs from other nodes)
+	for _, h := range resp.SyncHistory {
+		if h.ID == 0 {
+			continue
+		}
+		if err := tx.Where("id = ?", h.ID).Assign(h).FirstOrCreate(&models.SyncHistory{}).Error; err != nil {
+			log.Printf("Mesh Sync: Failed to upsert sync_history %d: %v", h.ID, err)
+		}
+	}
+
 	return tx.Commit().Error
 }
 
@@ -356,6 +367,15 @@ func (se *SyncEngine) GetDataForPull(req *MeshSyncRequest) (*MeshSyncResponse, e
 			}
 			if err := query.Find(&tracking).Error; err == nil {
 				resp.Tracking = tracking
+			}
+		case "sync_history":
+			// Sync history logs - last 30 records, last 7 days
+			var history []models.SyncHistory
+			query := se.db.DB.Order("started_at DESC").Limit(30)
+			since := time.Now().AddDate(0, 0, -7)
+			query = query.Where("started_at > ?", since)
+			if err := query.Find(&history).Error; err == nil {
+				resp.SyncHistory = history
 			}
 		}
 	}

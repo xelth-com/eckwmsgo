@@ -78,8 +78,9 @@ const (
 	EntityTypeOrder     EntityType = "orders"     // Legacy
 	EntityTypeUser      EntityType = "users"      // Legacy
 	EntityTypeDevice    EntityType = "devices"    // Legacy
-	EntityTypeShipment  EntityType = "shipments"  // Legacy
-	EntityTypeTracking  EntityType = "tracking"   // Legacy
+	EntityTypeShipment    EntityType = "shipments"    // Legacy
+	EntityTypeTracking    EntityType = "tracking"     // Legacy
+	EntityTypeSyncHistory EntityType = "sync_history" // Sync logs
 )
 
 // SyncStatus represents the status of a sync operation

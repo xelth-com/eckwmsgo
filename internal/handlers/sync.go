@@ -362,8 +362,8 @@ func (sh *SyncHandler) MeshPush(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Mesh Push: Received data from %s (products: %d, locations: %d, quants: %d, shipments: %d, tracking: %d, devices: %d)",
-		data.NodeID, len(data.Products), len(data.Locations), len(data.Quants), len(data.Shipments), len(data.Tracking), len(data.Devices))
+	log.Printf("Mesh Push: Received data from %s (products: %d, locations: %d, quants: %d, shipments: %d, tracking: %d, devices: %d, sync_history: %d)",
+		data.NodeID, len(data.Products), len(data.Locations), len(data.Quants), len(data.Shipments), len(data.Tracking), len(data.Devices), len(data.SyncHistory))
 
 	// Track success/failure counts
 	var successCount, failCount int
@@ -481,6 +481,19 @@ func (sh *SyncHandler) MeshPush(w http.ResponseWriter, r *http.Request) {
 		// Use Unscoped to update DeletedAt field on soft-deleted devices
 		if err := db.Unscoped().Where("device_id = ?", device.DeviceID).Assign(device).FirstOrCreate(&models.RegisteredDevice{}).Error; err != nil {
 			log.Printf("❌ Mesh Push: Failed to upsert device %s: %v", device.DeviceID, err)
+			failCount++
+		} else {
+			successCount++
+		}
+	}
+
+	// Upsert sync history (logs from other nodes)
+	for _, history := range data.SyncHistory {
+		if history.ID == 0 {
+			continue
+		}
+		if err := db.Where("id = ?", history.ID).Assign(history).FirstOrCreate(&models.SyncHistory{}).Error; err != nil {
+			log.Printf("❌ Mesh Push: Failed to upsert sync_history %d: %v", history.ID, err)
 			failCount++
 		} else {
 			successCount++

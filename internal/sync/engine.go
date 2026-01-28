@@ -318,6 +318,8 @@ func (se *SyncEngine) syncEntityType(entityType EntityType, cfg config.EntitySyn
 		return 0, 0, nil // Not implemented yet
 	case EntityTypeTracking: // "tracking"
 		return 0, 0, nil // Not implemented yet
+	case EntityTypeSyncHistory: // "sync_history"
+		return se.syncSyncHistory(cfg)
 
 	default:
 		return 0, 0, fmt.Errorf("unsupported entity type: %s", entityType)
