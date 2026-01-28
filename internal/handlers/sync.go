@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -534,32 +535,45 @@ func (sh *SyncHandler) MeshNegotiate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 1. Fetch all local checksums for this entity type
-	var localChecksums []models.EntityChecksum
-	if err := sh.db.Select("entity_id, full_hash").Where("entity_type = ?", req.EntityType).Find(&localChecksums).Error; err != nil {
-		http.Error(w, "Database error", http.StatusInternalServerError)
-		return
-	}
-
-	// Create map for O(1) lookup
-	localMap := make(map[string]string)
-	for _, lc := range localChecksums {
-		localMap[lc.EntityID] = lc.FullHash
-	}
-
-	// 2. Compare
 	neededIDs := make([]string, 0)
 
-	for _, remoteItem := range req.Items {
-		localHash, exists := localMap[remoteItem.EntityID]
+	// Special handling for sync_history (no checksums, just check by ID)
+	if req.EntityType == "sync_history" {
+		// Get all local sync_history IDs
+		var localIDs []int64
+		sh.db.Model(&models.SyncHistory{}).Pluck("id", &localIDs)
 
-		// If we don't have it or hash is different, we need it
-		if !exists || localHash != remoteItem.Hash {
-			neededIDs = append(neededIDs, remoteItem.EntityID)
+		localSet := make(map[string]bool)
+		for _, id := range localIDs {
+			localSet[fmt.Sprintf("%d", id)] = true
+		}
+
+		for _, remoteItem := range req.Items {
+			if !localSet[remoteItem.EntityID] {
+				neededIDs = append(neededIDs, remoteItem.EntityID)
+			}
+		}
+	} else {
+		// Standard checksum-based comparison
+		var localChecksums []models.EntityChecksum
+		if err := sh.db.Select("entity_id, full_hash").Where("entity_type = ?", req.EntityType).Find(&localChecksums).Error; err != nil {
+			http.Error(w, "Database error", http.StatusInternalServerError)
+			return
+		}
+
+		localMap := make(map[string]string)
+		for _, lc := range localChecksums {
+			localMap[lc.EntityID] = lc.FullHash
+		}
+
+		for _, remoteItem := range req.Items {
+			localHash, exists := localMap[remoteItem.EntityID]
+			if !exists || localHash != remoteItem.Hash {
+				neededIDs = append(neededIDs, remoteItem.EntityID)
+			}
 		}
 	}
 
-	// 3. Respond
 	resp := sync.MeshNegotiationResponse{
 		RequestIDs: neededIDs,
 	}

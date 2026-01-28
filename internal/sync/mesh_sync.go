@@ -415,100 +415,129 @@ func (se *SyncEngine) PushToNode(node *mesh.NodeInfo, data *MeshSyncResponse) er
 	return nil
 }
 
-// pushShipmentsToNode pushes local shipment data (from scrapers) to master
-// Uses Checksum Negotiation instead of timestamp-based sync
+// pushShipmentsToNode pushes local data (shipments, tracking, devices, sync_history) to master
+// Uses Checksum Negotiation for shipments, time-based for others
 func (se *SyncEngine) pushShipmentsToNode(node *mesh.NodeInfo) error {
-	log.Printf("Mesh Sync: Negotiating shipments with %s (%s)", node.InstanceID, node.BaseURL)
+	log.Printf("Mesh Sync: Pushing data to %s (%s)", node.InstanceID, node.BaseURL)
 
-	// 1. Get ALL local checksums for shipments from entity_checksums table
+	var shipments []models.StockPickingDelivery
+	var neededIDs []string
+
+	// 1. Get local checksums for shipments and negotiate
 	var checksums []models.EntityChecksum
 	if err := se.db.DB.Where("entity_type = ?", "shipment").Find(&checksums).Error; err != nil {
-		return fmt.Errorf("failed to read local checksums: %w", err)
+		log.Printf("Mesh Sync: Warning - failed to read shipment checksums: %v", err)
 	}
 
-	if len(checksums) == 0 {
-		log.Printf("Mesh Sync: No local shipments to sync.")
-		return nil
-	}
+	if len(checksums) > 0 {
+		// Build Negotiation Request
+		items := make([]ChecksumItem, len(checksums))
+		for i, c := range checksums {
+			items[i] = ChecksumItem{
+				EntityID: c.EntityID,
+				Hash:     c.FullHash,
+			}
+		}
 
-	// 2. Build Negotiation Request (Manifest)
-	items := make([]ChecksumItem, len(checksums))
-	for i, c := range checksums {
-		items[i] = ChecksumItem{
-			EntityID: c.EntityID,
-			Hash:     c.FullHash,
+		reqBody := MeshNegotiationRequest{
+			EntityType: "shipment",
+			Items:      items,
+		}
+		reqJSON, _ := json.Marshal(reqBody)
+
+		// Send Manifest to Remote Node
+		token, err := mesh.GenerateNodeToken(se.getMeshConfig())
+		if err != nil {
+			return fmt.Errorf("failed to generate token: %w", err)
+		}
+
+		url := node.BaseURL + "/api/mesh/negotiate"
+		httpReq, _ := http.NewRequest("POST", url, bytes.NewBuffer(reqJSON))
+		httpReq.Header.Set("Content-Type", "application/json")
+		httpReq.Header.Set("Authorization", "Bearer "+token)
+
+		client := &http.Client{Timeout: 30 * time.Second}
+		resp, err := client.Do(httpReq)
+		if err != nil {
+			log.Printf("Mesh Sync: Warning - negotiation failed: %v", err)
+		} else {
+			defer resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				var negoResp MeshNegotiationResponse
+				if err := json.NewDecoder(resp.Body).Decode(&negoResp); err == nil {
+					neededIDs = negoResp.RequestIDs
+					log.Printf("Mesh Sync: Negotiation complete. Remote needs %d shipments out of %d offered.", len(neededIDs), len(items))
+				}
+			}
+		}
+
+		// Fetch shipments that remote needs
+		if len(neededIDs) > 0 {
+			if err := se.db.DB.Where("id IN ?", neededIDs).Find(&shipments).Error; err != nil {
+				log.Printf("Mesh Sync: Warning - failed to fetch shipments: %v", err)
+			}
 		}
 	}
 
-	reqBody := MeshNegotiationRequest{
-		EntityType: "shipment",
-		Items:      items,
-	}
-
-	reqJSON, _ := json.Marshal(reqBody)
-
-	// 3. Send Manifest to Remote Node
-	token, err := mesh.GenerateNodeToken(se.getMeshConfig())
-	if err != nil {
-		return fmt.Errorf("failed to generate token: %w", err)
-	}
-
-	url := node.BaseURL + "/api/mesh/negotiate"
-	httpReq, _ := http.NewRequest("POST", url, bytes.NewBuffer(reqJSON))
-	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("Authorization", "Bearer "+token)
-
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(httpReq)
-	if err != nil {
-		return fmt.Errorf("negotiation request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("negotiation failed HTTP %d: %s", resp.StatusCode, string(bodyBytes))
-	}
-
-	// 4. Parse Response (List of IDs the remote needs)
-	var negoResp MeshNegotiationResponse
-	if err := json.NewDecoder(resp.Body).Decode(&negoResp); err != nil {
-		return fmt.Errorf("failed to decode negotiation response: %w", err)
-	}
-
-	neededIDs := negoResp.RequestIDs
-	log.Printf("Mesh Sync: Negotiation complete. Remote needs %d shipments out of %d offered.", len(neededIDs), len(items))
-
-	if len(neededIDs) == 0 {
-		return nil // Nothing to sync
-	}
-
-	// 5. Fetch Full Data for Needed IDs
-	var shipments []models.StockPickingDelivery
-	if err := se.db.DB.Where("id IN ?", neededIDs).Find(&shipments).Error; err != nil {
-		return fmt.Errorf("failed to fetch shipment data: %w", err)
-	}
-
-	// Also fetch recent Tracking and Devices (time-based for now, negotiate separately later)
+	// Fetch Tracking and Devices (time-based, last 24 hours)
 	var tracking []models.DeliveryTracking
 	var devices []models.RegisteredDevice
+	yesterday := time.Now().Add(-24 * time.Hour)
+	se.db.DB.Where("created_at > ?", yesterday).Find(&tracking)
+	se.db.DB.Unscoped().Where("updated_at > ?", yesterday).Find(&devices)
 
-	if len(shipments) > 0 {
-		yesterday := time.Now().Add(-24 * time.Hour)
-		se.db.DB.Where("created_at > ?", yesterday).Find(&tracking)
-		se.db.DB.Unscoped().Where("updated_at > ?", yesterday).Find(&devices)
+	// Negotiate SyncHistory - get IDs that server doesn't have
+	var syncHistory []models.SyncHistory
+	var localHistory []models.SyncHistory
+	weekAgo := time.Now().AddDate(0, 0, -7)
+	se.db.DB.Where("started_at > ?", weekAgo).Order("started_at DESC").Limit(30).Find(&localHistory)
+
+	if len(localHistory) > 0 {
+		// Build negotiation request
+		historyItems := make([]ChecksumItem, len(localHistory))
+		for i, h := range localHistory {
+			historyItems[i] = ChecksumItem{EntityID: fmt.Sprintf("%d", h.ID), Hash: ""}
+		}
+
+		historyReq := MeshNegotiationRequest{EntityType: "sync_history", Items: historyItems}
+		historyJSON, _ := json.Marshal(historyReq)
+
+		token, _ := mesh.GenerateNodeToken(se.getMeshConfig())
+		url := node.BaseURL + "/api/mesh/negotiate"
+		httpReq, _ := http.NewRequest("POST", url, bytes.NewBuffer(historyJSON))
+		httpReq.Header.Set("Content-Type", "application/json")
+		httpReq.Header.Set("Authorization", "Bearer "+token)
+
+		client := &http.Client{Timeout: 10 * time.Second}
+		if resp, err := client.Do(httpReq); err == nil {
+			defer resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				var negoResp MeshNegotiationResponse
+				if json.NewDecoder(resp.Body).Decode(&negoResp) == nil && len(negoResp.RequestIDs) > 0 {
+					se.db.DB.Where("id IN ?", negoResp.RequestIDs).Find(&syncHistory)
+					log.Printf("Mesh Sync: Server needs %d sync_history records", len(syncHistory))
+				}
+			}
+		}
 	}
 
 	// 6. Build Push Payload
 	data := &MeshSyncResponse{
-		NodeID:    se.instanceID,
-		SyncTime:  time.Now(),
-		Shipments: shipments,
-		Tracking:  tracking,
-		Devices:   devices,
+		NodeID:      se.instanceID,
+		SyncTime:    time.Now(),
+		Shipments:   shipments,
+		Tracking:    tracking,
+		Devices:     devices,
+		SyncHistory: syncHistory,
 	}
 
-	log.Printf("Mesh Sync: Pushing %d shipments, %d tracking, %d devices", len(shipments), len(tracking), len(devices))
+	log.Printf("Mesh Sync: Pushing %d shipments, %d tracking, %d devices, %d sync_history", len(shipments), len(tracking), len(devices), len(syncHistory))
+
+	// Skip push if nothing to send
+	if len(shipments) == 0 && len(tracking) == 0 && len(devices) == 0 && len(syncHistory) == 0 {
+		log.Printf("Mesh Sync: Nothing to push to %s", node.InstanceID)
+		return nil
+	}
 
 	// 7. Push Data
 	if err := se.PushToNode(node, data); err != nil {
