@@ -539,7 +539,6 @@ func (sh *SyncHandler) MeshNegotiate(w http.ResponseWriter, r *http.Request) {
 
 	// Special handling for sync_history (no checksums, just check by ID)
 	if req.EntityType == "sync_history" {
-		// Get all local sync_history IDs
 		var localIDs []int64
 		sh.db.Model(&models.SyncHistory{}).Pluck("id", &localIDs)
 
@@ -580,6 +579,39 @@ func (sh *SyncHandler) MeshNegotiate(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Mesh Negotiate: Peer offered %d %s items. Requested %d updates.",
 		len(req.Items), req.EntityType, len(neededIDs))
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+// MeshMerkleTree handles Merkle tree state requests
+func (sh *SyncHandler) MeshMerkleTree(w http.ResponseWriter, r *http.Request) {
+	var req sync.MerkleTreeRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	mts := sync.NewMerkleTreeSync(sh.db)
+
+	var resp *sync.MerkleTreeResponse
+	var err error
+
+	if req.Level == 0 || req.BucketKey == "" {
+		// Return root level (bucket hashes)
+		resp, err = mts.GetTreeState(req.EntityType)
+	} else {
+		// Return bucket level (entity hashes)
+		resp, err = mts.GetBucketState(req.EntityType, req.BucketKey)
+	}
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("Merkle Tree: %s level=%d bucket=%s hash=%s children=%d",
+		req.EntityType, req.Level, req.BucketKey, resp.Hash, len(resp.Children))
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
