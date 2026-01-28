@@ -15,9 +15,10 @@ import (
 
 // MeshSyncRequest represents a request to sync data between mesh nodes
 type MeshSyncRequest struct {
-	EntityTypes []string   `json:"entity_types"`
-	Since       *time.Time `json:"since,omitempty"`
-	Limit       int        `json:"limit,omitempty"`
+	EntityTypes []string              `json:"entity_types"`
+	EntityIDs   map[string][]string   `json:"entity_ids,omitempty"` // entityType -> []IDs for Merkle pull
+	Since       *time.Time            `json:"since,omitempty"`
+	Limit       int                   `json:"limit,omitempty"`
 }
 
 // MeshSyncResponse represents the response from a mesh sync request
@@ -83,36 +84,51 @@ func (se *SyncEngine) SyncWithRelay() error {
 
 // pullFromNode pulls data from a specific mesh node
 func (se *SyncEngine) pullFromNode(node *mesh.NodeInfo) error {
-	log.Printf("Mesh Sync: Pulling data from %s (%s)", node.InstanceID, node.BaseURL)
+	log.Printf("Merkle Pull: Starting pull from %s (%s)", node.InstanceID, node.BaseURL)
 
-	// Get last sync time for this node
-	var syncMeta models.SyncMetadata
-	se.db.DB.Where("instance_id = ?", node.InstanceID).First(&syncMeta)
-
-	// Build request
-	req := MeshSyncRequest{
-		EntityTypes: []string{"products", "locations", "quants", "lots", "packages", "partners", "devices", "shipments", "tracking"},
-		Limit:       1000,
-	}
-	if syncMeta.LastSyncAt != nil && !syncMeta.LastSyncAt.IsZero() {
-		req.Since = syncMeta.LastSyncAt
-	}
-
-	body, _ := json.Marshal(req)
-
-	// Generate auth token
 	token, err := mesh.GenerateNodeToken(se.getMeshConfig())
 	if err != nil {
 		return fmt.Errorf("failed to generate token: %w", err)
 	}
+	client := &http.Client{Timeout: 30 * time.Second}
 
-	// Make request
+	// Find what we need to pull using Merkle Tree comparison
+	entityTypes := []string{"shipment", "tracking", "device", "product", "location"}
+	var neededEntities = make(map[string][]string) // entityType -> []IDs
+
+	for _, entityType := range entityTypes {
+		needed := se.merklePull(node, token, client, entityType)
+		if len(needed) > 0 {
+			neededEntities[entityType] = needed
+		}
+	}
+
+	// Count total needed
+	totalNeeded := 0
+	for _, ids := range neededEntities {
+		totalNeeded += len(ids)
+	}
+
+	if totalNeeded == 0 {
+		log.Printf("Merkle Pull: All data in sync with %s", node.InstanceID)
+		return nil
+	}
+
+	log.Printf("Merkle Pull: Need to pull %d entities from %s", totalNeeded, node.InstanceID)
+
+	// Request specific entities from remote
+	req := MeshSyncRequest{
+		EntityTypes: entityTypes,
+		EntityIDs:   neededEntities,
+		Limit:       1000,
+	}
+	body, _ := json.Marshal(req)
+
 	url := node.BaseURL + "/api/mesh/pull"
 	httpReq, _ := http.NewRequest("POST", url, bytes.NewBuffer(body))
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Authorization", "Bearer "+token)
 
-	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(httpReq)
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
@@ -124,13 +140,15 @@ func (se *SyncEngine) pullFromNode(node *mesh.NodeInfo) error {
 		return fmt.Errorf("pull failed with status %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 
-	// Parse response
 	var syncResp MeshSyncResponse
 	if err := json.NewDecoder(resp.Body).Decode(&syncResp); err != nil {
 		return fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	// Apply updates to local database
+	log.Printf("Merkle Pull: Received %d products, %d locations, %d shipments, %d tracking, %d devices",
+		len(syncResp.Products), len(syncResp.Locations), len(syncResp.Shipments),
+		len(syncResp.Tracking), len(syncResp.Devices))
+
 	if err := se.applyMeshUpdates(&syncResp); err != nil {
 		return fmt.Errorf("failed to apply updates: %w", err)
 	}
@@ -269,12 +287,22 @@ func (se *SyncEngine) GetDataForPull(req *MeshSyncRequest) (*MeshSyncResponse, e
 		NodeID:   se.instanceID,
 	}
 
+	// Helper to check if specific IDs are requested for an entity type
+	getRequestedIDs := func(entityType string) []string {
+		if req.EntityIDs == nil {
+			return nil
+		}
+		return req.EntityIDs[entityType]
+	}
+
 	for _, entityType := range req.EntityTypes {
 		switch entityType {
-		case "products":
+		case "products", "product":
 			var products []models.ProductProduct
 			query := se.db.DB
-			if req.Since != nil {
+			if ids := getRequestedIDs("product"); len(ids) > 0 {
+				query = query.Where("id IN ?", ids)
+			} else if req.Since != nil {
 				query = query.Where("updated_at > ?", *req.Since)
 			}
 			if req.Limit > 0 {
@@ -283,10 +311,12 @@ func (se *SyncEngine) GetDataForPull(req *MeshSyncRequest) (*MeshSyncResponse, e
 			if err := query.Find(&products).Error; err == nil {
 				resp.Products = products
 			}
-		case "locations":
+		case "locations", "location":
 			var locations []models.StockLocation
 			query := se.db.DB
-			if req.Since != nil {
+			if ids := getRequestedIDs("location"); len(ids) > 0 {
+				query = query.Where("id IN ?", ids)
+			} else if req.Since != nil {
 				query = query.Where("updated_at > ?", *req.Since)
 			}
 			if req.Limit > 0 {
@@ -343,10 +373,12 @@ func (se *SyncEngine) GetDataForPull(req *MeshSyncRequest) (*MeshSyncResponse, e
 			if err := query.Find(&partners).Error; err == nil {
 				resp.Partners = partners
 			}
-		case "shipments":
+		case "shipments", "shipment":
 			var shipments []models.StockPickingDelivery
 			query := se.db.DB
-			if req.Since != nil {
+			if ids := getRequestedIDs("shipment"); len(ids) > 0 {
+				query = query.Where("id IN ?", ids)
+			} else if req.Since != nil {
 				query = query.Where("updated_at > ?", *req.Since)
 			}
 			if req.Limit > 0 {
@@ -356,10 +388,11 @@ func (se *SyncEngine) GetDataForPull(req *MeshSyncRequest) (*MeshSyncResponse, e
 				resp.Shipments = shipments
 			}
 		case "tracking":
-			// Tracking events use created_at (immutable records)
 			var tracking []models.DeliveryTracking
 			query := se.db.DB
-			if req.Since != nil {
+			if ids := getRequestedIDs("tracking"); len(ids) > 0 {
+				query = query.Where("id IN ?", ids)
+			} else if req.Since != nil {
 				query = query.Where("created_at > ?", *req.Since)
 			}
 			if req.Limit > 0 {
@@ -367,6 +400,20 @@ func (se *SyncEngine) GetDataForPull(req *MeshSyncRequest) (*MeshSyncResponse, e
 			}
 			if err := query.Find(&tracking).Error; err == nil {
 				resp.Tracking = tracking
+			}
+		case "devices", "device":
+			var devices []models.RegisteredDevice
+			query := se.db.DB.Unscoped()
+			if ids := getRequestedIDs("device"); len(ids) > 0 {
+				query = query.Where("device_id IN ?", ids)
+			} else if req.Since != nil {
+				query = query.Where("updated_at > ?", *req.Since)
+			}
+			if req.Limit > 0 {
+				query = query.Limit(req.Limit)
+			}
+			if err := query.Find(&devices).Error; err == nil {
+				resp.Devices = devices
 			}
 		case "sync_history":
 			// Sync history logs - last 30 records, last 7 days
@@ -590,6 +637,108 @@ func (se *SyncEngine) merkleSync(node *mesh.NodeInfo, token string, client *http
 	}
 
 	log.Printf("Merkle Sync: %s needs to push %d entities", entityType, len(neededIDs))
+	return neededIDs
+}
+
+// merklePull finds entities we need to pull from remote using Merkle Tree
+// Returns list of entity IDs that remote has but we don't (or differ)
+func (se *SyncEngine) merklePull(node *mesh.NodeInfo, token string, client *http.Client, entityType string) []string {
+	// 1. Build local Merkle tree
+	localTree := NewMerkleTree(se.db, entityType)
+	if err := localTree.Build(); err != nil {
+		log.Printf("Merkle Pull: Failed to build local tree for %s: %v", entityType, err)
+		return nil
+	}
+
+	// 2. Get remote Merkle tree root
+	reqBody := MerkleTreeRequest{EntityType: entityType, Level: 0}
+	reqJSON, _ := json.Marshal(reqBody)
+
+	url := node.BaseURL + "/api/mesh/merkle"
+	httpReq, _ := http.NewRequest("POST", url, bytes.NewBuffer(reqJSON))
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		log.Printf("Merkle Pull: Failed to get remote tree for %s: %v", entityType, err)
+		return nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil
+	}
+
+	var remoteTree MerkleTreeResponse
+	if err := json.NewDecoder(resp.Body).Decode(&remoteTree); err != nil {
+		return nil
+	}
+
+	localRoot := localTree.GetRootHash()
+
+	// 3. Compare root hashes
+	if localRoot == remoteTree.Hash {
+		return nil // In sync
+	}
+
+	// If we have nothing locally but remote has data
+	if localRoot == "" && remoteTree.Hash != "" {
+		log.Printf("Merkle Pull: %s - local empty, remote has data", entityType)
+	}
+
+	// 4. Find buckets that remote has and we don't or differ
+	localBuckets := localTree.GetBucketHashes()
+	var differingBuckets []string
+
+	for remoteBucket, remoteHash := range remoteTree.Children {
+		localHash, exists := localBuckets[remoteBucket]
+		if !exists || localHash != remoteHash {
+			differingBuckets = append(differingBuckets, remoteBucket)
+		}
+	}
+
+	if len(differingBuckets) == 0 {
+		return nil
+	}
+
+	log.Printf("Merkle Pull: %s has %d differing buckets", entityType, len(differingBuckets))
+
+	// 5. For each differing bucket, find specific entities we need
+	var neededIDs []string
+	for _, bucket := range differingBuckets {
+		localEntities, _ := localTree.GetBucketEntities(bucket)
+
+		// Get remote bucket entities
+		bucketReq := MerkleTreeRequest{EntityType: entityType, Level: 1, BucketKey: bucket}
+		bucketJSON, _ := json.Marshal(bucketReq)
+
+		httpReq, _ := http.NewRequest("POST", url, bytes.NewBuffer(bucketJSON))
+		httpReq.Header.Set("Content-Type", "application/json")
+		httpReq.Header.Set("Authorization", "Bearer "+token)
+
+		resp, err := client.Do(httpReq)
+		if err != nil {
+			continue
+		}
+
+		var remoteBucket MerkleTreeResponse
+		json.NewDecoder(resp.Body).Decode(&remoteBucket)
+		resp.Body.Close()
+
+		// Find entities that remote has but we don't, or differ
+		for remoteID, remoteHash := range remoteBucket.Children {
+			localHash, exists := localEntities[remoteID]
+			if !exists || localHash != remoteHash {
+				neededIDs = append(neededIDs, remoteID)
+			}
+		}
+	}
+
+	if len(neededIDs) > 0 {
+		log.Printf("Merkle Pull: %s needs %d entities from remote", entityType, len(neededIDs))
+	}
+
 	return neededIDs
 }
 
