@@ -415,143 +415,223 @@ func (se *SyncEngine) PushToNode(node *mesh.NodeInfo, data *MeshSyncResponse) er
 	return nil
 }
 
-// pushShipmentsToNode pushes local data (shipments, tracking, devices, sync_history) to master
-// Uses Checksum Negotiation for shipments, time-based for others
+// pushShipmentsToNode pushes local data to master using Merkle Tree sync
 func (se *SyncEngine) pushShipmentsToNode(node *mesh.NodeInfo) error {
-	log.Printf("Mesh Sync: Pushing data to %s (%s)", node.InstanceID, node.BaseURL)
+	log.Printf("Merkle Sync: Starting sync with %s (%s)", node.InstanceID, node.BaseURL)
 
-	var shipments []models.StockPickingDelivery
-	var neededIDs []string
-
-	// 1. Get local checksums for shipments and negotiate
-	var checksums []models.EntityChecksum
-	if err := se.db.DB.Where("entity_type = ?", "shipment").Find(&checksums).Error; err != nil {
-		log.Printf("Mesh Sync: Warning - failed to read shipment checksums: %v", err)
+	token, err := mesh.GenerateNodeToken(se.getMeshConfig())
+	if err != nil {
+		return fmt.Errorf("failed to generate token: %w", err)
 	}
+	client := &http.Client{Timeout: 30 * time.Second}
 
-	if len(checksums) > 0 {
-		// Build Negotiation Request
-		items := make([]ChecksumItem, len(checksums))
-		for i, c := range checksums {
-			items[i] = ChecksumItem{
-				EntityID: c.EntityID,
-				Hash:     c.FullHash,
-			}
-		}
+	// Sync shipments using Merkle Tree
+	shipments := se.merkleSync(node, token, client, "shipment")
 
-		reqBody := MeshNegotiationRequest{
-			EntityType: "shipment",
-			Items:      items,
-		}
-		reqJSON, _ := json.Marshal(reqBody)
-
-		// Send Manifest to Remote Node
-		token, err := mesh.GenerateNodeToken(se.getMeshConfig())
-		if err != nil {
-			return fmt.Errorf("failed to generate token: %w", err)
-		}
-
-		url := node.BaseURL + "/api/mesh/negotiate"
-		httpReq, _ := http.NewRequest("POST", url, bytes.NewBuffer(reqJSON))
-		httpReq.Header.Set("Content-Type", "application/json")
-		httpReq.Header.Set("Authorization", "Bearer "+token)
-
-		client := &http.Client{Timeout: 30 * time.Second}
-		resp, err := client.Do(httpReq)
-		if err != nil {
-			log.Printf("Mesh Sync: Warning - negotiation failed: %v", err)
-		} else {
-			defer resp.Body.Close()
-			if resp.StatusCode == http.StatusOK {
-				var negoResp MeshNegotiationResponse
-				if err := json.NewDecoder(resp.Body).Decode(&negoResp); err == nil {
-					neededIDs = negoResp.RequestIDs
-					log.Printf("Mesh Sync: Negotiation complete. Remote needs %d shipments out of %d offered.", len(neededIDs), len(items))
-				}
-			}
-		}
-
-		// Fetch shipments that remote needs
-		if len(neededIDs) > 0 {
-			if err := se.db.DB.Where("id IN ?", neededIDs).Find(&shipments).Error; err != nil {
-				log.Printf("Mesh Sync: Warning - failed to fetch shipments: %v", err)
-			}
-		}
-	}
-
-	// Fetch Tracking and Devices (time-based, last 24 hours)
+	// Sync tracking using Merkle Tree
 	var tracking []models.DeliveryTracking
-	var devices []models.RegisteredDevice
-	yesterday := time.Now().Add(-24 * time.Hour)
-	se.db.DB.Where("created_at > ?", yesterday).Find(&tracking)
-	se.db.DB.Unscoped().Where("updated_at > ?", yesterday).Find(&devices)
-
-	// Negotiate SyncHistory - get IDs that server doesn't have
-	var syncHistory []models.SyncHistory
-	var localHistory []models.SyncHistory
-	weekAgo := time.Now().AddDate(0, 0, -7)
-	se.db.DB.Where("started_at > ?", weekAgo).Order("started_at DESC").Limit(30).Find(&localHistory)
-
-	if len(localHistory) > 0 {
-		// Build negotiation request
-		historyItems := make([]ChecksumItem, len(localHistory))
-		for i, h := range localHistory {
-			historyItems[i] = ChecksumItem{EntityID: fmt.Sprintf("%d", h.ID), Hash: ""}
-		}
-
-		historyReq := MeshNegotiationRequest{EntityType: "sync_history", Items: historyItems}
-		historyJSON, _ := json.Marshal(historyReq)
-
-		token, _ := mesh.GenerateNodeToken(se.getMeshConfig())
-		url := node.BaseURL + "/api/mesh/negotiate"
-		httpReq, _ := http.NewRequest("POST", url, bytes.NewBuffer(historyJSON))
-		httpReq.Header.Set("Content-Type", "application/json")
-		httpReq.Header.Set("Authorization", "Bearer "+token)
-
-		client := &http.Client{Timeout: 10 * time.Second}
-		if resp, err := client.Do(httpReq); err == nil {
-			defer resp.Body.Close()
-			if resp.StatusCode == http.StatusOK {
-				var negoResp MeshNegotiationResponse
-				if json.NewDecoder(resp.Body).Decode(&negoResp) == nil && len(negoResp.RequestIDs) > 0 {
-					se.db.DB.Where("id IN ?", negoResp.RequestIDs).Find(&syncHistory)
-					log.Printf("Mesh Sync: Server needs %d sync_history records", len(syncHistory))
-				}
-			}
-		}
+	trackingIDs := se.merkleSync(node, token, client, "tracking")
+	if len(trackingIDs) > 0 {
+		se.db.DB.Where("id IN ?", trackingIDs).Find(&tracking)
 	}
 
-	// 6. Build Push Payload
+	// Sync devices using Merkle Tree
+	var devices []models.RegisteredDevice
+	deviceIDs := se.merkleSync(node, token, client, "device")
+	if len(deviceIDs) > 0 {
+		se.db.DB.Unscoped().Where("device_id IN ?", deviceIDs).Find(&devices)
+	}
+
+	// Sync sync_history (by ID, no checksums)
+	var syncHistory []models.SyncHistory
+	syncHistoryIDs := se.syncHistoryNegotiate(node, token, client)
+	if len(syncHistoryIDs) > 0 {
+		se.db.DB.Where("id IN ?", syncHistoryIDs).Find(&syncHistory)
+	}
+
+	// Fetch actual shipment data
+	var shipmentData []models.StockPickingDelivery
+	if len(shipments) > 0 {
+		se.db.DB.Where("id IN ?", shipments).Find(&shipmentData)
+	}
+
+	// Build Push Payload
 	data := &MeshSyncResponse{
 		NodeID:      se.instanceID,
 		SyncTime:    time.Now(),
-		Shipments:   shipments,
+		Shipments:   shipmentData,
 		Tracking:    tracking,
 		Devices:     devices,
 		SyncHistory: syncHistory,
 	}
 
-	log.Printf("Mesh Sync: Pushing %d shipments, %d tracking, %d devices, %d sync_history", len(shipments), len(tracking), len(devices), len(syncHistory))
+	log.Printf("Merkle Sync: Pushing %d shipments, %d tracking, %d devices, %d sync_history",
+		len(shipmentData), len(tracking), len(devices), len(syncHistory))
 
 	// Skip push if nothing to send
-	if len(shipments) == 0 && len(tracking) == 0 && len(devices) == 0 && len(syncHistory) == 0 {
-		log.Printf("Mesh Sync: Nothing to push to %s", node.InstanceID)
+	if len(shipmentData) == 0 && len(tracking) == 0 && len(devices) == 0 && len(syncHistory) == 0 {
+		log.Printf("Merkle Sync: Nothing to push to %s", node.InstanceID)
 		return nil
 	}
 
-	// 7. Push Data
+	// Push Data
 	if err := se.PushToNode(node, data); err != nil {
 		return err
 	}
 
-	// Update metadata (informational only, not used for sync logic anymore)
-	now := time.Now()
-	var syncMeta models.SyncMetadata
-	se.db.DB.Where("instance_id = ? AND entity_type = ?", node.InstanceID, "shipments_push").Assign(models.SyncMetadata{
-		InstanceID: node.InstanceID,
-		EntityType: "shipments_push",
-		LastSyncAt: &now,
-	}).FirstOrCreate(&syncMeta)
+	return nil
+}
+
+// merkleSync performs Merkle Tree based sync for an entity type
+// Returns list of entity IDs that need to be pushed to remote
+func (se *SyncEngine) merkleSync(node *mesh.NodeInfo, token string, client *http.Client, entityType string) []string {
+	// 1. Build local Merkle tree
+	localTree := NewMerkleTree(se.db, entityType)
+	if err := localTree.Build(); err != nil {
+		log.Printf("Merkle Sync: Failed to build local tree for %s: %v", entityType, err)
+		return nil
+	}
+
+	localRoot := localTree.GetRootHash()
+	if localRoot == "" {
+		log.Printf("Merkle Sync: No local %s data", entityType)
+		return nil
+	}
+
+	// 2. Get remote Merkle tree root
+	reqBody := MerkleTreeRequest{EntityType: entityType, Level: 0}
+	reqJSON, _ := json.Marshal(reqBody)
+
+	url := node.BaseURL + "/api/mesh/merkle"
+	httpReq, _ := http.NewRequest("POST", url, bytes.NewBuffer(reqJSON))
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		log.Printf("Merkle Sync: Failed to get remote tree for %s: %v", entityType, err)
+		return nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Merkle Sync: Remote returned %d for %s", resp.StatusCode, entityType)
+		return nil
+	}
+
+	var remoteTree MerkleTreeResponse
+	if err := json.NewDecoder(resp.Body).Decode(&remoteTree); err != nil {
+		log.Printf("Merkle Sync: Failed to decode remote tree for %s: %v", entityType, err)
+		return nil
+	}
+
+	// 3. Compare root hashes
+	if localRoot == remoteTree.Hash {
+		log.Printf("Merkle Sync: %s in sync (root=%s)", entityType, localRoot[:8])
+		return nil
+	}
+
+	log.Printf("Merkle Sync: %s differs (local=%s, remote=%s)", entityType, localRoot[:8], remoteTree.Hash[:8])
+
+	// 4. Find differing buckets
+	localBuckets := localTree.GetBucketHashes()
+	var differingBuckets []string
+
+	for bucket, localHash := range localBuckets {
+		remoteHash, exists := remoteTree.Children[bucket]
+		if !exists || localHash != remoteHash {
+			differingBuckets = append(differingBuckets, bucket)
+		}
+	}
+
+	// Also check for buckets we have that remote doesn't
+	for bucket := range localBuckets {
+		if _, exists := remoteTree.Children[bucket]; !exists {
+			// Already added above
+		}
+	}
+
+	log.Printf("Merkle Sync: %s has %d differing buckets", entityType, len(differingBuckets))
+
+	// 5. For each differing bucket, get entity-level comparison
+	var neededIDs []string
+	for _, bucket := range differingBuckets {
+		// Get local entities in bucket
+		localEntities, _ := localTree.GetBucketEntities(bucket)
+
+		// Get remote entities in bucket
+		bucketReq := MerkleTreeRequest{EntityType: entityType, Level: 1, BucketKey: bucket}
+		bucketJSON, _ := json.Marshal(bucketReq)
+
+		httpReq, _ := http.NewRequest("POST", url, bytes.NewBuffer(bucketJSON))
+		httpReq.Header.Set("Content-Type", "application/json")
+		httpReq.Header.Set("Authorization", "Bearer "+token)
+
+		resp, err := client.Do(httpReq)
+		if err != nil {
+			// Can't get remote bucket, assume all local entities need sync
+			for id := range localEntities {
+				neededIDs = append(neededIDs, id)
+			}
+			continue
+		}
+
+		var remoteBucket MerkleTreeResponse
+		json.NewDecoder(resp.Body).Decode(&remoteBucket)
+		resp.Body.Close()
+
+		// Compare entity hashes
+		for id, localHash := range localEntities {
+			remoteHash, exists := remoteBucket.Children[id]
+			if !exists || localHash != remoteHash {
+				neededIDs = append(neededIDs, id)
+			}
+		}
+	}
+
+	log.Printf("Merkle Sync: %s needs to push %d entities", entityType, len(neededIDs))
+	return neededIDs
+}
+
+// syncHistoryNegotiate handles sync_history sync (by ID only, no checksums)
+func (se *SyncEngine) syncHistoryNegotiate(node *mesh.NodeInfo, token string, client *http.Client) []string {
+	var localHistory []models.SyncHistory
+	weekAgo := time.Now().AddDate(0, 0, -7)
+	se.db.DB.Where("started_at > ?", weekAgo).Order("started_at DESC").Limit(30).Find(&localHistory)
+
+	if len(localHistory) == 0 {
+		return nil
+	}
+
+	// Build negotiation request
+	items := make([]ChecksumItem, len(localHistory))
+	for i, h := range localHistory {
+		items[i] = ChecksumItem{EntityID: fmt.Sprintf("%d", h.ID), Hash: ""}
+	}
+
+	reqBody := MeshNegotiationRequest{EntityType: "sync_history", Items: items}
+	reqJSON, _ := json.Marshal(reqBody)
+
+	url := node.BaseURL + "/api/mesh/negotiate"
+	httpReq, _ := http.NewRequest("POST", url, bytes.NewBuffer(reqJSON))
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil
+	}
+
+	var negoResp MeshNegotiationResponse
+	if json.NewDecoder(resp.Body).Decode(&negoResp) == nil {
+		log.Printf("Merkle Sync: sync_history needs %d records", len(negoResp.RequestIDs))
+		return negoResp.RequestIDs
+	}
 
 	return nil
 }
