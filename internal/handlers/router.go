@@ -872,6 +872,7 @@ func (r *Router) registerSyncRoutes(prefix string, engine *sync.SyncEngine) {
 		mesh.HandleFunc("/pull", syncHandler.MeshPull).Methods("POST")
 		mesh.HandleFunc("/push", syncHandler.MeshPush).Methods("POST")
 		mesh.HandleFunc("/trigger", syncHandler.TriggerMeshSync).Methods("POST")
+		mesh.HandleFunc("/negotiate", syncHandler.MeshNegotiate).Methods("POST")
 	}
 
 	// Register sync routes (protected)

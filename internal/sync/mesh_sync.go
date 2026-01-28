@@ -396,145 +396,113 @@ func (se *SyncEngine) PushToNode(node *mesh.NodeInfo, data *MeshSyncResponse) er
 }
 
 // pushShipmentsToNode pushes local shipment data (from scrapers) to master
+// Uses Checksum Negotiation instead of timestamp-based sync
 func (se *SyncEngine) pushShipmentsToNode(node *mesh.NodeInfo) error {
-	log.Printf("Mesh Sync: Pushing shipments to %s (%s)", node.InstanceID, node.BaseURL)
+	log.Printf("Mesh Sync: Negotiating shipments with %s (%s)", node.InstanceID, node.BaseURL)
 
-	// Get last sync time for shipment push to this node
-	var syncMeta models.SyncMetadata
-	se.db.DB.Where("instance_id = ? AND entity_type = ?", node.InstanceID, "shipments_push").First(&syncMeta)
-
-	// Build data payload with shipments and tracking
-	data := &MeshSyncResponse{
-		NodeID:   se.instanceID,
-		SyncTime: time.Now(),
+	// 1. Get ALL local checksums for shipments from entity_checksums table
+	var checksums []models.EntityChecksum
+	if err := se.db.DB.Where("entity_type = ?", "shipment").Find(&checksums).Error; err != nil {
+		return fmt.Errorf("failed to read local checksums: %w", err)
 	}
 
-	// Get shipments updated since last sync
-	var shipments []models.StockPickingDelivery
-	syncTime := time.Time{}
-	if syncMeta.LastSyncAt != nil {
-		syncTime = *syncMeta.LastSyncAt
-	}
-
-	log.Printf("📦 Mesh Push: Querying shipments since %v", syncTime)
-
-	query := se.db.DB.Model(&models.StockPickingDelivery{}).Where("updated_at > ?", syncTime)
-	if err := query.Find(&shipments).Error; err != nil {
-		log.Printf("❌ Mesh Push: Error querying shipments: %v", err)
-	} else if len(shipments) > 0 {
-		log.Printf("📦 Mesh Push: Found %d shipments (since %v)", len(shipments), syncTime)
-		for i, ship := range shipments {
-			log.Printf("  Shipment[%d]: ID=%d, Tracking=%s, Status=%s, UpdatedAt=%v",
-				i, ship.ID, ship.TrackingNumber, ship.Status, ship.UpdatedAt)
-		}
-		data.Shipments = shipments
-	} else {
-		log.Printf("📦 Mesh Push: No new shipments found for %s (checked since %v)", node.InstanceID, syncTime)
-	}
-
-	// Get tracking entries created since last sync
-	var tracking []models.DeliveryTracking
-	trackTime := time.Time{}
-	if syncMeta.LastSyncAt != nil {
-		trackTime = *syncMeta.LastSyncAt
-	}
-
-	log.Printf("📦 Mesh Push: Querying tracking since %v", trackTime)
-
-	trackQuery := se.db.DB.Model(&models.DeliveryTracking{}).Where("created_at > ?", trackTime)
-	if err := trackQuery.Find(&tracking).Error; err != nil {
-		log.Printf("❌ Mesh Push: Error querying tracking: %v", err)
-	} else if len(tracking) > 0 {
-		log.Printf("📦 Mesh Push: Found %d tracking entries (since %v)", len(tracking), trackTime)
-		for i, t := range tracking {
-			log.Printf("  Tracking[%d]: ID=%d, PickingDeliveryID=%d, Status=%s, CreatedAt=%v",
-				i, t.ID, t.PickingDeliveryID, t.Status, t.CreatedAt)
-		}
-		data.Tracking = tracking
-	} else {
-		log.Printf("📦 Mesh Push: No new tracking found for %s (checked since %v)", node.InstanceID, trackTime)
-	}
-
-	// Get devices updated since last sync
-	var devices []models.RegisteredDevice
-	deviceTime := time.Time{}
-	if syncMeta.LastSyncAt != nil {
-		deviceTime = *syncMeta.LastSyncAt
-	}
-
-	log.Printf("📱 Mesh Push: Querying devices since %v", deviceTime)
-
-	// Use Unscoped() to include soft-deleted devices (they need to sync their deletion)
-	deviceQuery := se.db.DB.Model(&models.RegisteredDevice{}).Unscoped().Where("updated_at > ?", deviceTime)
-	if err := deviceQuery.Find(&devices).Error; err != nil {
-		log.Printf("❌ Mesh Push: Error querying devices: %v", err)
-	} else if len(devices) > 0 {
-		log.Printf("📱 Mesh Push: Found %d devices (since %v)", len(devices), deviceTime)
-		for i, d := range devices {
-			log.Printf("  Device[%d]: ID=%s, Name=%s, Status=%s, UpdatedAt=%v",
-				i, d.DeviceID, d.Name, d.Status, d.UpdatedAt)
-		}
-		data.Devices = devices
-	} else {
-		log.Printf("📱 Mesh Push: No new devices found for %s (checked since %v)", node.InstanceID, deviceTime)
-	}
-
-	// Get products updated since last sync
-	var products []models.ProductProduct
-	prodTime := time.Time{}
-	if syncMeta.LastSyncAt != nil {
-		prodTime = *syncMeta.LastSyncAt
-	}
-
-	log.Printf("📦 Mesh Push: Querying products since %v", prodTime)
-
-	// ProductProduct uses write_date from Odoo
-	prodQuery := se.db.DB.Model(&models.ProductProduct{}).Where("write_date > ?", prodTime)
-	if err := prodQuery.Find(&products).Error; err != nil {
-		log.Printf("❌ Mesh Push: Error querying products: %v", err)
-	} else if len(products) > 0 {
-		log.Printf("📦 Mesh Push: Found %d products (since %v)", len(products), prodTime)
-		data.Products = products
-	} else {
-		log.Printf("📦 Mesh Push: No new products found for %s (checked since %v)", node.InstanceID, prodTime)
-	}
-
-	// Get locations updated since last sync
-	var locations []models.StockLocation
-	locTime := time.Time{}
-	if syncMeta.LastSyncAt != nil {
-		locTime = *syncMeta.LastSyncAt
-	}
-
-	log.Printf("📦 Mesh Push: Querying locations since %v", locTime)
-
-	locQuery := se.db.DB.Model(&models.StockLocation{}).Where("updated_at > ?", locTime)
-	if err := locQuery.Find(&locations).Error; err != nil {
-		log.Printf("❌ Mesh Push: Error querying locations: %v", err)
-	} else if len(locations) > 0 {
-		log.Printf("📦 Mesh Push: Found %d locations (since %v)", len(locations), locTime)
-		data.Locations = locations
-	} else {
-		log.Printf("📦 Mesh Push: No new locations found for %s (checked since %v)", node.InstanceID, locTime)
-	}
-
-	// Skip if nothing to push
-	if len(data.Shipments) == 0 && len(data.Tracking) == 0 && len(data.Devices) == 0 && len(data.Products) == 0 && len(data.Locations) == 0 {
-		log.Printf("Mesh Sync: No data to push to %s", node.InstanceID)
+	if len(checksums) == 0 {
+		log.Printf("Mesh Sync: No local shipments to sync.")
 		return nil
 	}
 
-	// Push to master
+	// 2. Build Negotiation Request (Manifest)
+	items := make([]ChecksumItem, len(checksums))
+	for i, c := range checksums {
+		items[i] = ChecksumItem{
+			EntityID: c.EntityID,
+			Hash:     c.FullHash,
+		}
+	}
+
+	reqBody := MeshNegotiationRequest{
+		EntityType: "shipment",
+		Items:      items,
+	}
+
+	reqJSON, _ := json.Marshal(reqBody)
+
+	// 3. Send Manifest to Remote Node
+	token, err := mesh.GenerateNodeToken(se.getMeshConfig())
+	if err != nil {
+		return fmt.Errorf("failed to generate token: %w", err)
+	}
+
+	url := node.BaseURL + "/api/mesh/negotiate"
+	httpReq, _ := http.NewRequest("POST", url, bytes.NewBuffer(reqJSON))
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Authorization", "Bearer "+token)
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("negotiation request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("negotiation failed HTTP %d: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	// 4. Parse Response (List of IDs the remote needs)
+	var negoResp MeshNegotiationResponse
+	if err := json.NewDecoder(resp.Body).Decode(&negoResp); err != nil {
+		return fmt.Errorf("failed to decode negotiation response: %w", err)
+	}
+
+	neededIDs := negoResp.RequestIDs
+	log.Printf("Mesh Sync: Negotiation complete. Remote needs %d shipments out of %d offered.", len(neededIDs), len(items))
+
+	if len(neededIDs) == 0 {
+		return nil // Nothing to sync
+	}
+
+	// 5. Fetch Full Data for Needed IDs
+	var shipments []models.StockPickingDelivery
+	if err := se.db.DB.Where("id IN ?", neededIDs).Find(&shipments).Error; err != nil {
+		return fmt.Errorf("failed to fetch shipment data: %w", err)
+	}
+
+	// Also fetch recent Tracking and Devices (time-based for now, negotiate separately later)
+	var tracking []models.DeliveryTracking
+	var devices []models.RegisteredDevice
+
+	if len(shipments) > 0 {
+		yesterday := time.Now().Add(-24 * time.Hour)
+		se.db.DB.Where("created_at > ?", yesterday).Find(&tracking)
+		se.db.DB.Unscoped().Where("updated_at > ?", yesterday).Find(&devices)
+	}
+
+	// 6. Build Push Payload
+	data := &MeshSyncResponse{
+		NodeID:    se.instanceID,
+		SyncTime:  time.Now(),
+		Shipments: shipments,
+		Tracking:  tracking,
+		Devices:   devices,
+	}
+
+	log.Printf("Mesh Sync: Pushing %d shipments, %d tracking, %d devices", len(shipments), len(tracking), len(devices))
+
+	// 7. Push Data
 	if err := se.PushToNode(node, data); err != nil {
 		return err
 	}
 
-	// Update sync metadata
+	// Update metadata (informational only, not used for sync logic anymore)
 	now := time.Now()
-	syncMeta.InstanceID = node.InstanceID
-	syncMeta.EntityType = "shipments_push"
-	syncMeta.LastSyncAt = &now
-	se.db.DB.Save(&syncMeta)
+	var syncMeta models.SyncMetadata
+	se.db.DB.Where("instance_id = ? AND entity_type = ?", node.InstanceID, "shipments_push").Assign(models.SyncMetadata{
+		InstanceID: node.InstanceID,
+		EntityType: "shipments_push",
+		LastSyncAt: &now,
+	}).FirstOrCreate(&syncMeta)
 
 	return nil
 }

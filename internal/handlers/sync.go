@@ -513,6 +513,51 @@ func (sh *SyncHandler) TriggerMeshSync(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// MeshNegotiate handles the checksum comparison request from a peer
+func (sh *SyncHandler) MeshNegotiate(w http.ResponseWriter, r *http.Request) {
+	var req sync.MeshNegotiationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// 1. Fetch all local checksums for this entity type
+	var localChecksums []models.EntityChecksum
+	if err := sh.db.Select("entity_id, full_hash").Where("entity_type = ?", req.EntityType).Find(&localChecksums).Error; err != nil {
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	// Create map for O(1) lookup
+	localMap := make(map[string]string)
+	for _, lc := range localChecksums {
+		localMap[lc.EntityID] = lc.FullHash
+	}
+
+	// 2. Compare
+	neededIDs := make([]string, 0)
+
+	for _, remoteItem := range req.Items {
+		localHash, exists := localMap[remoteItem.EntityID]
+
+		// If we don't have it or hash is different, we need it
+		if !exists || localHash != remoteItem.Hash {
+			neededIDs = append(neededIDs, remoteItem.EntityID)
+		}
+	}
+
+	// 3. Respond
+	resp := sync.MeshNegotiationResponse{
+		RequestIDs: neededIDs,
+	}
+
+	log.Printf("Mesh Negotiate: Peer offered %d %s items. Requested %d updates.",
+		len(req.Items), req.EntityType, len(neededIDs))
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
 // Helper functions
 
 func determineAction(localHash, remoteHash string) string {

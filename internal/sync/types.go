@@ -119,3 +119,20 @@ const (
 	PacketPlain     SyncPacketType = "plain"
 	PacketEncrypted SyncPacketType = "encrypted"
 )
+
+// ChecksumItem represents a minimal hash pair for negotiation
+type ChecksumItem struct {
+	EntityID string `json:"id"`
+	Hash     string `json:"h"` // Short json tag for bandwidth
+}
+
+// MeshNegotiationRequest is sent by source to check what needs syncing
+type MeshNegotiationRequest struct {
+	EntityType string         `json:"type"`
+	Items      []ChecksumItem `json:"items"`
+}
+
+// MeshNegotiationResponse is returned by target with list of IDs to fetch
+type MeshNegotiationResponse struct {
+	RequestIDs []string `json:"req_ids"` // IDs that are missing or different on target
+}
