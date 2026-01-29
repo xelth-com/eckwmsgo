@@ -379,12 +379,32 @@ func (s *Service) ToggleCarrier(id int64) error {
 }
 
 // ImportOpalOrders fetches orders from OPAL and updates the database
+// If OPAL provider is not configured (no credentials), this is a no-op.
+// Nodes without OPAL credentials receive shipment data via Mesh Sync instead.
 func (s *Service) ImportOpalOrders(ctx context.Context) error {
 	log := func(format string, args ...interface{}) {
 		fmt.Printf("[OPAL Import] "+format+"\n", args...)
 	}
 
-	// Create sync history record
+	// FIRST: Check if OPAL provider is available
+	// On nodes without credentials, provider won't be registered - this is expected behavior
+	providerInt, err := s.registry.Get("opal")
+	if err != nil {
+		// No OPAL provider = no credentials = sync-only node
+		// This is NOT an error, just skip silently
+		log("OPAL provider not configured - this node receives data via Mesh Sync")
+		return nil
+	}
+
+	// Type assert to get access to FetchRecentOrders
+	opalProvider, ok := providerInt.(*opal.Provider)
+	if !ok {
+		// Wrong provider type - also skip silently
+		log("OPAL provider type mismatch - skipping")
+		return nil
+	}
+
+	// Provider is available - NOW create sync history record
 	history := models.SyncHistory{
 		Provider:  "opal",
 		Status:    "running",
@@ -396,28 +416,6 @@ func (s *Service) ImportOpalOrders(ctx context.Context) error {
 
 	startTime := time.Now()
 	log("Starting OPAL order import...")
-
-	// Get the OPAL provider from registry
-	// On microservice nodes without OPAL credentials, this provider won't be registered.
-	// That's expected - such nodes receive shipment data via Mesh Sync instead.
-	providerInt, err := s.registry.Get("opal")
-	if err != nil {
-		s.updateSyncHistoryErrorWithContext(&history, err, map[string]interface{}{
-			"step": "get_provider",
-			"provider": "opal",
-		})
-		return fmt.Errorf("OPAL provider not configured on this node (sync-only mode): %w", err)
-	}
-
-	// Type assert to get access to FetchRecentOrders
-	opalProvider, ok := providerInt.(*opal.Provider)
-	if !ok {
-		err := fmt.Errorf("provider is not OPAL")
-		s.updateSyncHistoryErrorWithContext(&history, err, map[string]interface{}{
-			"step": "type_assertion",
-		})
-		return err
-	}
 
 	// Fetch orders from OPAL
 	orders, err := opalProvider.FetchRecentOrders(ctx)
@@ -732,12 +730,32 @@ func (s *Service) updateSyncHistoryError(history *models.SyncHistory, err error)
 }
 
 // ImportDhlOrders fetches orders from DHL and updates the database
+// If DHL provider is not configured (no credentials), this is a no-op.
+// Nodes without DHL credentials receive shipment data via Mesh Sync instead.
 func (s *Service) ImportDhlOrders(ctx context.Context) error {
 	log := func(format string, args ...interface{}) {
 		fmt.Printf("[DHL Import] "+format+"\n", args...)
 	}
 
-	// Create sync history record
+	// FIRST: Check if DHL provider is available
+	// On nodes without credentials, provider won't be registered - this is expected behavior
+	providerInt, err := s.registry.Get("dhl")
+	if err != nil {
+		// No DHL provider = no credentials = sync-only node
+		// This is NOT an error, just skip silently
+		log("DHL provider not configured - this node receives data via Mesh Sync")
+		return nil
+	}
+
+	// Type assert to get access to FetchRecentShipments
+	dhlProvider, ok := providerInt.(*dhl.Provider)
+	if !ok {
+		// Wrong provider type - also skip silently
+		log("DHL provider type mismatch - skipping")
+		return nil
+	}
+
+	// Provider is available - NOW create sync history record
 	history := models.SyncHistory{
 		Provider:  "dhl",
 		Status:    "running",
@@ -749,28 +767,6 @@ func (s *Service) ImportDhlOrders(ctx context.Context) error {
 
 	startTime := time.Now()
 	log("Starting DHL order import...")
-
-	// Get the DHL provider from registry
-	// On microservice nodes without DHL credentials, this provider won't be registered.
-	// That's expected - such nodes receive shipment data via Mesh Sync instead.
-	providerInt, err := s.registry.Get("dhl")
-	if err != nil {
-		s.updateSyncHistoryErrorWithContext(&history, err, map[string]interface{}{
-			"step":     "get_provider",
-			"provider": "dhl",
-		})
-		return fmt.Errorf("DHL provider not configured on this node (sync-only mode): %w", err)
-	}
-
-	// Type assert to get access to FetchRecentShipments
-	dhlProvider, ok := providerInt.(*dhl.Provider)
-	if !ok {
-		err := fmt.Errorf("provider is not DHL")
-		s.updateSyncHistoryErrorWithContext(&history, err, map[string]interface{}{
-			"step": "type_assertion",
-		})
-		return err
-	}
 
 	// Fetch shipments from DHL (last 14 days)
 	shipments, err := dhlProvider.FetchRecentShipments(ctx, 14)

@@ -151,11 +151,11 @@ func (sh *SyncHandler) CompareChecksums(w http.ResponseWriter, r *http.Request) 
 }
 
 // RebuildChecksums rebuilds checksums for entities
+// POST /api/sync/checksums/rebuild
+// Body: {"entity_type": "shipment"} or {"entity_type": "all"}
 func (sh *SyncHandler) RebuildChecksums(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		EntityType string  `json:"entity_type"`
-		EntityID   *string `json:"entity_id"`
-		Recursive  bool    `json:"recursive"`
+		EntityType string `json:"entity_type"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -163,13 +163,32 @@ func (sh *SyncHandler) RebuildChecksums(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Trigger a full sync to rebuild checksums
-	sh.syncEngine.RequestFullSync()
+	results := make(map[string]int)
+
+	if req.EntityType == "all" || req.EntityType == "" {
+		// Rebuild all entity types
+		entityTypes := []string{"shipment", "tracking", "device", "sync_history"}
+		for _, et := range entityTypes {
+			count, err := sh.syncEngine.RebuildEntityChecksums(et)
+			if err != nil {
+				log.Printf("Error rebuilding %s checksums: %v", et, err)
+			}
+			results[et] = count
+		}
+	} else {
+		// Rebuild specific entity type
+		count, err := sh.syncEngine.RebuildEntityChecksums(req.EntityType)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to rebuild checksums: %v", err), http.StatusInternalServerError)
+			return
+		}
+		results[req.EntityType] = count
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"message": "Checksum rebuild triggered",
-		"status":  "processing",
+		"message": "Checksums rebuilt successfully",
+		"results": results,
 	})
 }
 

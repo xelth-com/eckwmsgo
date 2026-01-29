@@ -10,6 +10,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/xelth-com/eckwmsgo/internal/ai"
+	"github.com/xelth-com/eckwmsgo/internal/buildinfo"
 	"github.com/xelth-com/eckwmsgo/internal/config"
 	"github.com/xelth-com/eckwmsgo/internal/database"
 	"github.com/xelth-com/eckwmsgo/internal/middleware"
@@ -253,8 +254,12 @@ func NewRouter(db *database.DB, cfg *config.Config) *Router {
 // healthCheck returns the health status of the API
 func (r *Router) healthCheck(w http.ResponseWriter, req *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]string{
-		"status": "ok",
-		"server": "local",
+		"status":      "ok",
+		"server":      "local",
+		"commit":      buildinfo.CommitHash,
+		"commit_time": buildinfo.CommitTime,
+		"build_time":  buildinfo.BuildTime,
+		"start_time":  buildinfo.StartTime,
 	})
 }
 
@@ -903,6 +908,7 @@ func (r *Router) registerAdminRoutes(prefix string) {
 		admin.HandleFunc("/devices", r.listDevices).Methods("GET")
 		admin.HandleFunc("/devices/{id}/status", r.updateDeviceStatus).Methods("PUT")
 		admin.HandleFunc("/devices/{id}", r.deleteDevice).Methods("DELETE")
+		admin.HandleFunc("/devices/{id}/restore", r.restoreDevice).Methods("POST") // Restore soft-deleted device
 	}
 }
 

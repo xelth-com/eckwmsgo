@@ -541,3 +541,98 @@ func (se *SyncEngine) GetAllChecksums(entityType EntityType) ([]models.EntityChe
 func (se *SyncEngine) GetRole() SyncNodeRole {
 	return se.securityLayer.GetRole()
 }
+
+// RebuildEntityChecksums rebuilds checksums for all entities of a given type
+// This is useful when checksums are missing or corrupted
+func (se *SyncEngine) RebuildEntityChecksums(entityType string) (int, error) {
+	calculator := NewChecksumCalculator(se.instanceID)
+	count := 0
+
+	switch entityType {
+	case "shipment":
+		var shipments []models.StockPickingDelivery
+		if err := se.db.DB.Unscoped().Find(&shipments).Error; err != nil {
+			return 0, fmt.Errorf("failed to fetch shipments: %w", err)
+		}
+		for _, s := range shipments {
+			if err := se.updateChecksumForEntity(calculator, &s); err != nil {
+				log.Printf("Failed to rebuild checksum for shipment %d: %v", s.ID, err)
+				continue
+			}
+			count++
+		}
+
+	case "tracking":
+		var tracking []models.DeliveryTracking
+		if err := se.db.DB.Find(&tracking).Error; err != nil {
+			return 0, fmt.Errorf("failed to fetch tracking: %w", err)
+		}
+		for _, t := range tracking {
+			if err := se.updateChecksumForEntity(calculator, &t); err != nil {
+				log.Printf("Failed to rebuild checksum for tracking %d: %v", t.ID, err)
+				continue
+			}
+			count++
+		}
+
+	case "device":
+		var devices []models.RegisteredDevice
+		if err := se.db.DB.Unscoped().Find(&devices).Error; err != nil {
+			return 0, fmt.Errorf("failed to fetch devices: %w", err)
+		}
+		for _, d := range devices {
+			if err := se.updateChecksumForEntity(calculator, &d); err != nil {
+				log.Printf("Failed to rebuild checksum for device %s: %v", d.DeviceID, err)
+				continue
+			}
+			count++
+		}
+
+	case "sync_history":
+		var history []models.SyncHistory
+		if err := se.db.DB.Unscoped().Find(&history).Error; err != nil {
+			return 0, fmt.Errorf("failed to fetch sync_history: %w", err)
+		}
+		for _, h := range history {
+			if err := se.updateChecksumForEntity(calculator, &h); err != nil {
+				log.Printf("Failed to rebuild checksum for sync_history %d: %v", h.ID, err)
+				continue
+			}
+			count++
+		}
+
+	default:
+		return 0, fmt.Errorf("unknown entity type: %s", entityType)
+	}
+
+	log.Printf("✅ Rebuilt %d checksums for entity type '%s'", count, entityType)
+	return count, nil
+}
+
+// updateChecksumForEntity calculates and saves checksum for a single entity
+func (se *SyncEngine) updateChecksumForEntity(calculator *ChecksumCalculator, entity models.SyncableEntity) error {
+	hash, err := calculator.ComputeChecksum(entity)
+	if err != nil {
+		return fmt.Errorf("failed to compute checksum: %w", err)
+	}
+
+	checksum := models.EntityChecksum{
+		EntityType:     entity.GetEntityType(),
+		EntityID:       entity.GetEntityID(),
+		ContentHash:    hash,
+		FullHash:       hash,
+		LastUpdated:    time.Now().UTC(),
+		SourceInstance: se.instanceID,
+	}
+
+	err = se.db.DB.Where("entity_type = ? AND entity_id = ?", checksum.EntityType, checksum.EntityID).
+		Assign(models.EntityChecksum{
+			ContentHash:    checksum.ContentHash,
+			FullHash:       checksum.FullHash,
+			LastUpdated:    checksum.LastUpdated,
+			SourceInstance: checksum.SourceInstance,
+		}).
+		FirstOrCreate(&checksum).Error
+
+	return err
+}

@@ -535,6 +535,11 @@ func (se *SyncEngine) pushShipmentsToNode(node *mesh.NodeInfo) error {
 // merkleSync performs Merkle Tree based sync for an entity type
 // Returns list of entity IDs that need to be pushed to remote
 func (se *SyncEngine) merkleSync(node *mesh.NodeInfo, token string, client *http.Client, entityType string) []string {
+	// 0. Check how many checksums we have for this entity type
+	var checksumCount int64
+	se.db.DB.Model(&models.EntityChecksum{}).Where("entity_type = ?", entityType).Count(&checksumCount)
+	log.Printf("Merkle Sync: Found %d checksums for entity type '%s'", checksumCount, entityType)
+
 	// 1. Build local Merkle tree
 	localTree := NewMerkleTree(se.db, entityType)
 	if err := localTree.Build(); err != nil {
@@ -544,7 +549,7 @@ func (se *SyncEngine) merkleSync(node *mesh.NodeInfo, token string, client *http
 
 	localRoot := localTree.GetRootHash()
 	if localRoot == "" {
-		log.Printf("Merkle Sync: No local %s data", entityType)
+		log.Printf("Merkle Sync: No local %s data (no checksums found)", entityType)
 		return nil
 	}
 

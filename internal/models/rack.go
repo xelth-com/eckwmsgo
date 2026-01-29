@@ -1,6 +1,11 @@
 package models
 
-import "time"
+import (
+	"fmt"
+	"time"
+
+	"gorm.io/gorm"
+)
 
 // WarehouseRack represents a storage rack on the visual warehouse blueprint
 type WarehouseRack struct {
@@ -23,8 +28,9 @@ type WarehouseRack struct {
 	VisualWidth  int `gorm:"default:0" json:"visualWidth"`  // Override width in px
 	VisualHeight int `gorm:"default:0" json:"visualHeight"` // Override height in px
 
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	CreatedAt time.Time      `json:"createdAt"`
+	UpdatedAt time.Time      `json:"updatedAt"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"` // Soft delete for sync
 
 	// Relations
 	Warehouse      *StockLocation `gorm:"foreignKey:WarehouseID" json:"warehouse,omitempty"`
@@ -32,3 +38,13 @@ type WarehouseRack struct {
 }
 
 func (WarehouseRack) TableName() string { return "warehouse_racks" }
+
+// GetEntityID implements SyncableEntity interface
+func (r WarehouseRack) GetEntityID() string {
+	return fmt.Sprintf("%d", r.ID)
+}
+
+// GetEntityType implements SyncableEntity interface
+func (r WarehouseRack) GetEntityType() string {
+	return "rack"
+}

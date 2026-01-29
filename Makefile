@@ -41,7 +41,7 @@ dev:
 
 build-prod:
 	@echo "🔨 Building optimized production binary..."
-	go build -ldflags="-s -w" -o eckwms cmd/api/main.go
+	go build -ldflags="-s -w -X github.com/xelth-com/eckwmsgo/internal/buildinfo.BuildTime=$$(date -u '+%Y-%m-%dT%H:%M:%SZ') -X github.com/xelth-com/eckwmsgo/internal/buildinfo.CommitTime=$$(git log -1 --format=%cI) -X github.com/xelth-com/eckwmsgo/internal/buildinfo.CommitHash=$$(git rev-parse --short HEAD)" -o eckwms cmd/api/main.go
 	@ls -lh eckwms
 
 deploy:
@@ -50,7 +50,7 @@ deploy:
 
 deploy-quick:
 	@echo "⚡ Quick deploy to production (antigravity)..."
-	ssh antigravity 'cd /var/www/eckwmsgo && git pull && go mod tidy && go build -ldflags="-s -w" -buildvcs=false -o eckwms cmd/api/main.go && systemctl restart eckwmsgo && systemctl status eckwmsgo --no-pager'
+	ssh antigravity 'cd /var/www/eckwmsgo && git pull && go mod tidy && go build -ldflags="-s -w -X github.com/xelth-com/eckwmsgo/internal/buildinfo.BuildTime=$$(date -u +%Y-%m-%dT%H:%M:%SZ) -X github.com/xelth-com/eckwmsgo/internal/buildinfo.CommitTime=$$(git log -1 --format=%cI) -X github.com/xelth-com/eckwmsgo/internal/buildinfo.CommitHash=$$(git rev-parse --short HEAD)" -buildvcs=false -o eckwms cmd/api/main.go && systemctl restart eckwmsgo && systemctl status eckwmsgo --no-pager'
 
 status:
 	@echo "📊 Checking production service status..."

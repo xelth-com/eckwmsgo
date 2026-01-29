@@ -32,6 +32,8 @@ func (cc *ChecksumCalculator) ComputeChecksum(entity interface{}) (string, error
 	}
 
 	// 2. Remove ignored fields (timestamps, local IDs that shouldn't affect content sync)
+	// NOTE: We keep DeletedAt / deleted_at because soft deletes need to be synchronized
+	// If DeletedAt is different, the entity was soft-deleted and we need to sync that change
 	delete(flatMap, "created_at")
 	delete(flatMap, "updated_at")
 	delete(flatMap, "last_synced_at")
