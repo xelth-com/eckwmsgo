@@ -399,12 +399,17 @@ func (s *Service) ImportOpalOrders(ctx context.Context) error {
 	// Type assert to get access to FetchRecentOrders
 	opalProvider, ok := providerInt.(*opal.Provider)
 	if !ok {
-		// Wrong provider type - also skip silently
 		log("OPAL provider type mismatch - skipping")
 		return nil
 	}
 
-	// Provider is available - NOW create sync history record
+	// Check if provider is enabled (has credentials)
+	if !opalProvider.IsEnabled() {
+		log("OPAL provider disabled (no credentials) - this node receives data via Mesh Sync")
+		return nil
+	}
+
+	// Provider is available and enabled - NOW create sync history record
 	history := models.SyncHistory{
 		Provider:  "opal",
 		Status:    "running",
@@ -750,12 +755,17 @@ func (s *Service) ImportDhlOrders(ctx context.Context) error {
 	// Type assert to get access to FetchRecentShipments
 	dhlProvider, ok := providerInt.(*dhl.Provider)
 	if !ok {
-		// Wrong provider type - also skip silently
 		log("DHL provider type mismatch - skipping")
 		return nil
 	}
 
-	// Provider is available - NOW create sync history record
+	// Check if provider is enabled (has credentials)
+	if !dhlProvider.IsEnabled() {
+		log("DHL provider disabled (no credentials) - this node receives data via Mesh Sync")
+		return nil
+	}
+
+	// Provider is available and enabled - NOW create sync history record
 	history := models.SyncHistory{
 		Provider:  "dhl",
 		Status:    "running",

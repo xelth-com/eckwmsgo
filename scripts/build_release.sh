@@ -33,6 +33,9 @@ CGO_ENABLED=0 GOOS=$OS GOARCH=$ARCH go build -ldflags="$LDFLAGS" -o $OUTPUT ./cm
 
 echo "✅ Build Complete: $OUTPUT ($OS/$ARCH)"
 if [ "$OS" == "linux" ] && [ "$ARCH" == "arm64" ]; then
-    mv $OUTPUT eckwms-linux-arm64
-    echo "📦 Saved as eckwms-linux-arm64"
+    cp $OUTPUT eckwms-linux-arm64
+    # Also copy to eckwmsgo (the name systemd expects)
+    mv $OUTPUT eckwmsgo
+    chmod +x eckwmsgo
+    echo "📦 Saved as eckwms-linux-arm64 + eckwmsgo"
 fi
